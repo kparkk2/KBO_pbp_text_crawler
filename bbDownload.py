@@ -1,4 +1,4 @@
-# bb_data_get_json.py
+# bbDownload.py
 #-*- coding: utf-8 -*-
 #(1) get all matchup gameday(text relay broadcast) URL. all match in YEAR/MONTH.
 #(2) open URL and parse.
@@ -11,25 +11,22 @@ import os
 from bs4 import BeautifulSoup
 import re
 
-def bb_data_get_json( mon_start, mon_end, year_start, year_end ):
+def bbDownload( mon_start, mon_end, year_start, year_end ):
     # set url prefix
     scheduleURL_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?"
     resultURL_prefix = "http://sports.news.naver.com/gameCenter/gameResult.nhn?category=kbo&gameId="
 
     # make directory
     if not os.path.isdir("./bb_data"):
-        print("make dir")
         os.mkdir("./bb_data")
 
     for year in range(year_start, year_end + 1):
         # make year directory
         if not os.path.isdir("./bb_data/" + str(year)):
-            print("make dir")
             os.mkdir("./bb_data/" + str(year))
 
         for month in range(mon_start, mon_end + 1):
             if not os.path.isdir("./bb_data/" + str(year) + "/" + str(month)):
-                print("make dir")
                 os.mkdir("./bb_data/" + str(year) + "/" + str(month))
 
     os.chdir("./bb_data")
@@ -86,7 +83,7 @@ def bb_data_get_json( mon_start, mon_end, year_start, year_end ):
 
                 soup = BeautifulSoup(resultHTML.read(), "lxml")
                 script = soup.find('script', text=re.compile('ChartDataClass'))
-                json_text = re.search(r'"ballsInfo":({.*?}}})', script.string, flags=re.DOTALL).group(1)
+                json_text = re.search(r'({"teamsInfo":{.*?}}}})', script.string, flags=re.DOTALL).group(1)
                 data = json.loads(json_text, 'utf-8')
 
                 bb_data_filename = gameID[0:13] + '_bb_data.json'

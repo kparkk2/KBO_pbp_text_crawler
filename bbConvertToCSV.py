@@ -1,5 +1,5 @@
 #-*- coding: utf-8 -*-
-#bb_data_json_to_csv.py
+#bbConvertToCSV.py
 #
 # IN: year/month - target match time period
 # OUT: CSV files for target match time period
@@ -10,11 +10,10 @@
 #(4) dump to the CSV file.
 
 import os
-import sys
-import csv
 import json
 import random
 import platform
+
 
 positions = [ \
     #투수, 포수, 1루수, 2루수
@@ -101,15 +100,11 @@ res_string = ["안타", "2루타", "3루타", "홈런", "실책", "땅볼", "뜬
 
 def write_in_csv( filename, data, isComma ):
     filename.write( '"' + data + '"' )
-    if isComma == True:
+    if isComma:
         filename.write( ',' )
 
-def write_balls( ball_ids, csv_file, js, matchInfo, year, isHome ):
-    homeaway = ''
-    if isHome == True:
-        homeaway = 'home'
-    else:
-        homeaway = 'away'
+def write_data( ball_ids, csv_file, js, matchInfo, year, isHome ):
+    homeaway = 'home' if isHome==True else 'away'
 
     match_date = matchInfo[0:8]
     match_away = matchInfo[8:10]
@@ -145,10 +140,11 @@ def write_balls( ball_ids, csv_file, js, matchInfo, year, isHome ):
                     fielder_position = ""
                 break
 
-        batterName = batterName.encode('utf-8')
-        pitcherName = pitcherName.encode('utf-8')
-        result = result.encode('utf-8')
-        inn = inn.encode('utf-8')
+        # python3에서는 utf-8 인코딩 변환이 필요 없는듯
+        #batterName = batterName.encode('utf-8')
+        #pitcherName = pitcherName.encode('utf-8')
+        #result = result.encode('utf-8')
+        #inn = inn.encode('utf-8')
         """
 	# TO ADD RANDOM NUMBERS TO X/Y COORDINATE, INCLUDE CODES BELOW:
         rx = random.randrange( 1, 11 ) * random.choice( [-1, 1] )
@@ -158,6 +154,7 @@ def write_balls( ball_ids, csv_file, js, matchInfo, year, isHome ):
             gy = gy + ry
 	# (COMMENTED)
         """
+        write_in_csv( csv_file, date, True )
         write_in_csv( csv_file, batterName, True )
         write_in_csv( csv_file, pitcherName, True )
         write_in_csv( csv_file, inn, True )
@@ -166,100 +163,90 @@ def write_balls( ball_ids, csv_file, js, matchInfo, year, isHome ):
         write_in_csv( csv_file, fielder_position, True )
         write_in_csv( csv_file, actual_result, True )
         write_in_csv( csv_file, result, True )
-        write_in_csv( csv_file, date, True )
         write_in_csv( csv_file, get_team( batterTeam ), True )
         write_in_csv( csv_file, get_team( pitcherTeam ), True )
         write_in_csv( csv_file, str(seqno), False )
         csv_file.write('\n')
 
 
-def bb_data_json_to_csv( mon_start, mon_end, year_start, year_end ):
+def bbConvertToCSV( mon_start, mon_end, year_start, year_end ):
     if not os.path.isdir("./bb_data"):
-        print "DOWNLOAD DATA FIRST"
+        print( "DOWNLOAD DATA FIRST" )
         exit(1)
     os.chdir("./bb_data")
     # current path : ./bb_data/
-    print "##################################################"
-    print "###### CONVERT BB DATA(JSON) TO CSV FORMAT #######"
-    print "##################################################"
+    print( "##################################################" )
+    print( "###### CONVERT BB DATA(JSON) TO CSV FORMAT #######" )
+    print( "##################################################" )
 
-    isWindows = False # Win: True, Other: False
     # check OS
-    if platform.system() == 'Windows':
-        isWindows = True
+    isWindows = True if platform.system() == 'Windows' else False
+    # Win: True, Other: False
 
     for year in range(year_start, year_end+1):
-        print "  for Year " + str(year) + "..."
-        # (1) move into YEAR dir
+        print( "  for Year " + str(year) + "..." )
 
         if not os.path.isdir("./" + str(year)):
-            print os.getcwd()
-            print "DOWNLOAD YEAR " + str(year) + " DATA FIRST"
+            print( os.getcwd() )
+            print( "DOWNLOAD YEAR " + str(year) + " DATA FIRST" )
             continue
-        os.chdir( "./" + str(year) )
-        # current path : ./bb_data/YEAR/
 
-        csv_year_filename = str(year) + ".csv"
-        csv_year_file = open( csv_year_filename, 'w' )
-        if isWindows:
-            csv_year_file.write( '\xEF\xBB\xBF' )
-        csv_year_file.write( '"batterName","pitcherName","inn","gx","gy","fielder_position","actual_result","result","date","batterTeam","pitcherTeam","seqno"\n')
-
+        csv_year = '' # dummy
         for month in range(mon_start, mon_end+1):
-            print "    Month " + str(month) + "... "
+            print("    Month " + str(month) + "... ")
             i = 0
-            mon_file_num = 0
 
-            # (2) move into MONTH dir
-            if not os.path.isdir( "./" + str(month) ):
-                print os.getcwd()
-                print "DOWNLOAD MONTH " + str(month) + " DATA FIRST"
+            if month == mon_start:
+                csv_year = open( str(year) + "/" + str(year) + ".csv", 'w')
+                if isWindows:
+                    csv_year.write('\xEF\xBB\xBF')
+                csv_year.write(
+                    '"date","batterName","pitcherName","inn","gx","gy","fielder_position","actual_result","result","batterTeam","pitcherTeam","seqno"\n')
+
+            if not os.path.isdir( str(year) + "/" + str(month) ):
+                print( os.getcwd() )
+                print("DOWNLOAD MONTH " + str(month) + " DATA FIRST")
                 continue
-            os.chdir( "./" + str(month) )
+            os.chdir( str(year) + "/" + str(month) )
             # current path : ./bb_data/YEAR/MONTH/
 
-            # (3) check if file exists
             files = [f for f in os.listdir('.') if os.path.isfile(f)]
-
-            for file_name in files:
-                if file_name.find( 'bb_data' ) > 0:
-                    mon_file_num += 1
+            mon_file_num = sum(1 for f in files if f.find('bb_data') > 0)
 
             if not mon_file_num > 0:
-                print os.getcwd()
-                print "DOWNLOAD MONTH " + str(month) + " DATA FIRST"
-                os.chdir('..')
-                # current path : ./bb_data/YEAR/
+                print( os.getcwd() )
+                print("DOWNLOAD MONTH " + str(month) + " DATA FIRST")
+                os.chdir('../../')
+                # current path : ./bb_data/
                 continue
 
             bar_prefix = '    Converting: '
-            sys.stdout.write('\r%s[waiting]' % (bar_prefix)),
+            print('\r%s[waiting]' % (bar_prefix), end="")
 
-            # (4) create 'csv' folder
             if not os.path.isdir( "./csv" ):
                 os.mkdir( "./csv" )
 
-            csv_month_filename = ""
+            csv_month_name = "./" + str(year) + "_"
             if month < 10:
-                csv_month_filename = "./" + str(year) + "_0" + str(month) + ".csv"
-            else:
-                csv_month_filename = "./" + str(year) + "_" + str(month) + ".csv"
-            csv_month_file = open( csv_month_filename, 'w' )
+                csv_month_name = csv_month_name + "0"
+            csv_month_name = csv_month_name + str(month) + ".csv"
+
+            csv_month = open( csv_month_name, 'w' )
             if isWindows:
-                csv_month_file.write( '\xEF\xBB\xBF' )
-            csv_month_file.write( '"batterName","pitcherName","inn","gx","gy","fielder_position","actual_result","result","date","batterTeam","pitcherTeam","seqno"\n')
+                csv_month.write( '\xEF\xBB\xBF' )
+            csv_month.write( '"date","batterName","pitcherName","inn","gx","gy","fielder_position","actual_result","result","batterTeam","pitcherTeam","seqno"\n')
 
             empty_files = 0
-            for file_name in files:
-                if file_name.find( 'bb_data' ) <= 0:
+            for f in files:
+                if f.find( 'bb_data' ) <= 0:
                     continue
 
-                if os.path.getsize( file_name ) > 1024:
-                    js_in = open( file_name, 'r' )
+                if os.path.getsize( f ) > 1024:
+                    js_in = open( f, 'r' )
                     js = json.loads( js_in.read(), 'utf-8' )
                     js_in.close()
 
-                    matchInfo = file_name.split('_bb')[0]
+                    matchInfo = f.split('_bb')[0]
                     match_date = matchInfo[0:8]
                     match_away = matchInfo[8:10]
                     match_home = matchInfo[10:12]
@@ -268,41 +255,41 @@ def bb_data_json_to_csv( mon_start, mon_end, year_start, year_end ):
                     csv_file = open( './csv/' + matchInfo + '_bb.csv', 'w')
                     if isWindows:
                         csv_file.write( '\xEF\xBB\xBF' )
-                    csv_file.write( '"batterName","pitcherName","inn","gx","gy","fielder_position","actual_result","result","date","batterTeam","pitcherTeam","seqno"\n')
+                    csv_file.write( '"date","batterName","pitcherName","inn","gx","gy","fielder_position","actual_result","result","batterTeam","pitcherTeam","seqno"\n')
 
                     # away first
                     hr_id = js['teamsInfo']['away']['hr']
                     hit_id = js['teamsInfo']['away']['hit']
                     o_id = js['teamsInfo']['away']['o']
 
-                    write_balls( hr_id, csv_file, js, matchInfo, year, False )
-                    write_balls( hit_id, csv_file, js, matchInfo, year, False )
-                    write_balls( o_id, csv_file, js, matchInfo, year, False )
+                    write_data( hr_id, csv_file, js, matchInfo, year, False )
+                    write_data( hit_id, csv_file, js, matchInfo, year, False )
+                    write_data( o_id, csv_file, js, matchInfo, year, False )
 
-                    write_balls( hr_id, csv_month_file, js, matchInfo, year, False )
-                    write_balls( hit_id, csv_month_file, js, matchInfo, year, False )
-                    write_balls( o_id, csv_month_file, js, matchInfo, year, False )
+                    write_data( hr_id, csv_month, js, matchInfo, year, False )
+                    write_data( hit_id, csv_month, js, matchInfo, year, False )
+                    write_data( o_id, csv_month, js, matchInfo, year, False )
 
-                    write_balls( hr_id, csv_year_file, js, matchInfo, year, False )
-                    write_balls( hit_id, csv_year_file, js, matchInfo, year, False )
-                    write_balls( o_id, csv_year_file, js, matchInfo, year, False )
+                    write_data( hr_id, csv_year, js, matchInfo, year, False )
+                    write_data( hit_id, csv_year, js, matchInfo, year, False )
+                    write_data( o_id, csv_year, js, matchInfo, year, False )
 
                     # home next
                     hr_id = js['teamsInfo']['home']['hr']
                     hit_id = js['teamsInfo']['home']['hit']
                     o_id = js['teamsInfo']['home']['o']
 
-                    write_balls( hr_id, csv_file, js, matchInfo, year, True )
-                    write_balls( hit_id, csv_file, js, matchInfo, year, True )
-                    write_balls( o_id, csv_file, js, matchInfo, year, True )
+                    write_data( hr_id, csv_file, js, matchInfo, year, True )
+                    write_data( hit_id, csv_file, js, matchInfo, year, True )
+                    write_data( o_id, csv_file, js, matchInfo, year, True )
 
-                    write_balls( hr_id, csv_month_file, js, matchInfo, year, True )
-                    write_balls( hit_id, csv_month_file, js, matchInfo, year, True )
-                    write_balls( o_id, csv_month_file, js, matchInfo, year, True )
+                    write_data( hr_id, csv_month, js, matchInfo, year, True )
+                    write_data( hit_id, csv_month, js, matchInfo, year, True )
+                    write_data( o_id, csv_month, js, matchInfo, year, True )
 
-                    write_balls( hr_id, csv_year_file, js, matchInfo, year, True )
-                    write_balls( hit_id, csv_year_file, js, matchInfo, year, True )
-                    write_balls( o_id, csv_year_file, js, matchInfo, year, True )
+                    write_data( hr_id, csv_year, js, matchInfo, year, True )
+                    write_data( hit_id, csv_year, js, matchInfo, year, True )
+                    write_data( o_id, csv_year, js, matchInfo, year, True )
 
                     csv_file.close()
                     i += 1
@@ -314,27 +301,23 @@ def bb_data_json_to_csv( mon_start, mon_end, year_start, year_end ):
                 if mon_file_num > 30 :
                     progress_pct = (float(i) / float(mon_file_num))
                     bar = '█' * int(progress_pct*30) + '-'*(30-int(progress_pct*30))
-                    sys.stdout.write('\r%s[%s] %s / %s, %2.1f %%' % (bar_prefix, bar, i, mon_file_num, progress_pct*100)),
-                    sys.stdout.flush()
+                    print('\r%s[%s] %s / %s, %2.1f %%' % (bar_prefix, bar, i, mon_file_num, progress_pct*100), end="")
                 elif mon_file_num == 0:
                     mon_file_num = 0
                     # do nothing
                 else:
                     bar = '█' * i + '-' * (mon_file_num - i)
-                    sys.stdout.write('\r%s[%s] %s / %s, %2.1f %%' % (bar_prefix, bar, i, mon_file_num, float(i)/float(mon_file_num)*100)),
-                    sys.stdout.flush()
+                    print('\r%s[%s] %s / %s, %2.1f %%' % (bar_prefix, bar, i, mon_file_num, float(i)/float(mon_file_num)*100), end="")
 
-            csv_month_file.close()
-            sys.stdout.write('\n')
-            sys.stdout.flush()
-            print '        Converted ' + str(i) + ' files',
-            print '(' + str(empty_files) + ' files empty)'
-            os.chdir('..')
-            # current path : ./bb_data/YEAR/
+            csv_month.close()
+            print()
+            print('        Converted ' + str(i) + ' files', end="")
+            print('(' + str(empty_files) + ' files empty)')
+            os.chdir('../../')
+            # current path : ./bb_data/
 
-        csv_year_file.close()
-        os.chdir('..')
+        csv_year.close()
         # current path : ./bb_data/
     os.chdir('..')
     # current path : ./
-    print "JSON to CSV convert Done."
+    print("JSON to CSV convert Done.")

@@ -2,23 +2,35 @@
 #-*- coding: utf-8 -*-
 
 import datetime
+import logging
+import logging.handlers
 
-def convert_args( arr, args, options ):
+logger = logging.getLogger('mylogger')
+fomatter = logging.Formatter('[%(levelname)s\t||%(filename)s::%(lineno)s] %(asctime)s > %(message)s')
+streamHandler = logging.StreamHandler()
+streamHandler.setFormatter(fomatter)
+logger.addHandler(streamHandler)
+logger.setLevel(logging.DEBUG)
+
+
+def convert_args( output, input, options ):
     # convert arguments
     # check if not number, integer
     onlyConvert = False
     onlyDownload = False
     year_max = datetime.datetime.now().year
 
-    if len(args) < 2:
-        arr[0] = 3
-        arr[1] = 10
-        arr[2] = 2016
-        arr[3] = year_max
+    if len(input) < 2:
+        output[0] = 3
+        output[1] = 10
+        output[2] = 2016
+        output[3] = min(2016, year_max)
         return
-    if len(args) < 7:
+
+    # max 6 args - PYFILE ARG1 ARG2 ARG3 ARG4 ARG5
+    if len(input) < 7:
         i = 0
-        for arg in args:
+        for arg in input:
             if not arg.isdigit():
                 if arg.find('-c') >= 0:
                     onlyConvert = True
@@ -27,28 +39,29 @@ def convert_args( arr, args, options ):
                 elif arg.find('.py') >= 0:
                     continue
                 else:
-                    print args
-                    print "invalid argument"
+                    logger.setLevel(logging.DEBUG)
+                    logger.debug( input )
+                    logger.debug("invalid argument")
                     exit(1)
             else:
-                arr[i] = int(arg)
+                output[i] = int(arg)
                 i = i+1
     if i == 0:
-        arr[0] = 3
-        arr[1] = 10
-        arr[2] = 2016
-        arr[3] = year_max
+        output[0] = 3
+        output[1] = 10
+        output[2] = 2016
+        output[3] = min(2016, year_max)
 
     options[0] = onlyConvert
     options[1] = onlyDownload
 
 def check_args( args ):
     # check month & year condition
-    mon_start = 0
+    mon_start = 13
     mon_end = 0
-    year_start = 0
-    year_end = 0
     year_max = datetime.datetime.now().year
+    year_start = year_max
+    year_end = 0
 
     digits = 0
     for arg in args:
@@ -62,59 +75,35 @@ def check_args( args ):
     mons = 0
     for i in range(digits):
         if args[i] > 12 and args[i] <= year_max:
-            if year_start == 0:
-                year_start = int(args[i])
-                years += 1
-            elif year_end == 0:
-                if year_start <= int(args[i]):
-                    year_end = int(args[i])
-                    years += 1
-                else:
-                    year_end = year_start
-                    year_start = int(args[i])
-                    years += 1
-            else:
-                print args
-                print "invalid argument - year too many"
+            if years == 2:
+                logger.setLevel(logging.DEBUG)
+                logger.debug( args )
+                logger.debug("invalid argument : %d"%(args[i]))
+                logger.debug("%d %d %d %d" % (mon_start, mon_end, year_start, year_end))
                 exit(1)
+
+            year_start = min(year_start, args[i])
+            year_end = max(year_end, args[i])
+            years +=1
+
         elif args[i] > 0:
-            if mon_start == 0:
-                mon_start = int(args[i])
-                mons += 1
-            elif mon_end == 0:
-                if mon_start <= int(args[i]):
-                    mon_end = int(args[i])
-                    mons += 1
-                else:
-                    mon_end = mon_start
-                    mon_start = int(args[i])
-                    mons += 1
-            else:
-                print args
-                print "invalid argument - month too many"
+            if mons == 2:
+                logger.setLevel(logging.DEBUG)
+                logger.debug(args)
+                logger.debug("invalid argument : %d"%(args[i]))
+                logger.debug("%d %d %d %d"%(mon_start, mon_end, year_start, year_end))
+                exit(1)
 
-    if year_start > 0 and year_end == 0:
-        year_end = year_start
-        years += 1
-    if mon_start > 0 and mon_end == 0:
-        mon_end = mon_start
-        mons += 1
+            mon_start = min(mon_start, args[i])
+            mon_end = max(mon_end, args[i])
+            mons += 1
 
-    if year_start < 2010:
-        print args
-        print "year_start error: must be larger than 2010"
-        exit(1)
-    if year_end > year_max:
-        print args
-        print "year_end error: upper bound is " + str(year_max)
-        exit(1)
-
-    if years == 0:
-        year_start = 2010
-        year_end = year_max
-    if mons == 0:
-        mon_start = 3
-        mon_end = 10
+        else:
+            logger.setLevel(logging.DEBUG)
+            logger.debug(args)
+            logger.debug("wrong argument: %d"%(args[i]))
+            logger.debug("%d %d %d %d" % (mon_start, mon_end, year_start, year_end))
+            exit(1)
 
     args[0] = mon_start
     args[1] = mon_end

@@ -6,14 +6,14 @@
 import sys
 from check_args import check_args
 from check_args import convert_args
-from bb_data_get_json import bb_data_get_json
-from bb_data_json_to_csv import bb_data_json_to_csv
+from bbDownload import bbDownload
+from bbConvertToCSV import bbConvertToCSV
 
-def run_bb_data_get_json( args ):
-    bb_data_get_json( args[0], args[1], args[2], args[3] )
+def run_bbDownload( args ):
+    bbDownload( args[0], args[1], args[2], args[3] )
 
-def run_bb_data_json_to_csv( args ):
-    bb_data_json_to_csv( args[0], args[1], args[2], args[3] )
+def run_bbConvertToCSV( args ):
+    bbConvertToCSV( args[0], args[1], args[2], args[3] )
 
 if __name__ == "__main__":
     args = ['x', 'x', 'x', 'x']
@@ -27,12 +27,11 @@ if __name__ == "__main__":
         if not isinstance( args[i], int ):
             if args[i].isdigit():
                 args[i] = int(args[i])
-#    print args
 
     if onlyConvert == True:
-        run_bb_data_json_to_csv( args )
+        run_bbConvertToCSV( args )
     elif onlyDownload == True:
-        run_bb_data_get_json( args )
+        run_bbDownload( args )
     else:
-        run_bb_data_get_json( args )
-        run_bb_data_json_to_csv( args )
+        run_bbDownload( args )
+        run_bbConvertToCSV( args )
