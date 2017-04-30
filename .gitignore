@@ -1,0 +1,8 @@
+*.pyc
+*ipynb
+bb_data/
+pbp_data/
+.idea/
+.ipynb_checkpoints/
+test.py
+text
