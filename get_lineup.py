@@ -8,7 +8,15 @@ import os
 from bs4 import BeautifulSoup
 import urllib2
 import datetime
-from checkURL import checkURL
+import httplib
+from urlparse import urlparse
+
+def checkURL(url):
+    p = urlparse(url)
+    conn = httplib.HTTPConnection(p.netloc)
+    conn.request('HEAD', p.path)
+    resp = conn.getresponse()
+    return resp.status < 400
 
 def get_lineup( mon_start, mon_end, year_start, year_end ):
     # set url prefix

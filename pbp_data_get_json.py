@@ -4,11 +4,20 @@
 
 import sys
 import os
-import urllib2
+from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import json
-from checkURL import checkURL
 import datetime
+import re
+import httplib
+from urlparse import urlparse
+
+def checkURL(url):
+    p = urlparse(url)
+    conn = httplib.HTTPConnection(p.netloc)
+    conn.request('HEAD', p.path)
+    resp = conn.getresponse()
+    return resp.status < 400
 
 excps = {
             0: { 'date': '20160407', 'homeaway': 'LGHT', 'data': [6, 48, 36] },
