@@ -31,7 +31,7 @@ lineup_pos_dict =   {
                     u'\uD0C0' : 'ph',   #'타'
                     u'\uC8FC' : 'pr'    #'주'
                 }
-
+    
 pos_dict =   {
                     '투수': 'p',
                     '포수': 'c',

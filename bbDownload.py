@@ -55,7 +55,7 @@ def bbDownload( mon_start, mon_end, year_start, year_end ):
 
             # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
             # parser의 자체 딜레이 때문에 과정 별로 5ms 딜레이를 준다.
-            scheduleButton = []
+            # scheduleButton = []
             scheduleHTML = urlopen(scheduleURL).read()
             time.sleep(5.0 / 1000.0)
             scheduleSoup = BeautifulSoup(scheduleHTML, "lxml")
@@ -73,9 +73,11 @@ def bbDownload( mon_start, mon_end, year_start, year_end ):
             mon_file_num = sum(1 for gameID in gameIDs if int(gameID[:4]) <= 2050)
 
             # gameID가 있는 게임은 모두 경기 결과가 있는 것으로 판단함
-            i = 0
+            done = 0
 
             for gameID in gameIDs:
+                if int(gameID[0:4]) < 2010:
+                    continue
                 if int(gameID[0:4]) > 2050:
                     continue
 
@@ -90,21 +92,21 @@ def bbDownload( mon_start, mon_end, year_start, year_end ):
                 with open(bb_data_filename, 'w') as bb_data_file:
                     json.dump(data, bb_data_file, indent=4)
                 bb_data_file.close()
-                i += 1
+                done += 1
 
                 if mon_file_num > 30:
-                    progress_pct = (float(i) / float(mon_file_num))
+                    progress_pct = (float(done) / float(mon_file_num))
                     bar = '█' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
-                    print('\r%s[%s] %s / %s, %2.1f %%' % (bar_prefix, bar, i, mon_file_num, progress_pct * 100), end="")
-                    sys.stdout.flush()
+                    print('\r%s[%s] %s / %s, %2.1f %%' % (bar_prefix, bar, done, mon_file_num, progress_pct * 100), end="")
+                    #sys.stdout.flush()
                 elif mon_file_num == 0:
                     mon_file_num = 0
                     # do nothing
                 else:
-                    bar = '█' * i + '-' * (mon_file_num - i)
+                    bar = '█' * done + '-' * (mon_file_num - i)
                     print('\r%s[%s] %s / %s, %2.1f %%' % (
-                        bar_prefix, bar, i, mon_file_num, float(i) / float(mon_file_num) * 100), end="")
-                    sys.stdout.flush()
+                        bar_prefix, bar, done, mon_file_num, float(done) / float(mon_file_num) * 100), end="")
+                    #sys.stdout.flush()
             print()
             print('        Downloaded ' + str(i) + ' files')
             os.chdir('../..')

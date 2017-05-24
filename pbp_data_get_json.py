@@ -2,289 +2,134 @@
 #-*- coding: utf-8 -*-
 # main.py
 
-import sys
 import os
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import json
-import datetime
+import time
 import re
-import httplib
-from urlparse import urlparse
+import http.client
+from urllib.parse import urlparse
 
 def checkURL(url):
     p = urlparse(url)
-    conn = httplib.HTTPConnection(p.netloc)
+    conn = http.client.HTTPConnection(p.netloc)
     conn.request('HEAD', p.path)
     resp = conn.getresponse()
     return resp.status < 400
 
-excps = {
-            0: { 'date': '20160407', 'homeaway': 'LGHT', 'data': [6, 48, 36] },
-            1: { 'date': '20160722', 'homeaway': 'WOSK', 'data': [9, 22, 52] },
-            2: { 'date': '20100403', 'homeaway': 'LTHT', 'data': [7, 0, 26] },
-            3: { 'date': '20100416', 'homeaway': 'WOHH', 'data': [8, 0, 42] }
-}
-# n회의 A번 텍스트를 B번 뒤 위치로 옮기라
-# ex) 6, 48, 36 -> 6회 48번 텍스트를 36번 뒤 - 37번 - 로 바꿀 것
-
-dels = {
-            0: { 'date': '20160901', 'homeaway': 'SKWO', 'data': [7, 39] },
-}
-
-repls = {
-}
-
-adds = {
-            0: { 'date': '20100403', 'homeaway': 'LTHT', 'location': [7, 0],
-                 'data': {'seqno': 344, 'inn': 7, 'liveText': '7회말 KIA 공격 종료', 'btop': 0, 'textStyle': 8} },
-            1: { 'date': '20100413', 'homeaway': 'SKHH', 'location': [8, 63],
-                 'data': {'seqno': 370, 'inn': 8, 'liveText': '1루주자 박정권 : 대주자 모창민(으)로 교체', 'btop': 1, 'textStyle': 2} },
-            2: { 'date': '20100416', 'homeaway': 'WOHH', 'location': [8, 0],
-                 'data': {'seqno': 370, 'inn': 8, 'liveText': '8회말 한화 공격 종료', 'btop': 0, 'textStyle': 8} },
-            3: { 'date': '20100416', 'homeaway': 'WOHH', 'location': [8, 0],
-                 'data': {'seqno': 370, 'inn': 8, 'liveText': '8회말 한화 공격 종료', 'btop': 0, 'textStyle': 8} }
-
-}
-# n회의 A번 텍스트를 B번 위치에 추가해라
-# ex) 6, 63 -> 6회 63번 위치에 텍스트 추가, 기존 63번은 64번으로
-
-def findInExcps( gameID ):
-    matchdate = gameID[0:8]
-    matchhw = gameID[8:12]
-    for i in range( len(excps) ):
-        if matchdate.find( excps[i]['date'] ) >= 0:
-            if matchhw.find( excps[i]['homeaway'] ) >= 0:
-                return int(i)
-    return -1
-
-def findInDels( gameID ):
-    matchdate = gameID[0:8]
-    matchhw = gameID[8:12]
-    for i in range( len(dels) ):
-        if matchdate.find( dels[i]['date'] ) >= 0:
-            if matchhw.find( dels[i]['homeaway'] ) >= 0:
-                return int(i)
-    return -1
-
-def delTexts( gameID, js ):
-    matchdate = gameID[0:8]
-    matchhw = gameID[8:12]
-    for i in range(len(dels)):
-        for i in range( len(dels) ):
-            if matchdate.find( dels[i]['date'] ) >= 0:
-                if matchhw.find( dels[i]['homeaway'] ) >= 0:
-                    lis = dels[i]['data']
-                    targetInn = lis[0]
-                    target = lis[1]
-                    rts = js['relayTexts'][str(targetInn)]
-                    rts[target:target+1] = []
-                    js['relayTexts'][str(targetInn)] = rts
-
-def findInRepls( gameID ):
-    matchdate = gameID[0:8]
-    matchhw = gameID[8:12]
-    for i in range( len(repls) ):
-        if matchdate.find( repls[i]['date'] ) >= 0:
-            if matchhw.find( repls[i]['homeaway'] ) >= 0:
-                return int(i)
-    return -1
-
-def replTexts( gameID, js ):
-    matchdate = gameID[0:8]
-    matchhw = gameID[8:12]
-    for i in range(len(repls)):
-        for i in range( len(repls) ):
-            if matchdate.find( repls[i]['date'] ) >= 0:
-                if matchhw.find( repls[i]['homeaway'] ) >= 0:
-                    lis = repls[i]['location']
-                    targetInn = lis[0]
-                    target = lis[1]
-                    data = repls[i]['data']
-                    rts = js['relayTexts'][str(targetInn)]
-                    rts[target]['liveText'] = data
-                    js['relayTexts'][str(targetInn)] = rts
-
-def findInAdds( gameID ):
-    matchdate = gameID[0:8]
-    matchhw = gameID[8:12]
-    for i in range( len(adds) ):
-        if matchdate.find( adds[i]['date'] ) >= 0:
-            if matchhw.find( adds[i]['homeaway'] ) >= 0:
-                return int(i)
-    return -1
-
-def addTexts( gameID, js ):
-    matchdate = gameID[0:8]
-    matchhw = gameID[8:12]
-    for i in range(len(adds)):
-        for i in range( len(adds) ):
-            if matchdate.find( adds[i]['date'] ) >= 0:
-                if matchhw.find( adds[i]['homeaway'] ) >= 0:
-                    lis = adds[i]['location']
-                    targetInn = lis[0]
-                    target = lis[1]
-                    data = adds[i]['data']
-                    rts = js['relayTexts'][str(targetInn)]
-                    rts[target:] = [data] + rts[target:]
-                    js['relayTexts'][str(targetInn)] = rts
-
-
 def pbp_data_get_json( mon_start, mon_end, year_start, year_end ):
     # set url prefix
     scheduleURL_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
-    relay_prefix = "http://sportsdata.naver.com/ndata//kbo/"
+    relay_prefix = "http://sportsdata.naver.com/ndata/kbo/"
 
     # make directory
     if not os.path.isdir("./pbp_data"):
         os.mkdir("./pbp_data")
+        
+    for year in range(year_start, year_end + 1):
+        # make year directory
+        if not os.path.isdir("./pbp_data/" + str(year)):
+            os.mkdir("./pbp_data/" + str(year))
+
+        for month in range(mon_start, mon_end + 1):
+            if not os.path.isdir("./pbp_data/" + str(year) + "/" + str(month)):
+                os.mkdir("./pbp_data/" + str(year) + "/" + str(month))
+
     os.chdir("./pbp_data")
     # current path : ./pbp_data/
 
-    print "##################################################"
-    print "#######            GET PBP DATA            #######"
-    print "##################################################"
-    year_max = datetime.datetime.now().year
-    for year in range(year_start, year_end+1):
-        # make year directory
-        if not os.path.isdir("./" + str(year)):
-            os.mkdir("./" + str(year))
-        os.chdir(str(year))
-        # current path : ./pbp_data/YEAR/
+    print( "##################################################" )
+    print( "#######            GET PBP DATA            #######" )
+    print( "##################################################" )
 
-        print "  for Year " + str(year) + "... "
+    for year in range(year_start, year_end+1):
+        print( "  for Year " + str(year) + "... " )
 
         for month in range(mon_start, mon_end+1):
-            if not os.path.isdir( str(month) ):
-                os.mkdir( str(month) )
-            os.chdir( str(month) )
+            os.chdir( str(year) + "/" + str(month) )
             # current path : ./pbp_data/YEAR/MONTH/
-
-            # clear path
-            files = [f for f in os.listdir('.') if os.path.isfile(f)]
-            for file_name in files:
-                os.remove( file_name )
 
             # get URL
             scheduleURL = scheduleURL_prefix + str(month) + "&year=" + str(year)
 
             # progress bar
-            print "    Month " + str(month) + "... "
-            sys.stdout.write('\r    [waiting]'),
-            sys.stdout.flush()
+            print( "    Month " + str(month) + "... " )
+            bar_prefix = '    Downloading: '
+            print('\r%s[waiting]' % (bar_prefix), end="")
 
             # open URL
             # get relay URL list, write in text file
             # all GAME RESULTS in month/year
-            scheduleHTML = urllib2.urlopen(scheduleURL).read()
-            soup = BeautifulSoup( scheduleHTML, "lxml" )
-            schedule_button = soup.findAll('span', attrs={'class':'td_btn'})
 
+            # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
+            # parser의 자체 딜레이 때문에 과정 별로 5ms 딜레이를 준다.
+            # scheduleButton = []
+            scheduleHTML = urlopen(scheduleURL).read()
+            time.sleep(5.0 / 1000.0)
+            scheduleSoup = BeautifulSoup(scheduleHTML, "lxml")
+            time.sleep(5.0 / 1000.0)
+            scheduleButton = scheduleSoup.findAll('span', attrs={'class': 'td_btn'})
+            time.sleep(5.0 / 1000.0)
+
+            # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
             gameIDs = []
-            for btn in schedule_button:
+            for btn in scheduleButton:
                 link = btn.a['href']
                 suffix = link.split('gameId=')[1]
-                gameIDs.append( suffix.split('&')[0] )
+                gameIDs.append( suffix )
 
+            mon_file_num = sum(1 for gameID in gameIDs if int(gameID[:4]) <= 2050)
+
+            # gameID가 있는 게임은 모두 경기 결과가 있는 것으로 판단함
+            # 중계 텍스트는 nsd파일이 있는 경우만 count
+            # 이를 위해 checkURL 함수를 사용
+            # done + skipped = mon_file_num
             done = 0
-            mon_file_num = 0
-            for gameID in gameIDs:
-                if month < 10:
-                    relayLink = relay_prefix + str(year) + '/' + '0' + str(month) + '/' + gameID + '.nsd'
-                else:
-                    relayLink = relay_prefix + str(year) + '/' + str(month) + '/' + gameID + '.nsd'
-
-                if int(gameID[0:4]) > year_max:
-                    continue
-                if int(gameID[0:4]) < 2010:
-                    continue
-
-                if checkURL(relayLink) :
-                    mon_file_num += 1
+            skipped = 0
 
             for gameID in gameIDs:
-                pbp_data_filename = gameID[0:13] + '_pbp.json'
+                relayLink = relay_prefix + gameID[:4] + '/' + gameID[4:6] + '/'\
+                            + gameID + '.nsd'
 
-                if month < 10:
-                    relayLink = relay_prefix + str(year) + '/' + '0' + str(month) + '/' + gameID + '.nsd'
-                else:
-                    relayLink = relay_prefix + str(year) + '/' + str(month) + '/' + gameID + '.nsd'
-
-                if int(gameID[0:4]) > year_max:
-                    continue
                 if int(gameID[0:4]) < 2010:
                     continue
+                if int(gameID[0:4]) > 2050:
+                    continue
 
-                if checkURL(relayLink) :
-                    done = done + 1
-                    if os.path.isfile( pbp_data_filename ):
-                        os.remove( pbp_data_filename )
+                if not checkURL(relayLink) :
+                    skipped = skipped + 1
+                    continue
+                else:
+                    relayHTML = urlopen(relayLink)
 
-                    relay = urllib2.urlopen(relayLink).read()
-                    text = relay.split("document, ")[1]
-                    jsontext = text.split(");")[0]
-                    js = json.loads(jsontext, 'utf-8')
+                    soup = BeautifulSoup(relayHTML.read(), "lxml")
+                    script = soup.find('script', text=re.compile('sportscallback_relay'))
+                    json_text = re.search(r'({"gameInfo":{.*?}}},.*?}}})', script.string, flags=re.DOTALL).group(1)
+                    data = json.loads(json_text)
 
-                    if findInExcps( gameID ) >= 0:
-                        key = findInExcps( gameID )
-                        lis = excps[key]['data']
-                        targetInn = lis[0]
-                        tSrc = lis[1]   # 48
-                        tDst = lis[2]   # 36
-                        rts = js['relayTexts'][str(targetInn)]
-                        if tSrc > tDst:
-                            rts[ tDst+1:tSrc+1 ] = [rts[tSrc]]+rts[tDst+1:tSrc]
-                        else:
-                            rts[ tSrc:tDst+1 ] = rts[tSrc+1:tDst+1] + [rts[tSrc]]
-                        js['relayTexts'][str(targetInn)] = rts
-
-                    if findInDels( gameID ) >= 0:
-                        delTexts( gameID, js )
-                        key = findInDels( gameID )
-                        lis = dels[key]['data']
-                        targetInn = lis[0]
-                        target = lis[1]
-                        rts = js['relayTexts'][str(targetInn)]
-                        rts[target:target+1] = []
-                        js['relayTexts'][str(targetInn)] = rts
-
-                    if findInRepls( gameID ) >= 0:
-                        key = findInRepls( gameID )
-                        lis = repls[key]['location']
-                        targetInn = lis[0]
-                        target = lis[1]
-                        data = repls[key]['data']
-                        rts = js['relayTexts'][str(targetInn)]
-                        rts[target]['liveText'] = data
-                        js['relayTexts'][str(targetInn)] = rts
-
-                    if findInAdds( gameID ) >= 0:
-                        addTexts( gameID, js )
-
+                    pbp_data_filename = gameID[0:13] + '_pbp.json'
                     with open(pbp_data_filename, 'w') as pbp_data_file:
-                        pbp_data_file.write( json.dumps( js, indent = 4) )
+                        json.dump( data, pbp_data_file, indent=4, ensure_ascii=False )
+                    pbp_data_file.close()
+                    done = done + 1
 
-
-                if mon_file_num > 30 :
-                    progress_pct = (float(done) / float(mon_file_num))
-                    bar = '█' * int(progress_pct*30) + '-'*(30-int(progress_pct*30))
-                    sys.stdout.write('\r    [%s] %s / %s, %2.1f %%' % (bar, done, mon_file_num, progress_pct*100)),
-                    sys.stdout.flush()
+                if mon_file_num > 30:
+                    progress_pct = (float(done + skipped) / float(mon_file_num))
+                    bar = '█' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
+                    print('\r%s[%s] %s / %s, %2.1f %%' % (bar_prefix, bar, (done + skipped), mon_file_num, progress_pct * 100), end="")
                 elif mon_file_num == 0:
                     mon_file_num = 0
-                    # do nothing
+                    # do nothing; dummy code
                 else:
-                    bar = '█' * done + '-' * (mon_file_num - done)
-                    sys.stdout.write('\r    [%s] %s / %s, %2.1f %%' % (bar, done, mon_file_num, float(done)/float(mon_file_num)*100)),
-                    sys.stdout.flush()
-
-            sys.stdout.write('\n')
-            sys.stdout.flush()
-            print '        Downloaded ' + str(done) + ' files'
-            os.chdir('..')
-            # current path : ./pbp_data/YEAR/
-        os.chdir('..')
-        # current path : ./pbp_data/
+                    bar = '█' * (done + skipped) + '-' * (mon_file_num - done - skipped)
+                    print('\r%s[%s] %s / %s, %2.1f %%' % (
+                        bar_prefix, bar, (done + skipped), mon_file_num, float(done + skipped) / float(mon_file_num) * 100), end="")
+            print()
+            print( '        Downloaded ' + str(done) + ' files' )
+            print( '        (Skipped ' + str(skipped) + ' files)')
+            os.chdir('../..')
+            # current path : ./pbp_data/
     os.chdir('..')
     # current path : ./
-    print "DOWNLOAD PBP DATA DONE."
+    print( "DOWNLOAD PBP DATA DONE." )

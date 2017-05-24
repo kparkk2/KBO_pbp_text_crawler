@@ -41,7 +41,9 @@ def getArgs( output, options ):
     months = []
     years = []
 
-    if len(dates) > 4:
+    if type(dates) is int:
+        dates = [2016, 2016, 3, 3]
+    elif len(dates) > 4:
         logger.debug('too many date')
         print('too many date')
         exit(1)
