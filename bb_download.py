@@ -1,8 +1,7 @@
-# bbDownload.py
-# (1) get all matchup gameday(text relay broadcast) URL. all match in YEAR/MONTH.
+# bb_download.py
+# (1) get all match text relay broadcast URL; all match in YEAR/MONTH.
 # (2) open URL and parse.
 
-import time
 import json
 from urllib.request import urlopen
 import os
@@ -10,7 +9,7 @@ from bs4 import BeautifulSoup
 import re
 
 
-def bbDownload(mon_start, mon_end, year_start, year_end):
+def bb_download(mon_start, mon_end, year_start, year_end):
     # set url prefix
     schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?"
     result_url_prefix = "http://sports.news.naver.com/gameCenter/gameResult.nhn?category=kbo&gameId="
@@ -25,8 +24,12 @@ def bbDownload(mon_start, mon_end, year_start, year_end):
             os.mkdir("./bb_data/{0}".format(str(year)))
 
         for month in range(mon_start, mon_end + 1):
-            if not os.path.isdir("./bb_data/{0}/{1}".format(str(year), str(month))):
-                os.mkdir("./bb_data/{0}/{1}".format(str(year), str(month)))
+            if month < 10:
+                mon = '0{}'.format(str(month))
+            else:
+                mon = str(month)
+            if not os.path.isdir("./bb_data/{0}/{1}".format(str(year), mon)):
+                os.mkdir("./bb_data/{0}/{1}".format(str(year), mon))
 
     os.chdir("./bb_data")
     # current path : ./bb_data/
@@ -39,11 +42,16 @@ def bbDownload(mon_start, mon_end, year_start, year_end):
         print("  for Year {0}... ".format(str(year)))
 
         for month in range(mon_start, mon_end + 1):
-            os.chdir("{0}/{1}".format(str(year), str(month)))
+            if month < 10:
+                mon = '0{}'.format(str(month))
+            else:
+                mon = str(month)
+
+            os.chdir("{0}/{1}".format(str(year), mon))
             # current path : ./bb_data/YEAR/MONTH/
 
             # get URL
-            schedule_url = schedule_url_prefix + "month=" + str(month) + "&year=" + str(year)
+            schedule_url = "{0}month={1}&year={2}".format(schedule_url_prefix, str(month), str(year))
 
             # open URL
             print("    Month {0}... ".format(str(month)))
@@ -52,44 +60,39 @@ def bbDownload(mon_start, mon_end, year_start, year_end):
             bar_prefix = '    Downloading: '
             print('\r{}[waiting]'.format(bar_prefix), end="")
 
-            # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
-            # parser의 자체 딜레이 때문에 과정 별로 5ms 딜레이를 준다.
-            # schedule_button = []
+            # '경기결과' 버튼을 찾아서 태그를 모두 리스트에 저장.
             schedule_html = urlopen(schedule_url).read()
-            time.sleep(5.0 / 1000.0)
             schedule_soup = BeautifulSoup(schedule_html, 'lxml')
-            time.sleep(5.0 / 1000.0)
             schedule_button = schedule_soup.findAll('span', attrs={'class': 'td_btn'})
-            time.sleep(5.0 / 1000.0)
 
-            # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
-            gameIDs = []
+            # '경기결과' 버튼을 찾아서 태그를 모두 리스트에 저장.
+            game_ids = []
             for btn in schedule_button:
                 link = btn.a['href']
                 suffix = link.split('gameId=')[1]
-                gameIDs.append(suffix)
+                game_ids.append(suffix)
 
-            mon_file_num = sum(1 for gameID in gameIDs if int(gameID[:4]) <= 2050)
+            mon_file_num = sum(1 for game_id in game_ids if int(game_id[:4]) <= 2050)
 
             # gameID가 있는 게임은 모두 경기 결과가 있는 것으로 판단함
             done = 0
 
-            for gameID in gameIDs:
-                if int(gameID[0:4]) < 2010:
+            for game_id in game_ids:
+                if int(game_id[0:4]) < 2010:
                     continue
-                if int(gameID[0:4]) > 2050:
+                if int(game_id[0:4]) > 2050:
                     continue
 
-                result_html = urlopen(result_url_prefix + gameID)
+                result_html = urlopen(result_url_prefix + game_id)
 
-                soup = BeautifulSoup(result_html.read(), "lxml")
+                soup = BeautifulSoup(result_html.read(), 'lxml')
                 script = soup.find('script', text=re.compile('ChartDataClass'))
                 json_text = re.search(r'({"teamsInfo":{.*?}}}})', script.string, flags=re.DOTALL).group(1)
-                data = json.loads(json_text, 'utf-8')
+                data = json.loads(json_text)
 
-                bb_data_filename = gameID[0:13] + '_bb_data.json'
+                bb_data_filename = game_id[:12] + '_bb.json'
                 with open(bb_data_filename, 'w') as bb_data_file:
-                    json.dump(data, bb_data_file, indent=4)
+                    json.dump(data, bb_data_file, indent=4, ensure_ascii=False)
                 bb_data_file.close()
                 done += 1
 

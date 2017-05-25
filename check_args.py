@@ -1,22 +1,14 @@
-#check_args.py
-#-*- coding: utf-8 -*-
+# check_args.py
 
 import datetime
-#import logging
+# import logging
 import argparse
 
 
-def getArgs( output, options ):
+def get_args(output, options):
     # convert arguments
     # check if not number, integer
-    '''
-    logger = logging.getLogger('mylogger')
-    fomatter = logging.Formatter('[%(filename)s::%(lineno)s] %(asctime)s > %(message)s')
-    streamHandler = logging.StreamHandler()
-    streamHandler.setFormatter(fomatter)
-    logger.addHandler(streamHandler)
-    logger.setLevel(logging.DEBUG)
-    '''
+
     parser = argparse.ArgumentParser(description='Get batted ball data.')
     parser.add_argument('dates',
                         metavar='dates',
@@ -32,6 +24,15 @@ def getArgs( output, options ):
     parser.add_argument('-d',
                         action='store_true',
                         help='Download only')
+
+    '''
+    logger = logging.getLogger('mylogger')
+    fomatter = logging.Formatter('[%(filename)s::%(lineno)s] %(asctime)s > %(message)s')
+    streamHandler = logging.StreamHandler()
+    streamHandler.setFormatter(fomatter)
+    logger.addHandler(streamHandler)
+    logger.setLevel(logging.DEBUG)
+    '''
 
     args = parser.parse_args()
 

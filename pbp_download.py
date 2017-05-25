@@ -1,16 +1,15 @@
-# pbp_data_get_json.py
+# pbp_download.py
 
 import os
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import json
-import time
 import re
 import http.client
 from urllib.parse import urlparse
 
 
-def checkurl(url):
+def check_url(url):
     p = urlparse(url)
     conn = http.client.HTTPConnection(p.netloc)
     conn.request('HEAD', p.path)
@@ -18,7 +17,7 @@ def checkurl(url):
     return resp.status < 400
 
 
-def pbp_data_get_json(mon_start, mon_end, year_start, year_end):
+def pbp_download(mon_start, mon_end, year_start, year_end):
     # set url prefix
     schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
     relay_prefix = "http://sportsdata.naver.com/ndata/kbo/"
@@ -29,12 +28,17 @@ def pbp_data_get_json(mon_start, mon_end, year_start, year_end):
 
     for year in range(year_start, year_end + 1):
         # make year directory
-        if not os.path.isdir("./pbp_data/" + str(year)):
-            os.mkdir("./pbp_data/" + str(year))
+        if not os.path.isdir("./pbp_data/{0}".format(str(year))):
+            os.mkdir("./pbp_data/{0}".format(str(year)))
 
         for month in range(mon_start, mon_end + 1):
-            if not os.path.isdir("./pbp_data/" + str(year) + "/" + str(month)):
-                os.mkdir("./pbp_data/" + str(year) + "/" + str(month))
+            if month < 10:
+                mon = '0{}'.format(str(month))
+            else:
+                mon = str(month)
+
+            if not os.path.isdir("./pbp_data/{0}/{1}".format(str(year), mon)):
+                os.mkdir("./pbp_data/{0}/{1}".format(str(year), mon))
 
     os.chdir("./pbp_data")
     # current path : ./pbp_data/
@@ -44,14 +48,18 @@ def pbp_data_get_json(mon_start, mon_end, year_start, year_end):
     print("##################################################")
 
     for year in range(year_start, year_end + 1):
-        print("  for Year " + str(year) + "... ")
+        print("  for Year {0}... ".format(str(year)))
 
         for month in range(mon_start, mon_end + 1):
-            os.chdir(str(year) + "/" + str(month))
+            if month < 10:
+                mon = '0{}'.format(str(month))
+            else:
+                mon = str(month)
+            os.chdir("{0}/{1}".format(str(year), mon))
             # current path : ./pbp_data/YEAR/MONTH/
 
             # get URL
-            schedule_url = schedule_url_prefix + str(month) + "&year=" + str(year)
+            schedule_url = "{0}{1}&year={2}".format(schedule_url_prefix, str(month), str(year))
 
             # progress bar
             print("    Month " + str(month) + "... ")
@@ -62,42 +70,37 @@ def pbp_data_get_json(mon_start, mon_end, year_start, year_end):
             # get relay URL list, write in text file
             # all GAME RESULTS in month/year
 
-            # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
-            # parser의 자체 딜레이 때문에 과정 별로 5ms 딜레이를 준다.
-            # schedule_button = []
+            # '경기결과' 버튼을 찾아서 태그를 모두 리스트에 저장.
             schedule_html = urlopen(schedule_url).read()
-            time.sleep(5.0 / 1000.0)
             schedule_soup = BeautifulSoup(schedule_html, "lxml")
-            time.sleep(5.0 / 1000.0)
             schedule_button = schedule_soup.findAll('span', attrs={'class': 'td_btn'})
-            time.sleep(5.0 / 1000.0)
 
-            # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
-            gameIDs = []
+            # '경기결과' 버튼을 찾아서 태그를 모두 리스트에 저장.
+            game_ids = []
             for btn in schedule_button:
                 link = btn.a['href']
                 suffix = link.split('gameId=')[1]
-                gameIDs.append(suffix)
+                game_ids.append(suffix)
 
-            mon_file_num = sum(1 for gameID in gameIDs if int(gameID[:4]) <= 2050)
+            mon_file_num = sum(1 for gameID in game_ids if (2050 >= int(gameID[:4]) >= 2010))
 
             # gameID가 있는 게임은 모두 경기 결과가 있는 것으로 판단함
-            # 중계 텍스트는 nsd파일이 있는 경우만 count
-            # 이를 위해 checkurl 함수를 사용
-            # done + skipped = mon_file_num
+            # 중계 텍스트는 nsd 파일이 있는 경우만 count
+            # 이를 위해 check_url 함수를 사용
+            # done + skipped == mon_file_num 이다.
             done = 0
             skipped = 0
 
-            for gameID in gameIDs:
+            for gameID in game_ids:
                 relay_link = relay_prefix + gameID[:4] + '/' + gameID[4:6] + '/' \
                             + gameID + '.nsd'
 
                 if int(gameID[0:4]) < 2010:
                     continue
-                if int(gameID[0:4]) > 2050:
+                elif int(gameID[0:4]) > 2050:
                     continue
 
-                if not checkurl(relay_link):
+                if not check_url(relay_link):
                     skipped = skipped + 1
                     continue
                 else:
@@ -117,19 +120,20 @@ def pbp_data_get_json(mon_start, mon_end, year_start, year_end):
                 if mon_file_num > 30:
                     progress_pct = (float(done + skipped) / float(mon_file_num))
                     bar = '█' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
-                    print('\r%s[%s] %s / %s, %2.1f %%' % (
-                        bar_prefix, bar, (done + skipped), mon_file_num, progress_pct * 100), end="")
+                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                               progress_pct * 100),
+                          end="")
                 elif mon_file_num == 0:
                     mon_file_num = 0
                     # do nothing; dummy code
                 else:
                     bar = '█' * (done + skipped) + '-' * (mon_file_num - done - skipped)
-                    print('\r%s[%s] %s / %s, %2.1f %%' % (
-                        bar_prefix, bar, (done + skipped), mon_file_num,
-                        float(done + skipped) / float(mon_file_num) * 100), end="")
+                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                               float(done + skipped) / float(mon_file_num) * 100),
+                          end="")
             print()
-            print('        Downloaded ' + str(done) + ' files')
-            print('        (Skipped ' + str(skipped) + ' files)')
+            print('        Downloaded {0} files'.format(str(done)))
+            print('        (Skipped {0} files)'.format(str(skipped)))
             os.chdir('../..')
             # current path : ./pbp_data/
     os.chdir('..')
