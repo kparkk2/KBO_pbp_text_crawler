@@ -8,12 +8,19 @@ from check_args import getArgs
 #from pbp_data_parser import pbp_data_parser
 #from pbp_bb_field_parser import pbp_bb_field_parser
 from pbp_data_get_json import pbp_data_get_json
+from pbp_parser import pbp_parser
+
 
 #def run_pbp_bb_field_parser( args ):
 #    pbp_bb_field_parser( args[0], args[1], args[2], args[3] )
 
+
 def run_pbp_data_get_json( args ):
     pbp_data_get_json( args[0], args[1], args[2], args[3] )
+
+
+def run_pbp_parser( args ):
+    pbp_parser( args[0], args[1], args[2], args[3] )
 
 if __name__ == "__main__":
     args = [] # m_start, m_end, y_start, y_end
@@ -21,6 +28,7 @@ if __name__ == "__main__":
     getArgs( args, options )
 
     run_pbp_data_get_json( args )
+    run_pbp_parser( args )
 #    if onlyConvert == True:
 #        run_pbp_bb_field_parser( args )
 #    elif onlyDownload == True:

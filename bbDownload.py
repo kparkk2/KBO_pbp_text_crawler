@@ -1,9 +1,7 @@
 # bbDownload.py
-#-*- coding: utf-8 -*-
-#(1) get all matchup gameday(text relay broadcast) URL. all match in YEAR/MONTH.
-#(2) open URL and parse.
+# (1) get all matchup gameday(text relay broadcast) URL. all match in YEAR/MONTH.
+# (2) open URL and parse.
 
-import sys
 import time
 import json
 from urllib.request import urlopen
@@ -11,10 +9,11 @@ import os
 from bs4 import BeautifulSoup
 import re
 
-def bbDownload( mon_start, mon_end, year_start, year_end ):
+
+def bbDownload(mon_start, mon_end, year_start, year_end):
     # set url prefix
-    scheduleURL_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?"
-    resultURL_prefix = "http://sports.news.naver.com/gameCenter/gameResult.nhn?category=kbo&gameId="
+    schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?"
+    result_url_prefix = "http://sports.news.naver.com/gameCenter/gameResult.nhn?category=kbo&gameId="
 
     # make directory
     if not os.path.isdir("./bb_data"):
@@ -22,12 +21,12 @@ def bbDownload( mon_start, mon_end, year_start, year_end ):
 
     for year in range(year_start, year_end + 1):
         # make year directory
-        if not os.path.isdir("./bb_data/" + str(year)):
-            os.mkdir("./bb_data/" + str(year))
+        if not os.path.isdir("./bb_data/{0}".format(str(year))):
+            os.mkdir("./bb_data/{0}".format(str(year)))
 
         for month in range(mon_start, mon_end + 1):
-            if not os.path.isdir("./bb_data/" + str(year) + "/" + str(month)):
-                os.mkdir("./bb_data/" + str(year) + "/" + str(month))
+            if not os.path.isdir("./bb_data/{0}/{1}".format(str(year), str(month))):
+                os.mkdir("./bb_data/{0}/{1}".format(str(year), str(month)))
 
     os.chdir("./bb_data")
     # current path : ./bb_data/
@@ -37,35 +36,35 @@ def bbDownload( mon_start, mon_end, year_start, year_end ):
     print("##################################################")
 
     for year in range(year_start, year_end + 1):
-        print("  for Year " + str(year) + "... ")
+        print("  for Year {0}... ".format(str(year)))
 
         for month in range(mon_start, mon_end + 1):
-            os.chdir(str(year) + "/" + str(month))
+            os.chdir("{0}/{1}".format(str(year), str(month)))
             # current path : ./bb_data/YEAR/MONTH/
 
             # get URL
-            scheduleURL = scheduleURL_prefix + "month=" + str(month) + "&year=" + str(year)
+            schedule_url = schedule_url_prefix + "month=" + str(month) + "&year=" + str(year)
 
             # open URL
-            print("    Month " + str(month) + "... ")
+            print("    Month {0}... ".format(str(month)))
             # get relay URL list, write in text file
             # all GAME RESULTS in month/year
             bar_prefix = '    Downloading: '
-            print('\r%s[waiting]' % (bar_prefix), end="")
+            print('\r{}[waiting]'.format(bar_prefix), end="")
 
             # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
             # parser의 자체 딜레이 때문에 과정 별로 5ms 딜레이를 준다.
-            # scheduleButton = []
-            scheduleHTML = urlopen(scheduleURL).read()
+            # schedule_button = []
+            schedule_html = urlopen(schedule_url).read()
             time.sleep(5.0 / 1000.0)
-            scheduleSoup = BeautifulSoup(scheduleHTML, "lxml")
+            schedule_soup = BeautifulSoup(schedule_html, 'lxml')
             time.sleep(5.0 / 1000.0)
-            scheduleButton = scheduleSoup.findAll('span', attrs={'class': 'td_btn'})
+            schedule_button = schedule_soup.findAll('span', attrs={'class': 'td_btn'})
             time.sleep(5.0 / 1000.0)
 
             # '경기결과' 버튼을 찾아서 tag를 모두 리스트에 저장.
             gameIDs = []
-            for btn in scheduleButton:
+            for btn in schedule_button:
                 link = btn.a['href']
                 suffix = link.split('gameId=')[1]
                 gameIDs.append(suffix)
@@ -81,9 +80,9 @@ def bbDownload( mon_start, mon_end, year_start, year_end ):
                 if int(gameID[0:4]) > 2050:
                     continue
 
-                resultHTML = urlopen(resultURL_prefix + gameID)
+                result_html = urlopen(result_url_prefix + gameID)
 
-                soup = BeautifulSoup(resultHTML.read(), "lxml")
+                soup = BeautifulSoup(result_html.read(), "lxml")
                 script = soup.find('script', text=re.compile('ChartDataClass'))
                 json_text = re.search(r'({"teamsInfo":{.*?}}}})', script.string, flags=re.DOTALL).group(1)
                 data = json.loads(json_text, 'utf-8')
@@ -97,18 +96,18 @@ def bbDownload( mon_start, mon_end, year_start, year_end ):
                 if mon_file_num > 30:
                     progress_pct = (float(done) / float(mon_file_num))
                     bar = '█' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
-                    print('\r%s[%s] %s / %s, %2.1f %%' % (bar_prefix, bar, done, mon_file_num, progress_pct * 100), end="")
-                    #sys.stdout.flush()
+                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
+                                                               progress_pct * 100), end="")
                 elif mon_file_num == 0:
                     mon_file_num = 0
                     # do nothing
                 else:
-                    bar = '█' * done + '-' * (mon_file_num - i)
-                    print('\r%s[%s] %s / %s, %2.1f %%' % (
-                        bar_prefix, bar, done, mon_file_num, float(done) / float(mon_file_num) * 100), end="")
-                    #sys.stdout.flush()
+                    bar = '█' * done + '-' * (mon_file_num - done)
+                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
+                                                               float(done) / float(mon_file_num) * 100), end="")
+
             print()
-            print('        Downloaded ' + str(i) + ' files')
+            print('        Downloaded {0} files.'.format(str(done)))
             os.chdir('../..')
             # current path : ./bb_data/
     os.chdir('..')

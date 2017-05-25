@@ -31,7 +31,7 @@ lineup_pos_dict =   {
                     u'\uD0C0' : 'ph',   #'타'
                     u'\uC8FC' : 'pr'    #'주'
                 }
-    
+
 pos_dict =   {
                     '투수': 'p',
                     '포수': 'c',
@@ -234,19 +234,19 @@ def isTextShowOrder( text ):
 
 def try_print( result, matchInfo ):
     if result < 0:
-        print
-        print "matchInfo : " + matchInfo
+        print()
+        print( "matchInfo : " + matchInfo )
         exit(1)
 
 def pbp_bb_field_parser( mon_start, mon_end, year_start, year_end ):
     if not os.path.isdir("./pbp_data"):
-        print "DOWNLOAD DATA FIRST"
+        print( "DOWNLOAD DATA FIRST" )
         exit(1)
     os.chdir("./pbp_data")
     # current path : ./pbp_data/
-    print "##################################################"
-    print "###### CONVERT PBP DATA(JSON) TO CSV FORMAT ######"
-    print "##################################################"
+    print( "##################################################" )
+    print( "###### CONVERT PBP DATA(JSON) TO CSV FORMAT ######" )
+    print( "##################################################" )
 
     isWindows = False # Win: True, Other: False
     # check OS
@@ -254,7 +254,7 @@ def pbp_bb_field_parser( mon_start, mon_end, year_start, year_end ):
         isWindows = True
 
     for year in range(year_start, year_end+1):
-        print "  for Year " + str(year) + "..."
+        print( "  for Year " + str(year) + "..." )
         # (1) YEAR 단위 경로로 이동
 
         csv_yearfilename = str(year) + '_pbp.csv'
@@ -271,21 +271,21 @@ def pbp_bb_field_parser( mon_start, mon_end, year_start, year_end ):
         csv_yearfile.write( '"우익수"\n' )
 
         if not os.path.isdir("./" + str(year)):
-            print os.getcwd()
-            print "DOWNLOAD YEAR " + str(year) + " DATA FIRST"
+            print( os.getcwd() )
+            print( "DOWNLOAD YEAR " + str(year) + " DATA FIRST" )
             continue
         os.chdir( "./" + str(year) )
         # current path : ./pbp_data/YEAR/
 
         for month in range(mon_start, mon_end+1):
-            print "    Month " + str(month) + "... "
+            print( "    Month " + str(month) + "... " )
             done = 0
             mon_file_num = 0
 
             # (2) MONTH 단위 경로로 이동
             if not os.path.isdir( "./" + str(month) ):
-                print os.getcwd()
-                print "DOWNLOAD MONTH " + str(month) + " DATA FIRST"
+                print( os.getcwd() )
+                print( "DOWNLOAD MONTH " + str(month) + " DATA FIRST" )
                 continue
             os.chdir( "./" + str(month) )
             # current path : ./pbp_data/YEAR/MONTH/
@@ -299,8 +299,8 @@ def pbp_bb_field_parser( mon_start, mon_end, year_start, year_end ):
                         mon_file_num += 1
 
             if not mon_file_num > 0:
-                print os.getcwd()
-                print "DOWNLOAD MONTH " + str(month) + " DATA FIRST"
+                print( os.getcwd() )
+                print( "DOWNLOAD MONTH " + str(month) + " DATA FIRST" )
                 os.chdir('..')
                 # current path : ./pbp_data/YEAR/
                 continue
@@ -418,8 +418,8 @@ def pbp_bb_field_parser( mon_start, mon_end, year_start, year_end ):
 
                             pos = pos_dict.get( bat['posName'].encode('utf-8') )
                             if pos == None:
-                                print "pos error: " + bat['posName'].encode('utf-8')
-                                print "matchInfo: " + matchInfo + " , home"
+                                print( "pos error: " + bat['posName'].encode('utf-8') )
+                                print( "matchInfo: " + matchInfo + " , home" )
                                 exit(1)
 
                             order = bat['batOrder']
@@ -641,7 +641,7 @@ def pbp_bb_field_parser( mon_start, mon_end, year_start, year_end ):
                     # game over
                     csv_file.close()
             csv_monfile.close()
-            print
+            print()
 
             os.chdir('..')
             # current path : ./pbp_data/YEAR/
