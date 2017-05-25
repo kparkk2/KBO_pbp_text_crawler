@@ -1,7 +1,10 @@
+# pbp_parser.py
+
 import os
 import json
 import platform
 import time
+import logManager
 
 # from baseball_game import gameData
 
@@ -49,7 +52,8 @@ def pbp_parser(mon_start, mon_end, year_start, year_end):
 
         csv_year = open("{0}/{1}.csv".format(str(year), str(year)), 'w')
         if is_windows:
-            csv_year.write('\xEF\xBB\xBF')
+            # csv_year.write('\xEF\xBB\xBF')
+            csv_year.write('\n')
         csv_year.write(csv_header)
 
         for month in range(mon_start, mon_end + 1):
@@ -87,11 +91,12 @@ def pbp_parser(mon_start, mon_end, year_start, year_end):
             if not os.path.isdir("./csv"):
                 os.mkdir("./csv")
 
-            csv_month_name = "./{0}_{1}.csv".format(str(year),mon)
+            csv_month_name = "./{0}_{1}.csv".format(str(year), mon)
 
             csv_month = open(csv_month_name, 'w')
             if is_windows:
-                csv_month.write('\xEF\xBB\xBF')
+                # csv_month.write('\xEF\xBB\xBF')
+                csv_month.write('\n')
             csv_month.write(csv_header)
 
             # write csv file for year
@@ -105,6 +110,13 @@ def pbp_parser(mon_start, mon_end, year_start, year_end):
             bar_prefix = '    Converting: '
             print('\r{}[waiting]'.format(bar_prefix), end="")
 
+            # crate log
+            lm = logManager.LogManager()
+            lm.setLogPath('{0}/log'.format(os.getcwd()))
+            lm.setLogFileName('pbp_log.txt')
+            lm.cleanLog()
+            lm.createLogHandler()
+
             done = 0
             for f in files:
                 # dummy code for debug
@@ -112,14 +124,8 @@ def pbp_parser(mon_start, mon_end, year_start, year_end):
                 js = json.loads(js_in.read(), 'utf-8')
                 js_in.close()
 
-                '''
-                print("Match day : {}".format(f[:8]))
-                print("home : {}".format(js['gameInfo']['hFullName']))
-                print("away : {}".format(js['gameInfo']['aFullName']))
-                '''
-
                 done = done + 1
-                time.sleep(5.0 / 1000.0)
+                time.sleep(10.0 / 1000.0)
 
                 # (1) 초기 라인업 생성.
                 # (2) 전체 라인업 목록 생성.
@@ -127,20 +133,24 @@ def pbp_parser(mon_start, mon_end, year_start, year_end):
                 #   (3)-1. 교체 상황마다 라인업 교체.
                 #   (3)-2. 타격시 포지션 기록.
 
-
                 if mon_file_num > 30:
                     progress_pct = (float(done) / float(mon_file_num))
-                    bar = '█' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
+                    bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
                     print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
                                                                progress_pct * 100), end="")
                 elif mon_file_num == 0:
                     mon_file_num = 0
                     # do nothing
                 else:
-                    bar = '█' * done + '-' * (mon_file_num - done)
+                    bar = '+' * done + '-' * (mon_file_num - done)
                     print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
                                                                float(done) / float(mon_file_num) * 100), end="")
+                lm.log('print log test')
             csv_month.close()
+
+            # kill log
+            lm.killLogManager()
+
             print()
             print('        Converted {0} files.'.format(str(done)))
             os.chdir('../../')

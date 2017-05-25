@@ -5,33 +5,53 @@
 # 투수
 # 타자
 
-from errorManager import print_error
-import inspect
+import errorManager as em
+
+
+# wrapper
+class GameStruct:
+    def __init__(self, year, month, gameID):
+        self.home_lineup = Lineup(homeaway=True, current_lineup=[], players=[])
+        self.away_lineup = Lineup(homeaway=True, current_lineup=[], players=[])
+        self.logger = logging.getLogger('gameLog')
+
+        assert isinstance(year, int)
+        assert isinstance(month, int)
+
+        # set log config
+        if month < 10:
+            mon = '0{}'.format(str(month))
+        else:
+            mon = str(month)
+        log_path = '{}/{}'.format(year, mon)
+        log_file_name = gameID
+        logManager.setLogFilePath(self.logger, log_path, log_file_name)
+
 
 class Player:
     def __init__(self, name=None, seq_no=0, position=0):
-        self.Name = name
-        self.Seq_no = seq_no
-        self.in_out = False
-        self.Position = position  # 1~9
+        self.name = name
+        self.seqNo = seq_no
+        self.inOut = False
+        self.position = position  # 1~9
 
     def get_name(self):
-        return self.Name
+        return self.name
 
     def get_no(self):
-        return self.Seq_no
+        return self.seqNo
 
     def get_position(self):
-        return self.Position
+        return self.position
 
     def in_player(self):
-        self.in_out = True
+        self.inOut = True
 
     def out_player(self):
-        self.in_out = False
+        self.inOut = False
 
     def is_pitcher(self):
-        return self.Position == 1
+        return self.position == 1
 
 
 class Lineup:
@@ -40,14 +60,37 @@ class Lineup:
             players = []
         if current_lineup is None:
             current_lineup = []
-        self.HomeAway = homeaway
-        self.CurrentLineup = current_lineup
-        self.Players = players
+        self.homeAway = homeaway
+        self.currentLineup = current_lineup
+        self.players = players
 
     def get_player(self, num):
         try:
-            return self.Players[num]
-        except IndexError as ie:
-            filename, linenum, funcname = inspect.getframeinfo(inspect.currentframe())[:3]
-            error_msg = "index : {0} / bound is {1}".format(num, len(self.Players))
-            print_error(filename, linenum, funcname, error_msg)
+            p = self.players[num]
+        except IndexError:
+            em.error_msg = 'index out of bound, idx {} / bound {}'.format(num, len(self.players))
+            print(em.getTracebackStr())
+            exit(1)
+        else:
+            return p
+
+    def get_current_lineup(self):
+        return self.currentLineup
+
+    def get_players(self):
+        return self.players
+
+    def swap_player(self, name1, name2):
+        self.currentLineup
+
+
+class PlayerPool:
+    def __init__(self, players=None):
+        if players is None:
+            self.Players = []
+        else:
+            self.Players = players
+
+    def addPlayer(self, player):
+        try:
+            self.Players.append(player)

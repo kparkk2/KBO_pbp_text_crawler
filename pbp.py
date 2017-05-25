@@ -15,9 +15,10 @@ def run_pbp_download(args):
 def run_pbp_parser(args):
     pbp_parser(args[0], args[1], args[2], args[3])
 
+
 if __name__ == "__main__":
     args = []  # m_start, m_end, y_start, y_end
-    options = []    # onlyConvert, onlyDownload
+    options = []  # onlyConvert, onlyDownload
     get_args(args, options)
 
     if (options[0] is True) & (options[1] is False):

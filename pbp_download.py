@@ -119,15 +119,14 @@ def pbp_download(mon_start, mon_end, year_start, year_end):
 
                 if mon_file_num > 30:
                     progress_pct = (float(done + skipped) / float(mon_file_num))
-                    bar = '█' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
+                    bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
                     print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                               progress_pct * 100),
-                          end="")
+                                                               progress_pct * 100), end="")
                 elif mon_file_num == 0:
                     mon_file_num = 0
                     # do nothing; dummy code
                 else:
-                    bar = '█' * (done + skipped) + '-' * (mon_file_num - done - skipped)
+                    bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
                     print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
                                                                float(done + skipped) / float(mon_file_num) * 100),
                           end="")
