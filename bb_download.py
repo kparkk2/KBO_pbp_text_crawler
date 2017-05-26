@@ -8,8 +8,6 @@ import os
 from bs4 import BeautifulSoup
 import re
 import sys
-import logManager
-import unicodedata
 
 def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
     # set url prefix

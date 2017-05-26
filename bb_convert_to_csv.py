@@ -10,7 +10,7 @@
 
 import os
 import json
-import platform
+import sys
 import csv
 import errorManager as em
 
@@ -18,7 +18,8 @@ import errorManager as em
 pos_lst = [
     '투수', '포수', '1루수', '2루수',
     '3루수', '유격수', '좌익수', '중견수',
-    '우익수', '좌중간', '우중간']
+    '우익수', '좌중간', '우중간'
+]
 
 res_lst = [
     '1루타', '2루타', '3루타', '홈런', '실책',
@@ -49,10 +50,6 @@ teams = {
 fieldNames = ['date', 'batterName', 'pitcherName', 'inn',
               'gx', 'gy', 'fielder_position', 'actual_result',
               'result', 'batterTeam', 'pitcherTeam', 'seqno']
-
-win_fieldNames = [chr(0xef)+chr(0xbb)+chr(0xbf)+'date', 'batterName', 'pitcherName', 'inn',
-                  'gx', 'gy', 'fielder_position', 'actual_result',
-                  'result', 'batterTeam', 'pitcherTeam', 'seqno']
 
 
 def find_pos(detail_result):
@@ -200,9 +197,6 @@ def bb_convert_to_csv(mon_start, mon_end, year_start, year_end, lm=None):
     print("###### CONVERT BB DATA(JSON) TO CSV FORMAT #######")
     print("##################################################")
 
-    # check OS
-    is_windows = (platform.system() == 'Windows')
-    # Win: True, Other: False
 
     for year in range(year_start, year_end+1):
         print("  for Year {0}...".format(str(year)))
@@ -217,7 +211,7 @@ def bb_convert_to_csv(mon_start, mon_end, year_start, year_end, lm=None):
             print("    Month {0}... ".format(str(month)))
 
             if month == mon_start:
-                if is_windows:
+                if sys.platform == 'win32':
                     csv_year = open("{0}/{1}.csv".format(str(year), str(year)), 'w',
                                     encoding='cp949')
                 else:
@@ -262,7 +256,7 @@ def bb_convert_to_csv(mon_start, mon_end, year_start, year_end, lm=None):
                 csv_month_name = "{0}0".format(csv_month_name)
             csv_month_name = "{0}{1}.csv".format(csv_month_name, str(month))
 
-            if is_windows:
+            if sys.platform == 'win32':
                 csv_month = open(csv_month_name, 'w', encoding='cp949')
             else:
                 csv_month = open(csv_month_name, 'w', encoding='utf-8')
@@ -287,7 +281,7 @@ def bb_convert_to_csv(mon_start, mon_end, year_start, year_end, lm=None):
                 match_info = f[:15]
 
                 # (5) open csv file
-                if is_windows:
+                if sys.platform == 'win32':
                     csv_file = open('./csv/{0}.csv'.format(match_info), 'w', encoding='cp949')
                 else:
                     csv_file = open('./csv/{0}.csv'.format(match_info), 'w', encoding='utf-8')

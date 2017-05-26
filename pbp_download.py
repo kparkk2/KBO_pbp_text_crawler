@@ -23,6 +23,7 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
     # set url prefix
     schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
     relay_prefix = "http://sportsdata.naver.com/ndata/kbo/"
+    lineup_prefix = "http://sports.news.naver.com/gameCenter/gameRecord.nhn?category=kbo&gameId="
 
     # make directory
     if not os.path.isdir("./pbp_data"):
@@ -103,6 +104,8 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                 relay_link = relay_prefix + gameID[:4] + '/' + gameID[4:6] + '/' \
                             + gameID + '.nsd'
 
+                lineup_url = "{}{}".format(lineup_prefix, gameID)
+
                 if int(gameID[0:4]) < 2010:
                     continue
                 elif int(gameID[0:4]) > 2050:
@@ -113,6 +116,7 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                     continue
                 else:
                     relay_html = urlopen(relay_link)
+                    lineup_html = urlopen(lineup_url)
 
                     soup = BeautifulSoup(relay_html.read(), "lxml")
                     script = soup.find('script', text=re.compile('sportscallback_relay'))
@@ -130,6 +134,23 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                         with open(pbp_data_filename, 'w') as pbp_data_file:
                             json.dump(data, pbp_data_file, indent=4, ensure_ascii=False)
                         pbp_data_file.close()
+
+                    soup = BeautifulSoup(lineup_html.read(), 'lxml')
+                    script = soup.find('script', text=re.compile('DataClass '))
+                    json_text = re.search(r'({"etcRecords":\[{.*?}}})', script.string, flags=re.DOTALL).group(1)
+
+                    lineup_data_filename = gameID[0:13] + '_lineup.json'
+
+                    if sys.platform == 'win32':
+                        data = json.loads(json_text, encoding='iso-8859-1')
+                        with open(lineup_data_filename, 'w', encoding='utf-8') as lineup_data_file:
+                            lineup_data_file.write(json.dumps(data, indent=4, ensure_ascii=False))
+                        lineup_data_file.close()
+                    else:
+                        data = json.loads(json_text)
+                        with open(lineup_data_filename, 'w') as lineup_data_file:
+                            json.dump(data, lineup_data_file, indent=4, ensure_ascii=False)
+                        lineup_data_file.close()
 
                     done = done + 1
                     lm.log('{} download'.format(gameID))
