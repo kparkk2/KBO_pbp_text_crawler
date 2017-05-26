@@ -81,7 +81,8 @@ class Lineup:
         return self.players
 
     def swap_player(self, name1, name2):
-        self.currentLineup
+        # TODO
+        print('')
 
 
 class PlayerPool:

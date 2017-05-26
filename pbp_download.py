@@ -1,5 +1,6 @@
 # pbp_download.py
 
+import sys
 import os
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
@@ -7,6 +8,7 @@ import json
 import re
 import http.client
 from urllib.parse import urlparse
+import logManager
 
 
 def check_url(url):
@@ -17,7 +19,7 @@ def check_url(url):
     return resp.status < 400
 
 
-def pbp_download(mon_start, mon_end, year_start, year_end):
+def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
     # set url prefix
     schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
     relay_prefix = "http://sportsdata.naver.com/ndata/kbo/"
@@ -91,6 +93,12 @@ def pbp_download(mon_start, mon_end, year_start, year_end):
             done = 0
             skipped = 0
 
+            lm.resetLogHandler()
+            lm.setLogPath(os.getcwd() + '/log/')
+            lm.setLogFileName('pbpDownloadLog.txt')
+            lm.cleanLog()
+            lm.createLogHandler()
+
             for gameID in game_ids:
                 relay_link = relay_prefix + gameID[:4] + '/' + gameID[4:6] + '/' \
                             + gameID + '.nsd'
@@ -109,13 +117,22 @@ def pbp_download(mon_start, mon_end, year_start, year_end):
                     soup = BeautifulSoup(relay_html.read(), "lxml")
                     script = soup.find('script', text=re.compile('sportscallback_relay'))
                     json_text = re.search(r'({"gameInfo":{.*?}}},.*?}}})', script.string, flags=re.DOTALL).group(1)
-                    data = json.loads(json_text)
 
                     pbp_data_filename = gameID[0:13] + '_pbp.json'
-                    with open(pbp_data_filename, 'w') as pbp_data_file:
-                        json.dump(data, pbp_data_file, indent=4, ensure_ascii=False)
-                    pbp_data_file.close()
+
+                    if sys.platform == 'win32':
+                        data = json.loads(json_text, encoding='iso-8859-1')
+                        with open(pbp_data_filename, 'w', encoding='utf-8') as pbp_data_file:
+                            pbp_data_file.write(json.dumps(data, indent=4, ensure_ascii=False))
+                        pbp_data_file.close()
+                    else:
+                        data = json.loads(json_text)
+                        with open(pbp_data_filename, 'w') as pbp_data_file:
+                            json.dump(data, pbp_data_file, indent=4, ensure_ascii=False)
+                        pbp_data_file.close()
+
                     done = done + 1
+                    lm.log('{} download'.format(gameID))
 
                 if mon_file_num > 30:
                     progress_pct = (float(done + skipped) / float(mon_file_num))

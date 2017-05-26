@@ -28,7 +28,7 @@ def write_csv(csv_file, csv_month, csv_year, game_id):
 '''
 
 
-def pbp_parser(mon_start, mon_end, year_start, year_end):
+def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
     if not os.path.isdir("./pbp_data"):
         print("DOWNLOAD DATA FIRST")
         exit(1)
@@ -96,7 +96,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end):
             csv_month = open(csv_month_name, 'w')
             if is_windows:
                 # csv_month.write('\xEF\xBB\xBF')
-                csv_month.write('\n')
+                csv_month.write('')
             csv_month.write(csv_header)
 
             # write csv file for year
@@ -120,7 +120,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end):
             done = 0
             for f in files:
                 # dummy code for debug
-                js_in = open(f, 'r')
+                js_in = open(f, 'r', encoding='utf-8')
                 js = json.loads(js_in.read(), 'utf-8')
                 js_in.close()
 

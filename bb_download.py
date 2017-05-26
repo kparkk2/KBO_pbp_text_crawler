@@ -7,9 +7,11 @@ from urllib.request import urlopen
 import os
 from bs4 import BeautifulSoup
 import re
+import sys
+import logManager
+import unicodedata
 
-
-def bb_download(mon_start, mon_end, year_start, year_end):
+def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
     # set url prefix
     schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?"
     result_url_prefix = "http://sports.news.naver.com/gameCenter/gameResult.nhn?category=kbo&gameId="
@@ -77,6 +79,12 @@ def bb_download(mon_start, mon_end, year_start, year_end):
             # gameID가 있는 게임은 모두 경기 결과가 있는 것으로 판단함
             done = 0
 
+            lm.resetLogHandler()
+            lm.setLogPath(os.getcwd() + '/log/')
+            lm.setLogFileName('bbDownloadLog.txt')
+            lm.cleanLog()
+            lm.createLogHandler()
+
             for game_id in game_ids:
                 if int(game_id[0:4]) < 2010:
                     continue
@@ -88,24 +96,34 @@ def bb_download(mon_start, mon_end, year_start, year_end):
                 soup = BeautifulSoup(result_html.read(), 'lxml')
                 script = soup.find('script', text=re.compile('ChartDataClass'))
                 json_text = re.search(r'({"teamsInfo":{.*?}}}})', script.string, flags=re.DOTALL).group(1)
-                data = json.loads(json_text)
 
                 bb_data_filename = game_id[:12] + '_bb.json'
-                with open(bb_data_filename, 'w') as bb_data_file:
-                    json.dump(data, bb_data_file, indent=4, ensure_ascii=False)
-                bb_data_file.close()
+
+                if sys.platform == 'win32':
+                    data = json.loads(json_text, encoding='iso-8859-1')
+                    with open(bb_data_filename, 'w', encoding='utf-8') as bb_data_file:
+                        bb_data_file.write(json.dumps(data, indent=4, ensure_ascii=False))
+                    bb_data_file.close()
+                else:
+                    data = json.loads(json_text)
+                    with open(bb_data_filename, 'w') as bb_data_file:
+                        json.dump(data, bb_data_file, indent=4, ensure_ascii=False)
+                    bb_data_file.close()
+
                 done += 1
+                lm.log('{} download'.format(game_id))
 
                 if mon_file_num > 30:
                     progress_pct = (float(done) / float(mon_file_num))
-                    bar = '█' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
+                    bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
+                    bar = bar.encode('utf-8').decode('utf-8')
                     print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
                                                                progress_pct * 100), end="")
                 elif mon_file_num == 0:
                     mon_file_num = 0
                     # do nothing
                 else:
-                    bar = '█' * done + '-' * (mon_file_num - done)
+                    bar = '+' * done + '-' * (mon_file_num - done)
                     print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
                                                                float(done) / float(mon_file_num) * 100), end="")
 
