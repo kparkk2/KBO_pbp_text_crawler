@@ -197,7 +197,6 @@ def bb_convert_to_csv(mon_start, mon_end, year_start, year_end, lm=None):
     print("###### CONVERT BB DATA(JSON) TO CSV FORMAT #######")
     print("##################################################")
 
-
     for year in range(year_start, year_end+1):
         print("  for Year {0}...".format(str(year)))
 
@@ -222,8 +221,11 @@ def bb_convert_to_csv(mon_start, mon_end, year_start, year_end, lm=None):
                                         dialect='excel', fieldnames=fieldNames,
                                         lineterminator='\n')
             csv_writer.writeheader()
-            mon = '0{}'.format(str(month)) if month < 10 else str(month)
 
+            if month < 10:
+                mon = '0{}'.format(str(month))
+            else:
+                mon = str(month)
             if not os.path.isdir("./{0}/{1}".format(str(year), mon)):
                 print(os.getcwd())
                 print("DOWNLOAD MONTH {0} DATA FIRST".format(str(month)))
@@ -251,10 +253,7 @@ def bb_convert_to_csv(mon_start, mon_end, year_start, year_end, lm=None):
             if not os.path.isdir("./csv"):
                 os.mkdir("./csv")
 
-            csv_month_name = "./{0}_".format(str(year))
-            if month < 10:
-                csv_month_name = "{0}0".format(csv_month_name)
-            csv_month_name = "{0}{1}.csv".format(csv_month_name, str(month))
+            csv_month_name = "{0}{1}.csv".format(str(year), mon)
 
             if sys.platform == 'win32':
                 csv_month = open(csv_month_name, 'w', encoding='cp949')

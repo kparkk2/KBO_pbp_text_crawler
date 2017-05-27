@@ -2,13 +2,18 @@
 
 import os
 import json
-import platform
-import time
+import sys
 import csv
+from collections import OrderedDict
 import errorManager as em
 
+'''
 pos_string = ["투수", "포수", "1루수", "2루수", "3루수",
               "유격수", "좌익수", "중견수", "우익수", "좌중간", "우중간"]
+'''
+pos_string = ["투수", "포수", "1루수", "2루수", "3루수",
+              "유격수", "좌익수", "중견수", "지명타자", "대타", "대주자"]
+
 
 res_string = ["안타", "2루타", "3루타", "홈런", "실책", "땅볼",
               "뜬공", "희생플라이", "희생번트", "야수선택", "삼진",
@@ -37,6 +42,7 @@ find_position = {
     '좌': '좌익수',
     '중': '중견수',
     '우': '우익수',
+    '지': '지명타자',
     '교': '교체'
 }
 
@@ -52,9 +58,6 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
     print("###### CONVERT PBP DATA(JSON) TO CSV FORMAT ######")
     print("##################################################")
 
-    # check OS
-    is_windows = (platform.system() == 'Windows')  # Win: True, Other: False
-
     for year in range(year_start, year_end + 1):
         print("  for Year " + str(year) + "...")
 
@@ -63,14 +66,17 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
             print("DOWNLOAD YEAR {0} DATA FIRST".format(str(year)))
             continue
 
-        csv_year = open("{0}/{1}.csv".format(str(year), str(year)), 'w')
-        if is_windows:
-            # csv_year.write('\xEF\xBB\xBF')
-            csv_year.write('\n')
-        csv_year.write(csv_header)
-
         for month in range(mon_start, mon_end + 1):
             print("  for Month {0}...".format(str(month)))
+
+            if month == mon_start:
+                if sys.platform == 'win32':
+                    csv_year = open("{0}/{1}.csv".format(str(year), str(year)), 'w',
+                                    encoding='cp949')
+                else:
+                    csv_year = open("{0}/{1}.csv".format(str(year), str(year)), 'w',
+                                    encoding='utf-8')
+                csv_year.write(csv_header)
 
             if month < 10:
                 mon = '0{}'.format(str(month))
@@ -90,7 +96,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                                        (os.path.getsize(f) > 512))]
             # 파일 끝에 'pbp.json'이 붙고 사이즈 512byte 이상인 파일만 체크
             lineupfiles = [f for f in os.listdir('.') if (os.path.isfile(f) and
-                                                          (f.find('pbp.json') > 0) and
+                                                          (f.find('lineup.json') > 0) and
                                                           (os.path.getsize(f) > 512))]
 
             mon_file_num = len(pbpfiles)
@@ -117,10 +123,10 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
 
             csv_month_name = "./{0}_{1}.csv".format(str(year), mon)
 
-            csv_month = open(csv_month_name, 'w')
-            if is_windows:
-                # csv_month.write('\xEF\xBB\xBF')
-                csv_month.write('')
+            if sys.platform == 'win32':
+                csv_month = open(csv_month_name, 'w', encoding='cp949')
+            else:
+                csv_month = open(csv_month_name, 'w', encoding='utf-8')
             csv_month.write(csv_header)
 
             # write csv file for year
@@ -147,14 +153,12 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                 lineupfile = z[1]
                 # dummy code for debug
                 js_in = open(pbpfile, 'r', encoding='utf-8')
-                pbpjs = json.loads(js_in.read(), 'utf-8')
-                js_in.close()
-                js_in = open(lineupfile, 'r', encoding='utf-8')
-                lineupjs = json.loads(js_in.read(), 'utf-8')
+                pbpjs = json.loads(js_in.read(), 'utf-8', object_pairs_hook=OrderedDict)
                 js_in.close()
 
-                done = done + 1
-                time.sleep(10.0 / 1000.0)
+                js_in = open(lineupfile, 'r', encoding='utf-8')
+                lineupjs = json.loads(js_in.read(), 'utf-8', object_pairs_hook=OrderedDict)
+                js_in.close()
 
                 # (1) 초기 라인업 생성.
                 # (2) 전체 라인업 목록 생성.
@@ -373,7 +377,67 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                             if batter['playerCode'] == p[1]:
                                 p[2] = find_position[batter['pos'][0]]
 
+                # last_inn = pbpjs['currentInning']
+                # assert last_inn.isdigit()
 
+                relayjs = pbpjs['relayTexts']
+                relay = {}
+                for key in relayjs.keys():
+                    if key.isdigit():
+                        relay[key] = relayjs[key]
+                    elif key.find('currentBatterTexts') >= 0:
+                        if type(relayjs[key]) is list:
+                            relay[key] = relayjs[key]
+
+                # 추출 대상 텍스트
+                # OO XXX (으)로 교체
+                # OO XXX : OOO(으)로 수비위치 변경
+                # n번타자 XXX
+                # n번타자 XXX : 대타 XXX (으)로 교체
+                # 공격 종료
+                # OOO : XXX XXXXXX 결과
+                #### OO주자 : 결과
+
+                fulltext = []
+
+                for inn in relay.keys():
+                    foo = []
+                    endmsg = None
+                    endmsgline = 0
+                    lastseq = 0
+                    for pbp in relay[inn]:
+                        line = pbp['liveText']
+                        if line.find('교체') > 0:
+                            foo.append([pbp['seqno'], line])
+                        elif line.find('변경') > 0:
+                            foo.append([pbp['seqno'], line])
+                        elif line.find('공격 종료') > 0:
+                            if endmsg is not None:
+                                foo.append([max(foo)[0]+1, endmsg])
+                            endmsg = line
+                            endmsgline = lastseq-1
+                        elif line.find(' : ') > 0:
+                            foo.append([pbp['seqno'], line])
+                        lastseq = pbp['seqno']
+                    if (endmsgline > 0) & (endmsg is not None):
+                        foo.append([endmsgline, endmsg])
+                    fulltext += foo
+                fulltext.sort()
+
+                gameID = pbpfile[:13]
+
+                if sys.platform == 'win32':
+                    csv_file = open('./csv/{0}.csv'.format(gameID), 'w', encoding='cp949')
+                else:
+                    csv_file = open('./csv/{0}.csv'.format(gameID), 'w', encoding='utf-8')
+
+                # temporary for debugging
+                for f in fulltext:
+                    csv_file.write(str(f))
+                    csv_file.write('\n')
+                csv_file.close()
+
+                done = done + 1
 
                 if mon_file_num > 30:
                     progress_pct = (float(done) / float(mon_file_num))
