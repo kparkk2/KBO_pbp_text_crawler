@@ -277,7 +277,7 @@ def bb_convert_to_csv(mon_start, mon_end, year_start, year_end, lm=None):
                 js = json.loads(js_in.read(), encoding='utf-8')
                 js_in.close()
 
-                match_info = f[:15]
+                match_info = f[:16]
 
                 # (5) open csv file
                 if sys.platform == 'win32':

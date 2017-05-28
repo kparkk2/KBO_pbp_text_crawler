@@ -25,11 +25,9 @@ if __name__ == "__main__":
 
     if (options[0] is True) & (options[1] is False):
         run_pbp_parser(args, lm)
-        # print('parser is building')
     elif (options[0] is False) & (options[1] is True):
         run_pbp_download(args, lm)
     else:
         run_pbp_download(args, lm)
-        # run_pbp_parser(args, lm)
-        print('parser is building')
+        run_pbp_parser(args, lm)
     lm.killLogManager()

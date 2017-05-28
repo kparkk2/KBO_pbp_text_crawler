@@ -106,9 +106,9 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
 
                 lineup_url = "{}{}".format(lineup_prefix, gameID)
 
-                if int(gameID[0:4]) < 2010:
+                if int(gameID[:4]) < 2010:
                     continue
-                elif int(gameID[0:4]) > 2050:
+                elif int(gameID[:4]) > 2050:
                     continue
 
                 if not check_url(relay_link):
@@ -123,52 +123,66 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                     try:
                         json_text = re.search(r'({"gameInfo":{.*?}}},.*?}}})', script.string, flags=re.DOTALL).group(1)
                     except AttributeError:
-                        print()
-                        print('JSON parse error in : {}'.format(gameID))
-                        print(em.getTracebackStr())
-                        lm.bugLog('JSON parse error in : {}'.format(gameID))
-                        lm.bugLog(em.getTracebackStr())
-                        lm.killLogManager()
-                        exit(1)
+                        try:
+                            json_text = re.search(r'({"awayTeamLineUp":{.*?}}},.*?}}\))', script.string,
+                                                  flags=re.DOTALL).group(1)
+                            json_text = json_text[:-1]
+                        except AttributeError:
+                            print()
+                            print('JSON parse error in : {}'.format(gameID))
+                            print(em.getTracebackStr())
+                            lm.bugLog('JSON parse error in : {}'.format(gameID))
+                            lm.bugLog(em.getTracebackStr())
+                            lm.killLogManager()
+                            exit(1)
 
                     pbp_data_filename = gameID[0:13] + '_pbp.json'
 
                     if sys.platform == 'win32':
                         data = json.loads(json_text, encoding='iso-8859-1')
-                        with open(pbp_data_filename, 'w', encoding='utf-8') as pbp_data_file:
-                            pbp_data_file.write(json.dumps(data, indent=4, ensure_ascii=False))
-                        pbp_data_file.close()
                     else:
-                        data = json.loads(json_text)
-                        with open(pbp_data_filename, 'w') as pbp_data_file:
-                            json.dump(data, pbp_data_file, indent=4, ensure_ascii=False)
-                        pbp_data_file.close()
+                        try:
+                            data = json.loads(json_text)
+                        except:
+                            print()
+                            print(json_text)
+                            print(gameID)
+                            exit(1)
+
+                    # BUGBUG 20160506SKSS 김강민 2루수 플라이 아웃
+                    # seqno 394인데 bb data 에는 393으로 기록. bb data 에 맞춤.
+                    if gameID[:12] == '20160506SKSS':
+                        data['relayTexts']['9'][1]['seqno'] = 393
+
+                    with open(pbp_data_filename, 'w', encoding='utf-8') as pbp_data_file:
+                        json.dump(data, pbp_data_file, indent=4, ensure_ascii=False)
+                    pbp_data_file.close()
 
                     soup = BeautifulSoup(lineup_html.read(), 'lxml')
                     script = soup.find('script', text=re.compile('DataClass '))
                     try:
                         json_text = re.search(r'({"etcRecords":\[{.*?}}})', script.string, flags=re.DOTALL).group(1)
                     except AttributeError:
-                        print()
-                        print('JSON parse error in : {}'.format(gameID))
-                        print(em.getTracebackStr())
-                        lm.bugLog('JSON parse error in : {}'.format(gameID))
-                        lm.bugLog(em.getTracebackStr())
-                        lm.killLogManager()
-                        exit(1)
+                        try:
+                            json_text = re.search(r'({"games":\[{.*?}},"homeStandings":{.*?}})', script.string, flags=re.DOTALL).group(1)
+                        except AttributeError:
+                            print()
+                            print('JSON parse error in : {}'.format(gameID))
+                            print(em.getTracebackStr())
+                            lm.bugLog('JSON parse error in : {}'.format(gameID))
+                            lm.bugLog(em.getTracebackStr())
+                            lm.killLogManager()
+                            exit(1)
 
                     lineup_data_filename = gameID[0:13] + '_lineup.json'
 
                     if sys.platform == 'win32':
                         data = json.loads(json_text, encoding='iso-8859-1')
-                        with open(lineup_data_filename, 'w', encoding='utf-8') as lineup_data_file:
-                            lineup_data_file.write(json.dumps(data, indent=4, ensure_ascii=False))
-                        lineup_data_file.close()
                     else:
                         data = json.loads(json_text)
-                        with open(lineup_data_filename, 'w') as lineup_data_file:
-                            json.dump(data, lineup_data_file, indent=4, ensure_ascii=False)
-                        lineup_data_file.close()
+                    with open(lineup_data_filename, 'w', encoding='utf-8') as lineup_data_file:
+                        lineup_data_file.write(json.dumps(data, indent=4, ensure_ascii=False))
+                    lineup_data_file.close()
 
                     done = done + 1
                     lm.log('{} download'.format(gameID))

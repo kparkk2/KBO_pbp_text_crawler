@@ -106,16 +106,25 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
                     lm.killLogManager()
                     exit(1)
 
-                bb_data_filename = game_id[:12] + '_bb.json'
+                bb_data_filename = game_id[:13] + '_bb.json'
 
                 if sys.platform == 'win32':
-                    data = json.loads(json_text, encoding='iso-8859-1')
-                    with open(bb_data_filename, 'w', encoding='utf-8') as bb_data_file:
-                        bb_data_file.write(json.dumps(data, indent=4, ensure_ascii=False))
-                    bb_data_file.close()
+                    try:
+                        data = json.loads(json_text, encoding='iso-8859-1')
+                    except json.decoder.JSONDecodeError:
+                        json_text = re.search(r'({"teamsInfo":{.*?}}}},.*?}}}})', script.string, flags=re.DOTALL).group(1)
+                        data = json.loads(json_text, encoding='iso-8859-1')
                 else:
-                    data = json.loads(json_text)
-                    with open(bb_data_filename, 'w') as bb_data_file:
+                    try:
+                        data = json.loads(json_text)
+                    except json.decoder.JSONDecodeError:
+                        json_text = re.search(r'({"teamsInfo":{.*?}}}},.*?}}}})', script.string, flags=re.DOTALL).group(1)
+                        data = json.loads(json_text)
+
+                # BUGBUG : 20170509 KT-HT 경기 타구 정보 실종
+                # 생략
+                if game_id[:8] != '20170509':
+                    with open(bb_data_filename, 'w', encoding='utf-8') as bb_data_file:
                         json.dump(data, bb_data_file, indent=4, ensure_ascii=False)
                     bb_data_file.close()
 

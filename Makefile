@@ -35,12 +35,13 @@ clean_folder:
 cf: clean_csv clean_json
 
 clean_csv:
-	@find bb_data -iname '*csv' | xargs rm
+	@find bb_data -iname '*.csv' | xargs rm
+	@find pbp_data -iname '*.csv' | xargs rm
 
 clean_json:
-	@find pbp_data -iname '*json' | xargs rm
-	@find bb_data -iname '*json' | xargs rm
+	@find pbp_data -iname '*.json' | xargs rm
+	@find bb_data -iname '*.json' | xargs rm
 
 clean_log:
-	@find pbp_data -iname '*log' | xargs rm
-	@find bb_data -iname '*log' | xargs rm
+	@find pbp_data -iname '*Log.*' | xargs rm
+	@find bb_data -iname '*Log.*' | xargs rm
