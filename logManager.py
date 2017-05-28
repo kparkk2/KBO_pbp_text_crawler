@@ -89,7 +89,17 @@ class LogManager:
                     for e in elem:
                         cp = os.path.join(cp, e)
                     try:
-                        os.remove(os.path.join(cp, f))
-                    except IOError:
+                        if os.path.isfile(os.path.join(cp, f)):
+                            os.remove(os.path.join(cp, f))
+                    except FileNotFoundError:
+                        print()
                         print(em.getTracebackStr())
-                        return
+                        print(os.path.join(cp, f))
+                        print('Basepath : {}'.format(cp))
+                        print('File : {}'.format(f))
+                        exit(1)
+                    except Exception as e:
+                        print()
+                        print('Unexpected Error :\n\t{}'.format(e))
+                        print(em.getTracebackStr())
+                        exit(1)

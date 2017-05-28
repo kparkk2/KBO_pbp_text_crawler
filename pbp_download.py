@@ -8,7 +8,7 @@ import json
 import re
 import http.client
 from urllib.parse import urlparse
-import logManager
+import errorManager as em
 
 
 def check_url(url):
@@ -120,7 +120,16 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
 
                     soup = BeautifulSoup(relay_html.read(), "lxml")
                     script = soup.find('script', text=re.compile('sportscallback_relay'))
-                    json_text = re.search(r'({"gameInfo":{.*?}}},.*?}}})', script.string, flags=re.DOTALL).group(1)
+                    try:
+                        json_text = re.search(r'({"gameInfo":{.*?}}},.*?}}})', script.string, flags=re.DOTALL).group(1)
+                    except AttributeError:
+                        print()
+                        print('JSON parse error in : {}'.format(gameID))
+                        print(em.getTracebackStr())
+                        lm.bugLog('JSON parse error in : {}'.format(gameID))
+                        lm.bugLog(em.getTracebackStr())
+                        lm.killLogManager()
+                        exit(1)
 
                     pbp_data_filename = gameID[0:13] + '_pbp.json'
 
@@ -137,7 +146,16 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
 
                     soup = BeautifulSoup(lineup_html.read(), 'lxml')
                     script = soup.find('script', text=re.compile('DataClass '))
-                    json_text = re.search(r'({"etcRecords":\[{.*?}}})', script.string, flags=re.DOTALL).group(1)
+                    try:
+                        json_text = re.search(r'({"etcRecords":\[{.*?}}})', script.string, flags=re.DOTALL).group(1)
+                    except AttributeError:
+                        print()
+                        print('JSON parse error in : {}'.format(gameID))
+                        print(em.getTracebackStr())
+                        lm.bugLog('JSON parse error in : {}'.format(gameID))
+                        lm.bugLog(em.getTracebackStr())
+                        lm.killLogManager()
+                        exit(1)
 
                     lineup_data_filename = gameID[0:13] + '_lineup.json'
 

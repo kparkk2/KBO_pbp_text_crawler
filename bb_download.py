@@ -8,6 +8,8 @@ import os
 from bs4 import BeautifulSoup
 import re
 import sys
+import errorManager as em
+
 
 def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
     # set url prefix
@@ -93,7 +95,16 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
 
                 soup = BeautifulSoup(result_html.read(), 'lxml')
                 script = soup.find('script', text=re.compile('ChartDataClass'))
-                json_text = re.search(r'({"teamsInfo":{.*?}}}})', script.string, flags=re.DOTALL).group(1)
+                try:
+                    json_text = re.search(r'({"teamsInfo":{.*?}}}})', script.string, flags=re.DOTALL).group(1)
+                except AttributeError:
+                    print()
+                    print('JSON parse error in : {}'.format(game_id))
+                    print(em.getTracebackStr())
+                    lm.bugLog('JSON parse error in : {}'.format(game_id))
+                    lm.bugLog(em.getTracebackStr())
+                    lm.killLogManager()
+                    exit(1)
 
                 bb_data_filename = game_id[:12] + '_bb.json'
 

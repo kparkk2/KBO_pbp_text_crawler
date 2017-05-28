@@ -14,11 +14,35 @@ pos_string = ["투수", "포수", "1루수", "2루수", "3루수",
 pos_string = ["투수", "포수", "1루수", "2루수", "3루수",
               "유격수", "좌익수", "중견수", "지명타자", "대타", "대주자"]
 
-
 res_string = ["안타", "2루타", "3루타", "홈런", "실책", "땅볼",
               "뜬공", "희생플라이", "희생번트", "야수선택", "삼진",
               "낫아웃", "타격방해", "직선타", "병살타", "번트", "내야안타"]
 
+hit_results = ['안타', '2루타', '3루타', '홈런']
+
+out_results = ['땅볼', '플라이', '병살타', '라인드라이브',
+               '타구맞음', '번트']
+
+nobb_outs = ['삼진', '낫 아웃', '견제사', '  포스아웃', '  태그아웃',
+             '도루실패', '진루실패']
+
+other_results = ['실책', '낫아웃', '포일', '폭투']
+
+# OO XXX (으)로 교체
+# OO XXX : OOO(으)로 수비위치 변경
+# n번타자 XXX
+# n번타자 XXX : 대타 XXX (으)로 교체
+# 공격 종료
+# OOO : XXX XXXXXX 결과
+# OO주자 : 결과
+
+other_swap = '교체'
+
+other_move = '위치 변경'
+
+other_inn_end = '공격 종료'
+
+'''
 csv_header = '"date","inn","batterName","pitcherName",' \
              '"batterTeam","pitcherTeam","actual_result","result",' \
              '"gx","gy","pos1","pos2","pos3",' \
@@ -28,9 +52,39 @@ fieldNames = ['date', 'batterName', 'pitcherName', 'inn',
               'gx', 'gy', 'fielder_position', 'actual_result',
               'result', 'batterTeam', 'pitcherTeam', 'seqno']
 
+'''
+
+fieldNames = ['date', 'batterName', 'pitcherName', 'inn',
+              'pos1', 'pos2', 'pos3', 'pos4', 'pos5', 'pos6',
+              'pos7', 'pos8', 'pos9', 'actual_result',
+              'result', 'batterTeam', 'pitcherTeam', 'seqno']
+
 positions = dict(enumerate(pos_string))
 results = dict(enumerate(res_string))
 
+
+def parse_result(text):
+    for b in hit_results:
+        if text.find(b) > 0:
+            return ['h', b]
+    for o in out_results:
+        if text.find(o) > 0:
+            return ['o', o]
+    # no bb out, runner out
+    for o in nobb_outs:
+        if text.find(o) > 0:
+            return ['r', o]
+    for e in other_results:
+        if text.find(e) > 0:
+            return ['e', e]
+    # 교체/이닝종료/포변
+    if text.find(other_swap) > 0:
+        return ['s', text]
+    elif text.find(other_move) > 0:
+        return ['p', text]
+    elif text.find(other_inn_end) > 0:
+        return ['i', text]
+    return ['x', 'Fail']
 
 find_position = {
     '투': '투수',
@@ -46,6 +100,22 @@ find_position = {
     '교': '교체'
 }
 
+pos_number = {
+    '투수': 1,
+    '포수': 2,
+    '1루수': 3,
+    '2루수': 4,
+    '3루수': 5,
+    '유격수': 6,
+    '좌익수': 7,
+    '중견수': 8,
+    '우익수': 9,
+    '지명타자': -1,
+    '교체': -2,
+    '대타': -3,
+    '대주자': -4
+}
+
 
 def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
     if not os.path.isdir("./pbp_data"):
@@ -58,6 +128,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
     print("###### CONVERT PBP DATA(JSON) TO CSV FORMAT ######")
     print("##################################################")
 
+    csv_year = ''
     for year in range(year_start, year_end + 1):
         print("  for Year " + str(year) + "...")
 
@@ -76,7 +147,10 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                 else:
                     csv_year = open("{0}/{1}.csv".format(str(year), str(year)), 'w',
                                     encoding='utf-8')
-                csv_year.write(csv_header)
+                csv_writer = csv.DictWriter(csv_year, delimiter=',',
+                                            dialect='excel', fieldnames=fieldNames,
+                                            lineterminator='\n')
+                csv_writer.writeheader()
 
             if month < 10:
                 mon = '0{}'.format(str(month))
@@ -127,8 +201,10 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                 csv_month = open(csv_month_name, 'w', encoding='cp949')
             else:
                 csv_month = open(csv_month_name, 'w', encoding='utf-8')
-            csv_month.write(csv_header)
-
+            csv_writer = csv.DictWriter(csv_month, delimiter=',',
+                                        dialect='excel', fieldnames=fieldNames,
+                                        lineterminator='\n')
+            csv_writer.writeheader()
             # write csv file for year
             # write csv file for month
             # csv column 목록
@@ -168,9 +244,6 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
 
                 awayTeamBatters = lineupjs['battersBoxscore']['away']
                 homeTeamBatters = lineupjs['battersBoxscore']['home']
-                # awayTeamPitchers = lineupjs['pitchersBoxscore']['away']
-                # homeTeamPitchers = lineupjs['pitchersBoxscore']['home']
-
                 awayTeamLineup = pbpjs['awayTeamLineUp']
                 homeTeamLineup = pbpjs['homeTeamLineUp']
 
@@ -204,13 +277,34 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                     9: {},
                     0: {},  # pitcher
                 }
+                home_fielder = {
+                    1: '',
+                    2: '',
+                    3: '',
+                    4: '',
+                    5: '',
+                    6: '',
+                    7: '',
+                    8: '',
+                    9: ''
+                }
+                away_fielder = {
+                    1: '',
+                    2: '',
+                    3: '',
+                    4: '',
+                    5: '',
+                    6: '',
+                    7: '',
+                    8: '',
+                    9: ''
+                }
 
                 for batter in awayTeamLineup['batter']:
                     bname = batter['name']
                     border = batter['batOrder']
                     bcode = batter['pCode']
                     bseqno = batter['seqno']
-                    # bpos =batter['pos'][0]
                     bpos = ''  # 임시
 
                     # 같은 PID 선수 추가 방지
@@ -259,7 +353,6 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                     border = batter['batOrder']
                     bcode = batter['pCode']
                     bseqno = batter['seqno']
-                    # bpos =batter['pos'][0]
                     bpos = ''  # 임시
 
                     # 같은 PID 선수 추가 방지
@@ -377,8 +470,21 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                             if batter['playerCode'] == p[1]:
                                 p[2] = find_position[batter['pos'][0]]
 
-                # last_inn = pbpjs['currentInning']
-                # assert last_inn.isdigit()
+                for order in away_current.keys():
+                    cur = min(away_current[order].keys())
+                    pos = pos_number[away_current[order][cur][2]]
+                    if pos > 0:
+                        away_fielder[pos] = away_current[order][cur][0]
+                    else:
+                        continue
+
+                for order in home_current.keys():
+                    cur = min(home_current[order].keys())
+                    pos = pos_number[home_current[order][cur][2]]
+                    if pos > 0:
+                        home_fielder[pos] = home_current[order][cur][0]
+                    else:
+                        continue
 
                 relayjs = pbpjs['relayTexts']
                 relay = {}
@@ -409,13 +515,13 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                         line = pbp['liveText']
                         if line.find('교체') > 0:
                             foo.append([pbp['seqno'], line])
-                        elif line.find('변경') > 0:
+                        elif line.find('위치변경') > 0:
                             foo.append([pbp['seqno'], line])
                         elif line.find('공격 종료') > 0:
                             if endmsg is not None:
-                                foo.append([max(foo)[0]+1, endmsg])
+                                foo.append([max(foo)[0] + 1, endmsg])
                             endmsg = line
-                            endmsgline = lastseq-1
+                            endmsgline = lastseq - 1
                         elif line.find(' : ') > 0:
                             foo.append([pbp['seqno'], line])
                         lastseq = pbp['seqno']
@@ -424,14 +530,189 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                     fulltext += foo
                 fulltext.sort()
 
-                gameID = pbpfile[:13]
+                game_id = pbpfile[:13]
 
                 if sys.platform == 'win32':
-                    csv_file = open('./csv/{0}.csv'.format(gameID), 'w', encoding='cp949')
+                    csv_file = open('./csv/{0}.csv'.format(game_id), 'w', encoding='cp949')
                 else:
-                    csv_file = open('./csv/{0}.csv'.format(gameID), 'w', encoding='utf-8')
+                    csv_file = open('./csv/{0}.csv'.format(game_id), 'w', encoding='utf-8')
+                csv_writer = csv.DictWriter(csv_file, delimiter=',',
+                                            dialect='excel', fieldnames=fieldNames,
+                                            lineterminator='\n')
+                csv_writer.writeheader()
+
+                # 처음 라인업에서 시작
+                # 결과 나올때마다 write row
+                # 타순 하나씩 pass
+                # 교체 있을 때 현재라인업 수정
+                '''
+                fieldNames = ['date', 'batterName', 'pitcherName', 'inn',
+                              'pos1', 'pos2', 'pos3', 'pos4', 'pos5', 'pos6',
+                              'pos7', 'pos8', 'pos9', 'actual_result',
+                              'result', 'batterTeam', 'pitcherTeam', 'seqno']
+                '''
+                # players: [name] = [code, pos, seqno, inout]
+                # current: [order][seqno] = [name, code, pos]
+                date = '{0}-{1}-{2}'.format(game_id[:4], game_id[4:2], game_id[6:2])
+                cur_inn = 1
+                TopBot = '초'
+                inn = '{}회{}'.format(cur_inn, TopBot)
+                order = 1
+                batterTeam = game_id[8:2]
+                pitcherTeam = game_id[10:2]
+                cur_bat_away = away_current[order][min(away_current[order].keys())]
+                cur_bat_home = home_current[order][min(away_current[order].keys())]
+                cur_pit_away = away_current[0][min(away_current[0].keys())]
+                cur_pit_home = home_current[0][min(home_current[0].keys())]
+                outs = 0
+
+                d = {
+                    'date': date,
+                    'batterName': cur_bat_away[0],
+                    'pitcherName': cur_pit_home[0],
+                    'inn': inn,
+                    'pos1': home_fielder[1],
+                    'pos2': home_fielder[2],
+                    'pos3': home_fielder[3],
+                    'pos4': home_fielder[4],
+                    'pos5': home_fielder[5],
+                    'pos6': home_fielder[6],
+                    'pos7': home_fielder[7],
+                    'pos8': home_fielder[8],
+                    'pos9': home_fielder[9],
+                    'actual_result': '',
+                    'result': '',
+                    'batterTeam': batterTeam,
+                    'pitcherTeam': pitcherTeam,
+                    'seqno': 0
+                }
+                for text in fulltext:
+                    if (text.find('주자') > 0) and (text.find('아웃') < 0) and (text.find('교체')  < 0):
+                        continue
+                    [t_type, result] = parse_result(text[1])
+                    d['actual_result'] = result
+                    d['seqno'] = text[0]
+                    if t_type == 'h':
+                        d['result'] = '안타'
+                    elif t_type == 'o':
+                        d['result'] = '아웃'
+                        outs += 1
+                    elif t_type == 'e':
+                        d['result'] = '실책'
+                    elif t_type == 'r':
+                        outs += 1
+                    elif t_type == 's':
+                        # swap
+                        p1 = text[1].find(': ')
+                        p2 = text[1].find('(으)')
+                        t1 = text[p1+2:p2-1].split(' ')
+                        new_player = t1[0]
+                        new_pos = t1[1]
+                        t1 = text[1][:p1].split(' ')[0]
+                        old_player = t1[0]
+                        old_pos = t1[1]
+                        if TopBot == '초':
+                            att_cur = away_current
+                            def_cur = home_current
+                            att_ps = away_players
+                            def_ps = home_players
+                            def_fs = home_fielder
+                        else:
+                            att_cur = home_current
+                            def_cur = away_current
+                            att_ps = home_players
+                            def_ps = away_players
+                            def_fs = away_fielder
+                        if text[1].find('타자') or text[1].find('주자'):
+                            cur = att_cur
+                            ps = att_ps
+                        else:
+                            cur = def_cur
+                            ps = def_ps
+
+                        for name in ps.keys():
+                            if name == new_player:
+                                if ps[name][3] == False:
+                                    ps[name][3] = True
+                        for order in cur:
+                            curno = min(cur[order].keys())
+                            if cur[order][curno][0] == old_player and cur[order][curno][2] == old_pos:
+                                oc = cur[order][curno][1]
+                                for name in ps.keys():
+                                    if name == old_player:
+                                        if oc == ps[name][0]:
+                                            ps[name][3] = False
+                                            break
+                                cur[order].pop(curno)
+                                cur[order][min(cur[order].keys())][2] = new_pos
+                                break
+                        if pos_number[new_pos] > 0:
+                            def_fs[pos_number[new_pos]] = new_player
+                    elif t_type == 'p':
+                        p1 = text[1].find(': ')
+                        p2 = text[1].find('(으)')
+                        new_pos = text[p1 + 2:p2]
+                        t1 = text[1][:p1].split(' ')
+                        old_pos = t1[0]
+                        player = t1[1]
+                        if TopBot == '초':
+                            cur = home_current
+                            field = home_fielder
+                        else:
+                            cur = away_current
+                            field = away_fielder
+                        for order in cur:
+                            curno = min(cur[order].keys())
+                            if cur[order][curno][0] == player and cur[order][curno][2] == old_pos:
+                                cur[order][curno][2] = new_pos
+                        field[pos_number[new_pos]] = player
+                    elif t_type == 'i':
+                        if outs != 3:
+                            print()
+                            print('no 3 out inning change')
+                            print('Game ID : {}'.format(game_id))
+                            print('Text : {}'.format(text))
+                            lm.bugLog('no 3 out inning change')
+                            lm.bugLog('Game ID : {}'.format(game_id))
+                            lm.bugLog('Text : {}'.format(text))
+                            lm.killLogManager()
+                            exit(1)
+                        else:
+                            if TopBot == '초':
+                                TopBot = '말'
+                            else:
+                                TopBot = '초'
+                                cur_inn += 1
+                            inn = '{}회{}'.format(cur_inn, TopBot)
+                            d['inn'] = inn
+                    else:
+                        print()
+                        print('Unexpected type of text')
+                        print('Game ID : {}'.format(game_id))
+                        print('Text : {}'.format(text))
+                        lm.bugLog('Unexpected type of text')
+                        lm.bugLog('Game ID : {}'.format(game_id))
+                        lm.bugLog('Text : {}'.format(text))
+                        lm.killLogManager()
+                        exit(1)
 
                 # temporary for debugging
+                csv_file.write('AwayTeamLineup\n')
+                for order in away_current.keys():
+                    firstno = min(away_current[order].keys())
+                    if int(order) == 0:
+                        csv_file.write('선발 : {}\n'.format(str(away_current[order][firstno])))
+                    else:
+                        csv_file.write('{}번 : {}\n'.format(order, str(away_current[order][firstno])))
+
+                csv_file.write('HomeTeamLineup\n')
+                for order in home_current.keys():
+                    firstno = min(home_current[order].keys())
+                    if int(order) == 0:
+                        csv_file.write('선발 : {}\n'.format(str(home_current[order][firstno])))
+                    else:
+                        csv_file.write('{}번 : {}\n'.format(order, str(home_current[order][firstno])))
+
                 for f in fulltext:
                     csv_file.write(str(f))
                     csv_file.write('\n')
