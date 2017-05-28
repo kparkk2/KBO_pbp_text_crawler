@@ -51,6 +51,19 @@ fieldNames = ['date', 'batterName', 'pitcherName', 'inn',
               'pos7', 'pos8', 'pos9', 'actual_result',
               'result', 'batterTeam', 'pitcherTeam', 'seqno']
 
+teams = {
+    'HH': '한화',
+    'HT': 'KIA',
+    'LG': 'LG',
+    'SK': 'SK',
+    'KT': 'kt',
+    'WO': '넥센',
+    'OB': '두산',
+    'NC': 'NC',
+    'LT': '롯데',
+    'SS': '삼성'
+}
+
 positions = dict(enumerate(pos_string))
 results = dict(enumerate(res_string))
 bb_dirs = dict(enumerate(bb_dir_string, start=1))
@@ -632,7 +645,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                         if t_type == 'h':
                             d['result'] = '안타'
                             for htype in hit_results:
-                                if text[1].find(htype) > 0:
+                                if text[1].find(htype) >= 0:
                                     d['actual_result'] = htype
                                     break
                         elif t_type == 'o':
@@ -672,14 +685,14 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                 d['fielder_name'] = home_fielder[bb_dirs[d['bb_dir']]]
                             else:
                                 d['fielder_name'] = 'None'
-                            d['batterTeam'] = game_id[8:10]
-                            d['pitcherTeam'] = game_id[10:12]
+                            d['batterTeam'] = teams[game_id[8:10]]
+                            d['pitcherTeam'] = teams[game_id[10:12]]
                             away_order += 1
                             if away_order == 10:
                                 away_order = 1
                             try:
-                                d['gx'] = bbjs['ballsInfo']['away'][str(d['seqno'])]['gx']
-                                d['gy'] = bbjs['ballsInfo']['away'][str(d['seqno'])]['gy']
+                                d['gx'] = round(bbjs['ballsInfo']['away'][str(d['seqno'])]['gx'] * 355/500 + 46, 1)
+                                d['gy'] = round(bbjs['ballsInfo']['away'][str(d['seqno'])]['gy'] * 375/500 - 31, 1)
                             except:
                                 print()
                                 print(game_id)
@@ -723,14 +736,14 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                     print(text[1])
                                     print(parse_result(text[1]))
                                     exit(1)
-                            d['batterTeam'] = game_id[10:12]
-                            d['pitcherTeam'] = game_id[8:10]
+                            d['batterTeam'] = teams[game_id[10:12]]
+                            d['pitcherTeam'] = teams[game_id[8:10]]
                             home_order += 1
                             if home_order == 10:
                                 home_order = 1
                             try:
-                                d['gx'] = bbjs['ballsInfo']['home'][str(d['seqno'])]['gx']
-                                d['gy'] = bbjs['ballsInfo']['home'][str(d['seqno'])]['gy']
+                                d['gx'] = round(bbjs['ballsInfo']['home'][str(d['seqno'])]['gx'] * 355/500 + 46, 1)
+                                d['gy'] = round(bbjs['ballsInfo']['home'][str(d['seqno'])]['gy'] * 375/500 - 31, 1)
                             except:
                                 print()
                                 print(text[1])
