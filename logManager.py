@@ -46,10 +46,14 @@ class LogManager:
         if not os.path.isdir(self.logPath):
             os.mkdir(self.logPath)
 
+        '''
         file_handler =\
             logging.handlers.RotatingFileHandler('{}/{}'.format(self.logPath, self.logFileName),
                                                  encoding='utf-8', maxBytes=1024*10,
                                                  backupCount=20)
+        '''
+        file_handler = logging.FileHandler('{}/{}'.format(self.logPath, self.logFileName,
+                                                          encoding='utf-8'))
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(file_handler)
