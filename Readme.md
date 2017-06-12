@@ -73,7 +73,7 @@ bb.py도 실행 형식은 같다.
 실행 후 타구좌표와 타구 발생시 상황이 모두 담긴 데이터는 pbp\_data 경로 아래에 저장된다.
 
 
-#문제 해결
+# 문제 해결
 시즌 중, 월 단위 경기가 모두 끝나지 않았을 때는 bb.py / pbp.py 실행시 다운로드 도중 에러가 발생한다.
 
 예를 들어 6월 11일에 6월 경기 데이터 다운로드를 실행하면 도중에 에러가 발생한다.
@@ -83,7 +83,7 @@ bb.py도 실행 형식은 같다.
 알아서 멈추게 해야하는데 아직 거기까지 수정하지 않았다.
 
 
-#Tableau를 통한 시각화
+# Tableau를 통한 시각화
 Tableau를 통해 데이터 시각화를 진행하고 있다. [사이트](https://public.tableau.com/profile/yagongso#!/vizhome/KBObattedballmap2017/1)
 
 배경화면으로는 Naver 경기결과 탭에서 타구정보를 표시할 때 쓰는 [이미지](http://imgnews.naver.net/image/sports/nsports/2010/bg_ground.jpg)를 사용했다.
