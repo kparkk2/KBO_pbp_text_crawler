@@ -25,15 +25,6 @@ def get_args(output, options):
                         action='store_true',
                         help='Download only')
 
-    '''
-    logger = logging.getLogger('mylogger')
-    fomatter = logging.Formatter('[%(filename)s::%(lineno)s] %(asctime)s > %(message)s')
-    streamHandler = logging.StreamHandler()
-    streamHandler.setFormatter(fomatter)
-    logger.addHandler(streamHandler)
-    logger.setLevel(logging.DEBUG)
-    '''
-
     args = parser.parse_args()
 
     dates = args.dates

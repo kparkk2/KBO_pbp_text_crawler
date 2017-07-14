@@ -25,10 +25,41 @@ hit_results = ['안타', '1루타', '2루타', '3루타', '홈런']
 out_results = ['땅볼', '플라이', '병살타', '라인드라이브',
                ' 번트', '희생번트', '삼중살']
 
-nobb_outs = ['삼진', '낫 아웃', '타구맞음', '쓰리번트']
+nobb_outs = ['삼진', '낫 아웃', '타구맞음', '쓰리번트', '부정타격']
 
 runner_outs = ['견제사', '  포스아웃', '  태그아웃',
                '도루실패', '진루실패', '터치아웃', '공과']
+
+pass_games = ['20130609HHSK', '20130611LGHH', '20170509KTHT', '20130619LGNC',
+              '20130912HTLG', '20140829LGSK', '20141017LGLT', '20150426LGNC',
+              '20150505LGOB', '20150612LGHH', '20120513LTHH', '20120601HHLG',
+              '20120603HHLG', '20120607LGWO', '20120613SKLG', '20120621LGHH',
+              '20120630LGSK', '20120719SKLG', '20120725LGOB']
+
+regular_start = {
+    '2012': '0407',
+    '2013': '0330',
+    '2014': '0329',
+    '2015': '0328',
+    '2016': '0401',
+    '2017': '0331'
+}
+
+playoff_start = {
+    '2012': '1008',
+    '2013': '1008',
+    '2014': '1019',
+    '2015': '1010',
+    '2016': '1021',
+    '2017': '1010'
+}
+
+
+def is_pass_game(game_id):
+    for game in pass_games:
+        if game_id == game:
+            return True
+    return False
 
 other_errors = '실책'
 other_kn = '낫아웃'
@@ -43,7 +74,8 @@ other_move = '위치 변경'
 other_inn_end = '공격 종료'
 
 # BUGBUG 예상치 못한 텍스트 종류 - 패스하는 경우
-other_pass = ['경고', '부상', '~', '쉬프트', '코치']
+other_pass = ['경고', '부상', '~', '쉬프트', '코치', '2루심', '1루심',
+              '결과는 세이프', '아웃 선언', '아우트', '타석이탈위반']
 
 fieldNames = ['Date', 'Batter', 'Pitcher', 'Inning',
               'X', 'Y', 'Fielder', 'Ball Direction',
@@ -72,6 +104,10 @@ bb_dirs = dict((v,k) for k, v in bb_dirs.items())
 
 
 def parse_result(text):
+    # BUGBUG 예상치 못한 텍스트 종류 - 패스하는 경우
+    for z in other_pass:
+        if text.find(z) >= 0:
+            return ['z', text]
     # hit
     for b in hit_results:
         if text.find(b) > 0:
@@ -117,12 +153,7 @@ def parse_result(text):
         return ['p', text]
     elif text.find(other_inn_end) > 0:
         return ['i', text]
-    # BUGBUG 예상치 못한 텍스트 종류 - 패스하는 경우
-    for z in other_pass:
-        if text.find(z) >= 0:
-            return ['z', text]
     return ['x', 'Fail']
-
 
 def out_type(otype):
     if otype == '땅볼':
@@ -274,7 +305,16 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
 
             for z in zip(pbpfiles, lineupfiles):
                 game_id = z[0][:13]
-                if game_id[:8] == '20170509':
+
+                if int(regular_start[game_id[:4]]) > int(game_id[4:8]):
+                    done += 1
+                    continue
+
+                if int(playoff_start[game_id[:4]]) <= int(game_id[4:8]):
+                    done += 1
+                    continue
+
+                if is_pass_game(game_id[:12]):
                     done += 1
                     continue
 
@@ -701,10 +741,15 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                             d['pos7'] = home_fielder[7]
                             d['pos8'] = home_fielder[8]
                             d['pos9'] = home_fielder[9]
-                            if bb_dirs[d['Ball Direction']] < 10:
-                                d['Fielder'] = home_fielder[bb_dirs[d['Ball Direction']]]
-                            else:
-                                d['Fielder'] = 'None'
+                            try:
+                                if bb_dirs[d['Ball Direction']] < 10:
+                                    d['Fielder'] = home_fielder[bb_dirs[d['Ball Direction']]]
+                                else:
+                                    d['Fielder'] = 'None'
+                            except:
+                                print()
+                                print(game_id)
+                                exit(1)
                             d['Batter Team'] = teams[game_id[8:10]]
                             d['Pitcher Team'] = teams[game_id[10:12]]
                             away_order += 1
@@ -721,6 +766,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                             except:
                                 print()
                                 print(game_id)
+                                print(TopBot)
                                 print(d['seqno'])
                                 print(text[1])
                                 print(parse_result(text[1]))
@@ -779,6 +825,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                 print(text[1])
                                 print(parse_result(text[1]))
                                 print(game_id)
+                                print(TopBot)
                                 print(d['seqno'])
                                 print(bbjs['ballsInfo']['home'].keys())
                                 exit(1)
@@ -851,7 +898,16 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                         # 나가는 선수 current 에서 pop
 
                         for order in cur:
-                            curno = min(cur[order].keys())
+                            try:
+                                curno = min(cur[order].keys())
+                            except:
+                                print()
+                                print(cur)
+                                print(order)
+                                print(cur[order])
+                                print(game_id)
+                                print()
+                                exit(1)
                             if old_pos.find('타자') < 0:
                                 # 수비 교체
                                 if cur[order][curno][0] == old_player:

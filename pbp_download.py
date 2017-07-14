@@ -10,6 +10,24 @@ import http.client
 from urllib.parse import urlparse
 import errorManager as em
 
+regular_start = {
+    '2012': '0407',
+    '2013': '0330',
+    '2014': '0329',
+    '2015': '0328',
+    '2016': '0401',
+    '2017': '0331'
+}
+
+playoff_start = {
+    '2012': '1008',
+    '2013': '1008',
+    '2014': '1019',
+    '2015': '1010',
+    '2016': '1021',
+    '2017': '1010'
+}
+
 
 def check_url(url):
     p = urlparse(url)
@@ -111,6 +129,14 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                 elif int(gameID[:4]) > 2050:
                     continue
 
+                if int(regular_start[gameID[:4]]) > int(gameID[4:8]):
+                    skipped += 1
+                    continue
+
+                if int(playoff_start[gameID[:4]]) <= int(gameID[4:8]):
+                    skipped += 1
+                    continue
+
                 if not check_url(relay_link):
                     skipped = skipped + 1
                     continue
@@ -128,13 +154,18 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                                                   flags=re.DOTALL).group(1)
                             json_text = json_text[:-1]
                         except AttributeError:
-                            print()
-                            print('JSON parse error in : {}'.format(gameID))
-                            print(em.getTracebackStr())
-                            lm.bugLog('JSON parse error in : {}'.format(gameID))
-                            lm.bugLog(em.getTracebackStr())
-                            lm.killLogManager()
-                            exit(1)
+                            try:
+                                json_text = re.search(r'({"games":.*?}}\))', script.string,
+                                                      flags=re.DOTALL).group(1)
+                                json_text = json_text[:-1]
+                            except AttributeError:
+                                print()
+                                print('JSON parse error in : {}'.format(gameID))
+                                print(em.getTracebackStr())
+                                lm.bugLog('JSON parse error in : {}'.format(gameID))
+                                lm.bugLog(em.getTracebackStr())
+                                lm.killLogManager()
+                                exit(1)
 
                     pbp_data_filename = gameID[0:13] + '_pbp.json'
 

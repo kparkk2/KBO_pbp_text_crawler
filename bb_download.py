@@ -10,6 +10,24 @@ import re
 import sys
 import errorManager as em
 
+regular_start = {
+    '2012': '0407',
+    '2013': '0330',
+    '2014': '0329',
+    '2015': '0328',
+    '2016': '0401',
+    '2017': '0331'
+}
+
+playoff_start = {
+    '2012': '1008',
+    '2013': '1008',
+    '2014': '1019',
+    '2015': '1010',
+    '2016': '1021',
+    '2017': '1010'
+}
+
 
 def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
     # set url prefix
@@ -78,6 +96,7 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
 
             # gameID가 있는 게임은 모두 경기 결과가 있는 것으로 판단함
             done = 0
+            skipped = 0
 
             lm.resetLogHandler()
             lm.setLogPath(os.getcwd() + '/log/')
@@ -91,10 +110,21 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
                 if int(game_id[0:4]) > 2050:
                     continue
 
+                if int(regular_start[game_id[:4]]) > int(game_id[4:8]):
+                    skipped += 1
+                    continue
+
+                if int(playoff_start[game_id[:4]]) <= int(game_id[4:8]):
+                    skipped += 1
+                    continue
+
                 result_html = urlopen(result_url_prefix + game_id)
 
                 soup = BeautifulSoup(result_html.read(), 'lxml')
                 script = soup.find('script', text=re.compile('ChartDataClass'))
+                if script is None:
+                    skipped += 1
+                    continue
                 try:
                     json_text = re.search(r'({"teamsInfo":{.*?}}}})', script.string, flags=re.DOTALL).group(1)
                 except AttributeError:
@@ -132,21 +162,22 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
                 lm.log('{} download'.format(game_id))
 
                 if mon_file_num > 30:
-                    progress_pct = (float(done) / float(mon_file_num))
+                    progress_pct = (float(done + skipped) / float(mon_file_num))
                     bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
                     bar = bar.encode('utf-8').decode('utf-8')
-                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
+                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
                                                                progress_pct * 100), end="")
                 elif mon_file_num == 0:
                     mon_file_num = 0
                     # do nothing
                 else:
-                    bar = '+' * done + '-' * (mon_file_num - done)
-                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
-                                                               float(done) / float(mon_file_num) * 100), end="")
+                    bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
+                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                               float(done + skipped) / float(mon_file_num) * 100), end="")
 
             print()
             print('        Downloaded {0} files.'.format(str(done)))
+            print('        (Skipped {0} files)'.format(str(skipped)))
             os.chdir('../..')
             # current path : ./bb_data/
     os.chdir('..')
