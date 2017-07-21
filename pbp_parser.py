@@ -4,8 +4,10 @@ import os
 import json
 import sys
 import csv
+import operator
 from collections import OrderedDict
 import errorManager as em
+import re
 
 
 pos_string = ["투수", "포수", "1루수", "2루수", "3루수",
@@ -83,6 +85,13 @@ fieldNames = ['Date', 'Batter', 'Pitcher', 'Inning',
               'pos7', 'pos8', 'pos9', 'Detail Result',
               'Result', 'Batter Team', 'Pitcher Team',
               'Home', 'Away', 'seqno']
+
+pfx_fieldNames = ['ax', 'ay', 'az', 'ballcount', 'batterName', 'bottomSz',
+                  'crossPlateX', 'crossPlateY', 'inn', 'pitchId', 'pitcherName',
+                  'plateX', 'plateZ', 'speed', 'stance', 'stuff', 't',
+                  'topSz', 'vx0', 'vy0', 'vz0', 'x0', 'y0', 'z0',
+                  'result', 'date', 'pitcher team', 'batter team',
+                  'home', 'away', 'stadium', 'referee']
 
 teams = {
     'HH': '한화',
@@ -215,6 +224,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
     print("##################################################")
 
     csv_year = ''
+    pfx_year = ''
     for year in range(year_start, year_end + 1):
         print("  for Year " + str(year) + "...")
 
@@ -230,13 +240,22 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                 if sys.platform == 'win32':
                     csv_year = open("{0}/{1}.csv".format(str(year), str(year)), 'w',
                                     encoding='cp949')
+                    pfx_year = open("{0}/{1}_pfx.csv".format(str(year), str(year)), 'w',
+                                    encoding='cp949')
                 else:
                     csv_year = open("{0}/{1}.csv".format(str(year), str(year)), 'w',
                                     encoding='utf-8')
+                    pfx_year = open("{0}/{1}_pfx.csv".format(str(year), str(year)), 'w',
+                                    encoding='utf-8')
                 csv_year_writer = csv.DictWriter(csv_year, delimiter=',',
-                                            dialect='excel', fieldnames=fieldNames,
-                                            lineterminator='\n')
+                                                 dialect='excel', fieldnames=fieldNames,
+                                                 lineterminator='\n')
                 csv_year_writer.writeheader()
+
+                pfx_year_writer = csv.DictWriter(pfx_year, delimiter=',',
+                                                 dialect='excel', fieldnames=pfx_fieldNames,
+                                                 lineterminator='\n')
+                pfx_year_writer.writeheader()
 
             if month < 10:
                 mon = '0{}'.format(str(month))
@@ -288,9 +307,19 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
             else:
                 csv_month = open(csv_month_name, 'w', encoding='utf-8')
             csv_month_writer = csv.DictWriter(csv_month, delimiter=',',
-                                        dialect='excel', fieldnames=fieldNames,
-                                        lineterminator='\n')
+                                              dialect='excel', fieldnames=fieldNames,
+                                              lineterminator='\n')
             csv_month_writer.writeheader()
+
+            pfx_month_name = "./{0}_{1}_pfx.csv".format(str(year), mon)
+            if sys.platform == 'win32':
+                pfx_month = open(pfx_month_name, 'w', encoding='cp949')
+            else:
+                pfx_month = open(pfx_month_name, 'w', encoding='utf-8')
+            pfx_month_writer = csv.DictWriter(pfx_month, delimiter=',',
+                                              dialect='excel', fieldnames=pfx_fieldNames,
+                                              lineterminator='\n')
+            pfx_month_writer.writeheader()
 
             bar_prefix = '    Converting: '
             print('\r{}[waiting]'.format(bar_prefix), end="")
@@ -305,6 +334,8 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
 
             for z in zip(pbpfiles, lineupfiles):
                 game_id = z[0][:13]
+                pbp_pass = False
+                pfx_pass = False
 
                 if int(regular_start[game_id[:4]]) > int(game_id[4:8]):
                     done += 1
@@ -314,7 +345,13 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                     done += 1
                     continue
 
+                if not os.path.isfile(game_id + '_pfx.csv'):
+                    pfx_pass = True
+
                 if is_pass_game(game_id[:12]):
+                    pbp_pass = True
+
+                if (pfx_pass is True) and (pbp_pass is True):
                     done += 1
                     continue
 
@@ -329,6 +366,120 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                 lineupjs = json.loads(js_in.read(), 'utf-8', object_pairs_hook=OrderedDict)
                 js_in.close()
 
+                relayjs = pbpjs['relayTexts']
+                relay = {}
+                for key in relayjs.keys():
+                    if key.isdigit():
+                        relay[key] = relayjs[key]
+                    elif key.find('currentBatterTexts') >= 0:
+                        if type(relayjs[key]) is list:
+                            relay[key] = relayjs[key]
+
+                # 추출 대상 텍스트
+                # OO XXX (으)로 교체
+                # OO XXX : OOO(으)로 수비위치 변경
+                # n번타자 XXX
+                # n번타자 XXX : 대타 XXX (으)로 교체
+                # 공격 종료
+                # OOO : XXX XXXXXX 결과
+                # OO주자 : 결과
+
+                res_text = []
+
+                for inn in relay.keys():
+                    foo = []
+                    endmsg = None
+                    endmsgline = 0
+                    lastseq = 0
+                    for pbp in relay[inn]:
+                        line = pbp['liveText']
+
+                        if line.find('교체') > 0:
+                            foo.append([pbp['seqno'], line])
+                        elif line.find('위치변경') > 0:
+                            foo.append([pbp['seqno'], line])
+                        elif line.find('공격 종료') > 0:
+                            if endmsg is not None:
+                                foo.append([max(foo)[0] + 1, endmsg])
+                            endmsg = line
+                            endmsgline = lastseq - 1
+                        elif line.find(' : ') > 0:
+                            foo.append([pbp['seqno'], line])
+                        lastseq = pbp['seqno']
+
+                    if (endmsgline > 0) & (endmsg is not None):
+                        foo.append([endmsgline, endmsg])
+                        lm.log('{}: {}'.format(endmsg, endmsgline))
+                    res_text += foo
+                res_text.sort()
+
+                # pfx parsing
+                if pfx_pass is not True:
+                    pitch_text = {}
+                    st = []
+
+                    inns = []
+                    for inn in relayjs.keys():
+                        if inn.isdigit():
+                            inns.append(inn)
+                    inns = sorted(inns)
+                    inns.append('currentBatterTexts')
+
+                    for inn in inns:
+                        for i in reversed(relayjs[inn]):
+                            st.append([i['liveText'], i['pitchId']])
+
+                    top_bottom = True
+                    for text in st:
+                        if re.search(r'^[0-9]+', text[0]) is not None:
+                            pitch_result = text[0].split()[-1]
+                            pitch_text[text[1]] = [pitch_result, top_bottom]
+                        if text[0].find('공격 종료') > 0:
+                            top_bottom = not top_bottom
+
+                    pfx_file = open(game_id + '_pfx.csv', 'r')
+                    new_pfx_file = open(game_id + '_pfx_new.csv', 'w', newline='\n')
+                    pfx_dict = {}
+                    pfx_reader = csv.DictReader(pfx_file, delimiter=',')
+                    pfx_writer = csv.writer(new_pfx_file)
+                    i = 0
+                    for row in pfx_reader:
+                        pitch_id = row['pitchId']
+                        pfx_dict[pitch_id] = OrderedDict([k, v] for k, v in sorted(row.items(), key=operator.itemgetter(0)))
+                        try:
+                            pfx_dict[pitch_id]['result'] = pitch_text[pitch_id][0]
+                            pfx_dict[pitch_id]['date'] = pitch_id.split('_')[0]
+                            if pitch_text[pitch_id][1] is True:
+                                pfx_dict[pitch_id]['pitcher team'] = lineupjs['gameInfo']['hName']
+                                pfx_dict[pitch_id]['batter team'] = lineupjs['gameInfo']['aName']
+                            else:
+                                pfx_dict[pitch_id]['pitcher team'] = lineupjs['gameInfo']['aName']
+                                pfx_dict[pitch_id]['batter team'] = lineupjs['gameInfo']['hName']
+                            pfx_dict[pitch_id]['home'] = lineupjs['gameInfo']['hName']
+                            pfx_dict[pitch_id]['away'] = lineupjs['gameInfo']['aName']
+                            pfx_dict[pitch_id]['stadium'] = lineupjs['gameInfo']['stadium']
+                            for k in lineupjs['etcRecords']:
+                                if k['how'] == '심판':
+                                    pfx_dict[pitch_id]['referee'] = k['result'].split()[0]
+                                    break
+                        except KeyError:
+                            lm.bugLog('KeyError in game {0}'.format(game_id))
+                            lm.bugLog('pitchId : {0}'.format(pitch_id))
+                            continue
+                        if i == 0:
+                            pfx_writer.writerow(pfx_dict[pitch_id].keys())
+                            i += 1
+                        pfx_writer.writerow(pfx_dict[pitch_id].values())
+                        pfx_month_writer.writerow(pfx_dict[pitch_id])
+                        pfx_year_writer.writerow(pfx_dict[pitch_id])
+                    pfx_file.close()
+                    new_pfx_file.close()
+
+                # pbp parsing
+                if pbp_pass is True:
+                    done += 1
+                    continue
+
                 bb_json_filename = '../../../bb_data/{}/{}/{}_bb.json'.format(game_id[:4], game_id[4:6], game_id)
                 if os.path.isfile(bb_json_filename):
                     js_in = open(bb_json_filename, 'r', encoding='utf-8')
@@ -341,10 +492,21 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                     lm.bugLog(os.getcwd())
                     csv_month.close()
                     csv_year.close()
+                    pfx_month.close()
+                    pfx_year.close()
                     os.chdir('../../')
                     # current path : ./pbp_data/
                     lm.killLogManager()
                     exit(1)
+
+                if sys.platform == 'win32':
+                    csv_file = open('./csv/{0}.csv'.format(game_id), 'w', encoding='cp949')
+                else:
+                    csv_file = open('./csv/{0}.csv'.format(game_id), 'w', encoding='utf-8')
+                csv_writer = csv.DictWriter(csv_file, delimiter=',',
+                                            dialect='excel', fieldnames=fieldNames,
+                                            lineterminator='\n')
+                csv_writer.writeheader()
 
                 # (1) 초기 라인업 생성.
                 # (2) 전체 라인업 목록 생성.
@@ -596,59 +758,6 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                     else:
                         continue
 
-                relayjs = pbpjs['relayTexts']
-                relay = {}
-                for key in relayjs.keys():
-                    if key.isdigit():
-                        relay[key] = relayjs[key]
-                    elif key.find('currentBatterTexts') >= 0:
-                        if type(relayjs[key]) is list:
-                            relay[key] = relayjs[key]
-
-                # 추출 대상 텍스트
-                # OO XXX (으)로 교체
-                # OO XXX : OOO(으)로 수비위치 변경
-                # n번타자 XXX
-                # n번타자 XXX : 대타 XXX (으)로 교체
-                # 공격 종료
-                # OOO : XXX XXXXXX 결과
-                # OO주자 : 결과
-
-                fulltext = []
-
-                for inn in relay.keys():
-                    foo = []
-                    endmsg = None
-                    endmsgline = 0
-                    lastseq = 0
-                    for pbp in relay[inn]:
-                        line = pbp['liveText']
-                        if line.find('교체') > 0:
-                            foo.append([pbp['seqno'], line])
-                        elif line.find('위치변경') > 0:
-                            foo.append([pbp['seqno'], line])
-                        elif line.find('공격 종료') > 0:
-                            if endmsg is not None:
-                                foo.append([max(foo)[0] + 1, endmsg])
-                            endmsg = line
-                            endmsgline = lastseq - 1
-                        elif line.find(' : ') > 0:
-                            foo.append([pbp['seqno'], line])
-                        lastseq = pbp['seqno']
-                    if (endmsgline > 0) & (endmsg is not None):
-                        foo.append([endmsgline, endmsg])
-                    fulltext += foo
-                fulltext.sort()
-
-                if sys.platform == 'win32':
-                    csv_file = open('./csv/{0}.csv'.format(game_id), 'w', encoding='cp949')
-                else:
-                    csv_file = open('./csv/{0}.csv'.format(game_id), 'w', encoding='utf-8')
-                csv_writer = csv.DictWriter(csv_file, delimiter=',',
-                                            dialect='excel', fieldnames=fieldNames,
-                                            lineterminator='\n')
-                csv_writer.writeheader()
-
                 # 처음 라인업에서 시작
                 # 결과 나올때마다 write row
                 # 타순 하나씩 pass
@@ -696,7 +805,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                     'seqno': 0
                 }
 
-                for text in fulltext:
+                for text in res_text:
                     if (text[1].find('주자') > 0) and (text[1].find('아웃') < 0) and (text[1].find('교체')  < 0) and (text[1].find('변경') < 0):
                         continue
                     [t_type, result] = parse_result(text[1])
@@ -1030,9 +1139,11 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                     print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, done, mon_file_num,
                                                                float(done) / float(mon_file_num) * 100), end="")
             csv_month.close()
+            pfx_month.close()
 
             print()
             print('        Converted {0} files.'.format(str(done)))
             os.chdir('../../')
             # return to pbp root dir
         csv_year.close()
+        pfx_year.close()

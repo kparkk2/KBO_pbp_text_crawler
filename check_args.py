@@ -25,6 +25,10 @@ def get_args(output, options):
                         action='store_true',
                         help='Download only')
 
+    parser.add_argument('-p',
+                        action='store_true',
+                        help='pfx Download only')
+
     args = parser.parse_args()
 
     dates = args.dates
@@ -91,3 +95,4 @@ def get_args(output, options):
 
     options.append(args.c)
     options.append(args.d)
+    options.append(args.p)
