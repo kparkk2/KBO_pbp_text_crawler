@@ -29,6 +29,19 @@ playoff_start = {
 }
 
 
+def print_progress(bar_prefix, mon_file_num, done, skipped):
+    if mon_file_num > 30:
+        progress_pct = (float(done + skipped) / float(mon_file_num))
+        bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
+        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                   progress_pct * 100), end="")
+    elif mon_file_num > 0:
+        bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
+        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                   float(done + skipped) / float(mon_file_num) * 100),
+              end="")
+
+
 def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
     # set url prefix
     schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?"
@@ -118,6 +131,12 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
                     skipped += 1
                     continue
 
+                bb_data_filename = game_id[:13] + '_bb.json'
+
+                if os.path.isfile(bb_data_filename) and (os.path.getsize(bb_data_filename) > 0):
+                    done += 1
+                    continue
+
                 result_html = urlopen(result_url_prefix + game_id)
 
                 soup = BeautifulSoup(result_html.read(), 'lxml')
@@ -135,8 +154,6 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
                     lm.bugLog(em.getTracebackStr())
                     lm.killLogManager()
                     exit(1)
-
-                bb_data_filename = game_id[:13] + '_bb.json'
 
                 if sys.platform == 'win32':
                     try:
@@ -161,20 +178,8 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
                 done += 1
                 lm.log('{} download'.format(game_id))
 
-                if mon_file_num > 30:
-                    progress_pct = (float(done + skipped) / float(mon_file_num))
-                    bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
-                    bar = bar.encode('utf-8').decode('utf-8')
-                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                               progress_pct * 100), end="")
-                elif mon_file_num == 0:
-                    mon_file_num = 0
-                    # do nothing
-                else:
-                    bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
-                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                               float(done + skipped) / float(mon_file_num) * 100), end="")
-
+                print_progress(bar_prefix, mon_file_num, done, skipped)
+            print_progress(bar_prefix, mon_file_num, done, skipped)
             print()
             print('        Downloaded {0} files.'.format(str(done)))
             print('        (Skipped {0} files)'.format(str(skipped)))

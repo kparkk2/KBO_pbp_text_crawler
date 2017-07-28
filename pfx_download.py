@@ -31,6 +31,19 @@ playoff_start = {
 }
 
 
+def print_progress(bar_prefix, mon_file_num, done, skipped):
+    if mon_file_num > 30:
+        progress_pct = (float(done + skipped) / float(mon_file_num))
+        bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
+        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                   progress_pct * 100), end="")
+    elif mon_file_num > 0:
+        bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
+        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                   float(done + skipped) / float(mon_file_num) * 100),
+              end="")
+
+
 def pfx_download(mon_start, mon_end, year_start, year_end, lm=None):
     current_date = datetime.datetime.now().strftime('%Y%m%d')
 
@@ -126,6 +139,12 @@ def pfx_download(mon_start, mon_end, year_start, year_end, lm=None):
                     skipped += 1
                     continue
 
+                pfx_filename = game_id[:13]+'_pfx.csv'
+
+                if os.path.isfile(pfx_filename) and (os.path.getsize(pfx_filename) > 0):
+                    done += 1
+                    continue
+
                 params = {
                     'gameId': game_id
                 }
@@ -146,19 +165,31 @@ def pfx_download(mon_start, mon_end, year_start, year_end, lm=None):
                     skipped += 1
                     continue
 
-                pfx_file = open(game_id[:13]+'_pfx.csv', 'w', newline='\n')
+                pfx_file = open(pfx_filename, 'w', newline='\n')
                 csvwriter = csv.writer(pfx_file)
 
                 i = 0
                 for p in pfx:
                     t = (-p['vy0']-math.sqrt(pow(p['vy0'], 2)-2*p['ay']*(p['y0']-p['crossPlateY'])))/p['ay']
-                    xp = round(p['x0']+p['vx0']*t+p['ax']*pow(t, 2)*0.5, 5)
-                    zp = round(p['z0']+p['vz0']*t+p['az']*pow(t, 2)*0.5, 5)
+                    xp = p['x0']+p['vx0']*t+p['ax']*pow(t, 2)*0.5
+                    zp = p['z0']+p['vz0']*t+p['az']*pow(t, 2)*0.5
                     t = round(t, 5)
                     p_a = p
-                    p_a['plateX'] = xp
-                    p_a['plateZ'] = zp
+                    p_a['plateX'] = round(xp, 5)
+                    p_a['plateZ'] = round(zp, 5)
                     p_a['t'] = t
+                    t40 = (-p['vy0']-math.sqrt(pow(p['vy0'],2)-2*p['ay']*(p['y0']-40)))/p['ay']
+                    x40 = p['x0']+p['vx0']*t40+0.5*p['ax']*pow(t40, 2)
+                    vx40 = p['vx0']+p['ax']*t40
+                    z40 = p['z0'] + p['vz0'] * t40 + 0.5 * p['az'] * pow(t40, 2)
+                    vz40 = p['vz0'] + p['az'] * t40
+                    th = t-t40
+                    x_noair = x40+vx40*th
+                    z_noair = z40+vz40*th-0.5*32.174*pow(th, 2)
+                    x_break = round(xp - x_noair, 5)
+                    z_break = round(zp - z_noair, 5)
+                    p_a['pfx_x'] = x_break
+                    p_a['pfx_z'] = z_break
 
                     sp = collections.OrderedDict([k, v] for k, v in sorted(p_a.items(), key=operator.itemgetter(0)))
 
@@ -175,20 +206,8 @@ def pfx_download(mon_start, mon_end, year_start, year_end, lm=None):
                 done += 1
                 lm.log('{} download'.format(game_id))
 
-                if mon_file_num > 30:
-                    progress_pct = (float(done + skipped) / float(mon_file_num))
-                    bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
-                    bar = bar.encode('utf-8').decode('utf-8')
-                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                               progress_pct * 100), end="")
-                elif mon_file_num == 0:
-                    mon_file_num = 0
-                    # do nothing
-                else:
-                    bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
-                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                               float(done + skipped) / float(mon_file_num) * 100), end="")
-
+                print_progress(bar_prefix, mon_file_num, done, skipped)
+            print_progress(bar_prefix, mon_file_num, done, skipped)
             print()
             print('        Downloaded {0} files.'.format(str(done)))
             print('        (Skipped {0} files)'.format(str(skipped)))

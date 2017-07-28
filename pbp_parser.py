@@ -87,8 +87,9 @@ fieldNames = ['Date', 'Batter', 'Pitcher', 'Inning',
               'Home', 'Away', 'seqno']
 
 pfx_fieldNames = ['ax', 'ay', 'az', 'ballcount', 'batterName', 'bottomSz',
-                  'crossPlateX', 'crossPlateY', 'inn', 'pitchId', 'pitcherName',
-                  'plateX', 'plateZ', 'speed', 'stance', 'stuff', 't',
+                  'crossPlateX', 'crossPlateY', 'inn', 'pfx_x', 'pfx_z',
+                  'pitchId', 'pitcherName', 'plateX', 'plateZ',
+                  'speed', 'stance', 'stuff', 't',
                   'topSz', 'vx0', 'vy0', 'vz0', 'x0', 'y0', 'z0',
                   'result', 'date', 'pitcher team', 'batter team',
                   'home', 'away', 'stadium', 'referee']

@@ -29,6 +29,19 @@ playoff_start = {
 }
 
 
+def print_progress(bar_prefix, mon_file_num, done, skipped):
+    if mon_file_num > 30:
+        progress_pct = (float(done + skipped) / float(mon_file_num))
+        bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
+        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                   progress_pct * 100), end="")
+    elif mon_file_num > 0:
+        bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
+        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+                                                   float(done + skipped) / float(mon_file_num) * 100),
+              end="")
+
+
 def check_url(url):
     p = urlparse(url)
     conn = http.client.HTTPConnection(p.netloc)
@@ -120,7 +133,7 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
 
             for gameID in game_ids:
                 relay_link = relay_prefix + gameID[:4] + '/' + gameID[4:6] + '/' \
-                            + gameID + '.nsd'
+                             + gameID + '.nsd'
 
                 lineup_url = "{}{}".format(lineup_prefix, gameID)
 
@@ -137,8 +150,17 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                     skipped += 1
                     continue
 
+                pbp_data_filename = gameID[0:13] + '_pbp.json'
+                lineup_data_filename = gameID[0:13] + '_lineup.json'
+
                 if not check_url(relay_link):
                     skipped = skipped + 1
+                    continue
+                elif (os.path.isfile(pbp_data_filename) and
+                          (os.path.getsize(pbp_data_filename) > 0) and
+                          os.path.isfile(lineup_data_filename) and
+                          (os.path.getsize(lineup_data_filename) > 0)):
+                    done += 1
                     continue
                 else:
                     relay_html = urlopen(relay_link)
@@ -167,8 +189,6 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                                 lm.killLogManager()
                                 exit(1)
 
-                    pbp_data_filename = gameID[0:13] + '_pbp.json'
-
                     if sys.platform == 'win32':
                         data = json.loads(json_text, encoding='iso-8859-1')
                     else:
@@ -195,7 +215,8 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                         json_text = re.search(r'({"etcRecords":\[{.*?}}})', script.string, flags=re.DOTALL).group(1)
                     except AttributeError:
                         try:
-                            json_text = re.search(r'({"games":\[{.*?}},"homeStandings":{.*?}})', script.string, flags=re.DOTALL).group(1)
+                            json_text = re.search(r'({"games":\[{.*?}},"homeStandings":{.*?}})', script.string,
+                                                  flags=re.DOTALL).group(1)
                         except AttributeError:
                             print()
                             print('JSON parse error in : {}'.format(gameID))
@@ -204,8 +225,6 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                             lm.bugLog(em.getTracebackStr())
                             lm.killLogManager()
                             exit(1)
-
-                    lineup_data_filename = gameID[0:13] + '_lineup.json'
 
                     if sys.platform == 'win32':
                         data = json.loads(json_text, encoding='iso-8859-1')
@@ -218,19 +237,8 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
                     done = done + 1
                     lm.log('{} download'.format(gameID))
 
-                if mon_file_num > 30:
-                    progress_pct = (float(done + skipped) / float(mon_file_num))
-                    bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
-                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                               progress_pct * 100), end="")
-                elif mon_file_num == 0:
-                    mon_file_num = 0
-                    # do nothing; dummy code
-                else:
-                    bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
-                    print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                               float(done + skipped) / float(mon_file_num) * 100),
-                          end="")
+                print_progress(bar_prefix, mon_file_num, done, skipped)
+            print_progress(bar_prefix, mon_file_num, done, skipped)
             print()
             print('        Downloaded {0} files'.format(str(done)))
             print('        (Skipped {0} files)'.format(str(skipped)))
