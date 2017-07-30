@@ -40,7 +40,6 @@ def get_args(output, options):
     if type(dates) is int:
         dates = [2016, 2016, 3, 3]
     elif len(dates) > 4:
-        logger.debug('too many date')
         print('too many date')
         exit(1)
 
@@ -50,19 +49,16 @@ def get_args(output, options):
         elif (d >= 1) & (d <= 12):
             months.append(d)
         else:
-            #logger.debug('invalid date')
             print('invalid date')
             print('possible year range: 2011~%d'%(year_max))
             print('possible month range: 1~12')
             exit(1)
 
     if len(years) > 2:
-        #logger.debug('too many year')
         print('too many year')
         exit(1)
 
     if len(months) > 2:
-        #logger.debug('too many month')
         print('too many month')
         exit(1)
 
