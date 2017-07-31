@@ -30,6 +30,11 @@ playoff_start = {
     '2017': '1010'
 }
 
+fieldNames = ['ax', 'ay', 'az', 'ballcount', 'batterName', 'bottomSz',
+              'crossPlateX', 'crossPlateY', 'inn', 'pfx_x', 'pfx_z', 'pitchId',
+              'pitcherName', 'plateX', 'plateZ', 'speed', 'stance', 'stuff', 't',
+              'topSz', 'vx0', 'vy0', 'vz0', 'x0', 'y0', 'z0']
+
 
 def print_progress(bar_prefix, mon_file_num, done, skipped):
     if mon_file_num > 30:
@@ -167,14 +172,52 @@ def pfx_download(mon_start, mon_end, year_start, year_end, lm=None):
 
                 pfx_file = open(pfx_filename, 'w', newline='\n')
                 csvwriter = csv.writer(pfx_file)
-
+                csvwriter = csv.DictWriter(pfx_file, delimiter=',',
+                                           dialect='excel', fieldnames=fieldNames,
+                                           lineterminator='\n')
+                csvwriter.writeheader()
                 i = 0
+                stance = ''
                 for p in pfx:
+                    p_a = {
+                        'ax': p['ax'],
+                        'ay': p['ay'],
+                        'az': p['az'],
+                        'ballcount': p['ballcount'],
+                        'batterName': p['batterName'],
+                        'bottomSz': p['bottomSz'],
+                        'crossPlateX': p['crossPlateX'],
+                        'crossPlateY': p['crossPlateY'],
+                        'inn': p['inn'],
+                        'pfx_x': 0,
+                        'pfx_z': 0,
+                        'pitchId': p['pitchId'],
+                        'pitcherName': p['pitcherName'],
+                        'plateX': 0,
+                        'plateZ': 0,
+                        'speed': p['speed'],
+                        'stance': '',
+                        'stuff': p['stuff'],
+                        't': 0,
+                        'topSz': p['topSz'],
+                        'vx0': p['vx0'],
+                        'vy0': p['vy0'],
+                        'vz0': p['vz0'],
+                        'x0': p['x0'],
+                        'y0': p['y0'],
+                        'z0': p['z0']
+                    }
+                    try:
+                        p_a['stance'] = p['stance']
+                        stance = p['stance']
+                    except KeyError:
+                        p_a['stance'] = stance
+
                     t = (-p['vy0']-math.sqrt(pow(p['vy0'], 2)-2*p['ay']*(p['y0']-p['crossPlateY'])))/p['ay']
                     xp = p['x0']+p['vx0']*t+p['ax']*pow(t, 2)*0.5
                     zp = p['z0']+p['vz0']*t+p['az']*pow(t, 2)*0.5
                     t = round(t, 5)
-                    p_a = p
+                    # p_a = p
                     p_a['plateX'] = round(xp, 5)
                     p_a['plateZ'] = round(zp, 5)
                     p_a['t'] = t
@@ -191,13 +234,15 @@ def pfx_download(mon_start, mon_end, year_start, year_end, lm=None):
                     p_a['pfx_x'] = x_break
                     p_a['pfx_z'] = z_break
 
+                    '''
                     sp = collections.OrderedDict([k, v] for k, v in sorted(p_a.items(), key=operator.itemgetter(0)))
 
                     if i == 0:
                         csvwriter.writerow(sp.keys())
                         i += 1
                     csvwriter.writerow(sp.values())
-
+                    '''
+                    csvwriter.writerow(p_a)
                 pfx_file.close()
 
                 # BUGBUG : 20170509 KT-HT 경기 타구 정보 실종
