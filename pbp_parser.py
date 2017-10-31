@@ -410,7 +410,6 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
 
                     if (endmsgline > 0) & (endmsg is not None):
                         foo.append([endmsgline, endmsg])
-                        lm.log('{}: {}'.format(endmsg, endmsgline))
                     res_text += foo
                 res_text.sort()
 
@@ -875,6 +874,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                 d['Y'] = round(y * 375/500 - 31, 1)
                             except:
                                 print()
+                                print('away order error')
                                 print(game_id)
                                 print(TopBot)
                                 print(d['seqno'])
@@ -912,6 +912,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                         d['Fielder'] = 'None'
                                 except:
                                     print()
+                                    print('away fielder error')
                                     print(game_id)
                                     print(d['seqno'])
                                     print(text[1])
@@ -932,6 +933,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                 d['Y'] = round(y * 375/500 - 31, 1)
                             except:
                                 print()
+                                print('away balls info error')
                                 print(text[1])
                                 print(parse_result(text[1]))
                                 print(game_id)
@@ -1008,16 +1010,10 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                         # 나가는 선수 current 에서 pop
 
                         for order in cur:
-                            try:
+                            if len(cur[order].keys()) > 0:
                                 curno = min(cur[order].keys())
-                            except:
-                                print()
-                                print(cur)
-                                print(order)
-                                print(cur[order])
-                                print(game_id)
-                                print()
-                                exit(1)
+                            else:
+                                continue
                             if old_pos.find('타자') < 0:
                                 # 수비 교체
                                 if cur[order][curno][0] == old_player:
