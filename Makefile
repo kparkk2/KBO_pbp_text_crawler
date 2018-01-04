@@ -11,7 +11,7 @@ lineup:
 
 clean: clean_all
 
-clean_all: cpyc clean_folder
+clean_all: cpyc #clean_folder
 
 cpyc:
 	@if [ -f "*pyc" ]; then \
