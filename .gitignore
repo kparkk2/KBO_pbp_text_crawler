@@ -1,5 +1,4 @@
 *.pyc
-*ipynb
 bb_data/
 pbp_data/
 __pycache__/
