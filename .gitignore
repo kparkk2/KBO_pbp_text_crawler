@@ -5,3 +5,6 @@ pbp_data/
 __pycache__/
 .idea/
 .ipynb_checkpoints/
+test.py
+text
+a.out
