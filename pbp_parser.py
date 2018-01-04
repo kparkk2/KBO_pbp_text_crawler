@@ -333,8 +333,12 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
 
             done = 0
 
+            pbpfiles.sort()
+            lineupfiles.sort()
+
             for z in zip(pbpfiles, lineupfiles):
                 game_id = z[0][:13]
+
                 pbp_pass = False
                 pfx_pass = False
 
@@ -722,29 +726,33 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
 
                 for batter in awayTeamBatters:
                     for name in away_players.keys():
-                        p = away_players[name]
-                        if batter['playerCode'] == p[0]:
-                            p[1] = find_position[batter['pos'][0]]
+                        if batter['playerCode'] == away_players[name][0]:
+                            away_players[name][1] = find_position[batter['pos'][0]]
+                            break
                     for order in away_current.keys():
                         for seq in away_current[order].keys():
-                            p = away_current[order][seq]
-                            if batter['playerCode'] == p[1]:
-                                p[2] = find_position[batter['pos'][0]]
+                            if batter['playerCode'] == away_current[order][seq][1]:
+                                away_current[order][seq][2] = find_position[batter['pos'][0]]
+                                break
 
                 for batter in homeTeamBatters:
                     for name in home_players.keys():
                         p = home_players[name]
-                        if batter['playerCode'] == p[0]:
-                            p[1] = find_position[batter['pos'][0]]
+                        if batter['playerCode'] == home_players[name][0]:
+                            home_players[name][1] = find_position[batter['pos'][0]]
                     for order in home_current.keys():
                         for seq in home_current[order].keys():
-                            p = home_current[order][seq]
-                            if batter['playerCode'] == p[1]:
-                                p[2] = find_position[batter['pos'][0]]
+                            if batter['playerCode'] == home_current[order][seq][1]:
+                                home_current[order][seq][2] = find_position[batter['pos'][0]]
 
                 for order in away_current.keys():
                     cur = min(away_current[order].keys())
-                    pos = pos_number[away_current[order][cur][2]]
+                    try:
+                        pos = pos_number[away_current[order][cur][2]]
+                    except:
+                        print( '\ngame_id: {}'.format(game_id) )
+                        print( 'away_current[{}][{}] : {}'.format(order, cur, away_current[order][cur]) )
+                        exit(1)
                     if pos > 0:
                         away_fielder[pos] = away_current[order][cur][0]
                     else:
@@ -752,7 +760,12 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
 
                 for order in home_current.keys():
                     cur = min(home_current[order].keys())
-                    pos = pos_number[home_current[order][cur][2]]
+                    try:
+                        pos = pos_number[home_current[order][cur][2]]
+                    except:
+                        print( '\ngame_id: {}'.format(game_id) )
+                        print( 'home_current[{}][{}] : {}'.format(order, cur, home_current[order][cur]) )
+                        exit(1)
                     if pos > 0:
                         home_fielder[pos] = home_current[order][cur][0]
                     else:
@@ -856,8 +869,7 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                 else:
                                     d['Fielder'] = 'None'
                             except:
-                                print()
-                                print(game_id)
+                                print('\n{}'.format(game_id))
                                 exit(1)
                             d['Batter Team'] = teams[game_id[8:10]]
                             d['Pitcher Team'] = teams[game_id[10:12]]
@@ -874,12 +886,12 @@ def pbp_parser(mon_start, mon_end, year_start, year_end, lm=None):
                                 d['Y'] = round(y * 375/500 - 31, 1)
                             except:
                                 print()
-                                print('away order error')
-                                print(game_id)
-                                print(TopBot)
-                                print(d['seqno'])
-                                print(text[1])
-                                print(parse_result(text[1]))
+                                print('\naway order error')
+                                print('game_id : {}'.format(game_id))
+                                print('TopBot : {}'.format(TopBot))
+                                print('dict : \n{}'.format(d['seqno']))
+                                print('text : \n\t{}'.format(text[1]))
+                                print('parse_result : \n{}'.format(parse_result(text[1])))
                                 print(bbjs['ballsInfo']['away'].keys())
                                 exit(1)
                         else:
