@@ -38,7 +38,7 @@ class LogManager:
         if self.logPath[-1] == '/':
             self.logPath = self.logPath[:-1]
 
-    def setLogFileName(self, name='base.log'):
+    def setLogFileName(self, name='log.txt'):
         if name is not '':
             self.logFileName = name
 
@@ -83,6 +83,9 @@ class LogManager:
         # setLogFilePath 이전에 수행해야 함
         # 파일 열려 있을 때 로그 파일 remove 시도하면 에러
         if os.path.isdir(self.logPath) and os.listdir(self.logPath) is not None:
+            if os.path.isfile(self.logFileName):
+                os.remove(os.path.join(self.logPath, self.logFileName))
+            '''
             files = [f for f in os.listdir(self.logPath)]
             for f in files:
                 elem = self.logPath.split('/')
@@ -107,3 +110,4 @@ class LogManager:
                         print('Unexpected Error :\n\t{}'.format(e))
                         print(em.getTracebackStr())
                         exit(1)
+            '''

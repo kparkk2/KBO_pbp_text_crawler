@@ -1,5 +1,6 @@
 # pbp_download.py
 
+
 import sys
 import os
 from urllib.request import urlopen
@@ -9,6 +10,7 @@ import re
 import http.client
 from urllib.parse import urlparse
 import errorManager as em
+
 
 regular_start = {
     '2012': '0407',
@@ -29,16 +31,16 @@ playoff_start = {
 }
 
 
-def print_progress(bar_prefix, mon_file_num, done, skipped):
-    if mon_file_num > 30:
-        progress_pct = (float(done + skipped) / float(mon_file_num))
+def print_progress(bar_prefix, total, done, skipped):
+    if total > 30:
+        progress_pct = (float(done + skipped) / float(total))
         bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
-        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
+        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), total,
                                                    progress_pct * 100), end="")
-    elif mon_file_num > 0:
-        bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
-        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                   float(done + skipped) / float(mon_file_num) * 100),
+    elif total > 0:
+        bar = '+' * (done + skipped) + '-' * (total - done - skipped)
+        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), total,
+                                                   float(done + skipped) / float(total) * 100),
               end="")
 
 
@@ -52,7 +54,7 @@ def check_url(url):
 
 def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
     # set url prefix
-    schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
+    timetable_url = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
     relay_prefix = "http://sportsdata.naver.com/ndata/kbo/"
     lineup_prefix = "http://sports.news.naver.com/gameCenter/gameRecord.nhn?category=kbo&gameId="
 
@@ -93,7 +95,7 @@ def pbp_download(mon_start, mon_end, year_start, year_end, lm=None):
             # current path : ./pbp_data/YEAR/MONTH/
 
             # get URL
-            schedule_url = "{0}{1}&year={2}".format(schedule_url_prefix, str(month), str(year))
+            schedule_url = "{0}{1}&year={2}".format(timetable_url, str(month), str(year))
 
             # progress bar
             print("    Month " + str(month) + "... ")
