@@ -50,7 +50,7 @@ class LogManager:
         file_handler =\
             logging.handlers.RotatingFileHandler('{}/{}'.format(self.logPath, self.logFileName),
                                                  encoding='utf-8', maxBytes=1024*10,
-                                                 backupCount=20)
+                                                 backupCount=4)
         '''
         file_handler = logging.FileHandler('{}/{}'.format(self.logPath, self.logFileName,
                                                           encoding='utf-8'))

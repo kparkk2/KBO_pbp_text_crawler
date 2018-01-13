@@ -25,7 +25,7 @@ if __name__ == "__main__":
     args = []  # m_start, m_end, y_start, y_end
     options = []  # onlyConvert, onlyDownload
     get_args(args, options)
-    lm = logManager.LogManager()
+    lm = logManager.LogManager()    # background logger
 
     if (options[0] is True) & (options[1] is False):
         run_pbp_parser(args, lm)
