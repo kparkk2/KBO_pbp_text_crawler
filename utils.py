@@ -50,10 +50,16 @@ def get_args(output, options):
                         print('invalid year : season has not begun...')
                         exit(1)
                     else:
-                        dates = [now.year, now.year, 3, now.month]
+                        # dates = [now.year, now.year, 3, now.month]
+                        output.append(3)
+                        output.append(now.month)
                 else:
                     # previous season
-                    dates = [now.year, now.year, 3, 10]
+                    # dates = [year, year, 3, 10]
+                    output.append(3)
+                    output.append(10)
+                output.append(year)
+                output.append(year)
         elif dates > 0:
             # month
             if (dates < 3) or (dates > 10):
@@ -62,7 +68,11 @@ def get_args(output, options):
             else:
                 month = dates
                 if month <= now.month:
-                    dates = [now.year, now.year, month, month]
+                    # dates = [now.year, now.year, month, month]
+                    output.append(month)
+                    output.append(month)
+                    output.append(now.year)
+                    output.append(now.year)
                 else:
                     # trying for future...
                     print('invalid month : current month is {}; you entered{}.'.format(now.month, month))
@@ -73,56 +83,56 @@ def get_args(output, options):
     elif len(dates) > 4:
         print('too many date option')
         exit(1)
+    else:
+        months = []
+        years = []
 
-    months = []
-    years = []
+        for d in dates:
+            if (d > 12) & (d > 2007) & (d <= now.year):
+                years.append(d)
+            elif (d >= 1) & (d <= 12):
+                months.append(d)
+            else:
+                print('invalid date')
+                print('possible year range: 2008~%d'%(now.year))
+                print('possible month range: 1~12')
+                exit(1)
 
-    for d in dates:
-        if (d > 12) & (d > 2007) & (d <= now.year):
-            years.append(d)
-        elif (d >= 1) & (d <= 12):
-            months.append(d)
-        else:
-            print('invalid date')
-            print('possible year range: 2008~%d'%(now.year))
-            print('possible month range: 1~12')
-            exit(1)
+            if len(years) > 2:
+                print('too many year')
+                exit(1)
 
-        if len(years) > 2:
-            print('too many year')
-            exit(1)
+            if len(months) > 2:
+                print('too many month')
+                exit(1)
 
-        if len(months) > 2:
-            print('too many month')
-            exit(1)
-
-    mmin = 3
-    mmax = 3
-    ymin = now.year
-    ymax = now.year
-
-    if len(months) == 0:
         mmin = 3
-        mmax = 10
-    elif len(months) == 1:
-        mmin = mmin = months[0]
-    else:
-        mmin = min(months)
-        mmax = max(months)
-
-    if len(years) == 0:
+        mmax = 3
         ymin = now.year
-        ymax = 2016
-    elif len(years) == 1:
-        ymin = ymin = years[0]
-    else:
-        ymin = min(years)
-        ymax = max(years)
+        ymax = now.year
 
-    output.append(mmin)
-    output.append(mmax)
-    output.append(ymin)
-    output.append(ymax)
+        if len(months) == 0:
+            mmin = 3
+            mmax = 10
+        elif len(months) == 1:
+            mmin = mmax = months[0]
+        else:
+            mmin = min(months)
+            mmax = max(months)
+
+        if len(years) == 0:
+            ymin = now.year
+            ymax = 2016
+        elif len(years) == 1:
+            ymin = ymax = years[0]
+        else:
+            ymin = min(years)
+            ymax = max(years)
+
+        output.append(mmin)
+        output.append(mmax)
+        output.append(ymin)
+        output.append(ymax)
 
     options.append(args.c)
     options.append(args.d)

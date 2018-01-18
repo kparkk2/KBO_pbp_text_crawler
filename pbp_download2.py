@@ -8,13 +8,15 @@ import json
 import requests
 import numpy as np
 import pandas as pd
+import datetime
+import time
 
 
 # custom library
 import logManager
 from utils import print_progress
 from utils import check_url
-
+from utils import get_args
 
 regular_start = {
     '2008': '0329',
@@ -58,9 +60,9 @@ def get_game_ids(args):
 
     for year in range(year_start, year_end + 1):
         year_ids = {}
-        month_ids = []
 
         for month in range(mon_start, mon_end + 1):
+            month_ids = []
             timetable = timetable_url + '{}&year={}'.format(str(month), str(year))
 
             table_page = urlopen(timetable).read()
@@ -110,6 +112,8 @@ def download_relay(args, lm=None):
     print("##################################################")
 
     for year in game_ids.keys():
+        start1 = time.time()
+        print(" Year {}".format(year))
         if len(game_ids[year]) == 0:
             print('month id is empty')
             print('args: {}'.format(args))
@@ -124,6 +128,8 @@ def download_relay(args, lm=None):
         # path: pbp_data/year
 
         for month in game_ids[year].keys():
+            start2 = time.time()
+            print("  Month {}".format(month))
             if len(game_ids[year][month]) == 0:
                 print('month id is empty')
                 print('args: {}'.format(args))
@@ -141,6 +147,9 @@ def download_relay(args, lm=None):
             done = 0
             skipped = 0
             for game_id in game_ids[year][month]:
+                if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > datetime.datetime.now().year):
+                    skipped += 1
+                    continue
                 if int(game_id[4:8]) < int(regular_start[game_id[:4]]):
                     skipped += 1
                     continue
@@ -154,8 +163,8 @@ def download_relay(args, lm=None):
                         lm.log('URL error : {}'.format(relay_url))
                     continue
 
-                if (os.path.isfile(game_id+'_relay_1.json')) and\
-                        (os.path.getsize(game_id+'_relay_1.json') > 0):
+                if (os.path.isfile(game_id + '_relay.json')) and \
+                        (os.path.getsize(game_id + '_relay.json') > 0):
                     done += 1
                     if lm is not None:
                         lm.log('File Duplicate : {}'.format(game_id))
@@ -176,24 +185,16 @@ def download_relay(args, lm=None):
                 res = requests.get(relay_url, params=params, headers=headers)
 
                 if res is not None:
+                    txt = {}
                     js = res.json()
 
                     last_inning = js['currentInning']
 
-                    fp = open(game_id + '_relay_1.txt', 'w', encoding='utf-8', newline='\n')
-                    # json.dump(js, fp, ensure_ascii=False, indent=4)
-                    fp.write(str(js['relayList']))
-                    fp.close()
-
-                    # write home team lineup
-                    fp = open(game_id + '_lineup_home.txt', 'w', encoding='utf-8', newline='\n')
-                    fp.write(str(js['homeTeamLineUp']))
-                    fp.close()
-
-                    # write away team lineup
-                    fp = open(game_id + '_lineup_away.txt', 'w', encoding='utf-8', newline='\n')
-                    fp.write(str(js['awayTeamLineUp']))
-                    fp.close()
+                    txt['relayList'] = {}
+                    for i in range(len(js['relayList'])):
+                        txt['relayList'][js['relayList'][i]['no']] = js['relayList'][i]
+                    txt['homeTeamLineUp'] = js['homeTeamLineUp']
+                    txt['awayTeamLineUp'] = js['awayTeamLineUp']
 
                     for inn in range(2, last_inning + 1):
                         params = {
@@ -204,11 +205,16 @@ def download_relay(args, lm=None):
                         res = requests.get(relay_url, params=params, headers=headers)
                         if res is not None:
                             js = res.json()
+                            for i in range(len(js['relayList'])):
+                                txt['relayList'][js['relayList'][i]['no']] = js['relayList'][i]
+                        else:
+                            skipped += 1
+                            if lm is not None:
+                                lm.log('Cannot get response : {}'.format(game_id))
 
-                            fp = open(game_id + '_relay_{}.txt'.format(inn), 'w', encoding='utf-8', newline='\n')
-                            # json.dump(js, fp, ensure_ascii=False, indent=4)
-                            fp.write(str(js['relayList']))
-                            fp.close()
+                    fp = open(game_id + '_relay.JSON', 'w', encoding='utf-8', newline='\n')
+                    json.dump(txt, fp, ensure_ascii=False, indent=4)
+                    fp.close()
 
                     done += 1
                 else:
@@ -219,11 +225,16 @@ def download_relay(args, lm=None):
                 print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
 
             # download done
-            print('        Downloaded {} files'.format(done))
+            print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
+            print('\n        Downloaded {} files'.format(done))
             print('        (Skipped {} files)'.format(skipped))
+            end2 = time.time()
+            print('            -- elapsed {:.3f} sec for month {}'.format(end2-start2, month))
 
             os.chdir('..')
             # path: pbp_data/year
+        end1 = time.time()
+        print('   -- elapsed {:.3f} sec for year {}'.format(end1 - start1, year))
         # months done
         os.chdir('..')
         # path: pbp_data/
@@ -264,6 +275,7 @@ def download_pfx(args, lm=None):
     print("##################################################")
 
     for year in game_ids.keys():
+        print(" Year {}".format(year))
         if len(game_ids[year]) == 0:
             print('month id is empty')
             print('args: {}'.format(args))
@@ -278,6 +290,7 @@ def download_pfx(args, lm=None):
         # path: pbp_data/year
 
         for month in game_ids[year].keys():
+            print("  Month {}".format(month))
             if len(game_ids[year][month]) == 0:
                 print('month id is empty')
                 print('args: {}'.format(args))
@@ -295,6 +308,9 @@ def download_pfx(args, lm=None):
             done = 0
             skipped = 0
             for game_id in game_ids[year][month]:
+                if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > datetime.datetime.now().year):
+                    skipped += 1
+                    continue
                 if int(game_id[4:8]) < int(regular_start[game_id[:4]]):
                     skipped += 1
                     continue
@@ -394,12 +410,17 @@ def download_pfx(args, lm=None):
 
 
 if __name__ == '__main__':
-    args = [6, 6, 2017, 2017]
+    # args = [6, 6, 2017, 2017]
+    args = []  # m_start, m_end, y_start, y_end
+    options = []  # onlyConvert, onlyDownload
+    get_args(args, options)
 
-    relaylm = logManager.LogManager()
-    download_relay(args, relaylm)
-    relaylm.killLogManager()
+    if options[1] is True:
+        relaylm = logManager.LogManager()
+        download_relay(args, relaylm)
+        relaylm.killLogManager()
 
-    pfxlm = logManager.LogManager()
-    download_pfx(args, pfxlm)
-    pfxlm.killLogManager()
+    if options[2] is True:
+        pfxlm = logManager.LogManager()
+        download_pfx(args, pfxlm)
+        pfxlm.killLogManager()
