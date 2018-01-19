@@ -8,7 +8,7 @@ import operator
 from collections import OrderedDict
 import errorManager as em
 import re
-
+import regex
 
 pos_string = ["투수", "포수", "1루수", "2루수", "3루수",
               "유격수", "좌익수", "중견수", "우익수",
@@ -134,7 +134,6 @@ runner_results = [
     '아웃'
 ]
 
-
 other_text = ['포수송구방해로 아웃',
               '수비방해로 인하여',
               '낫아웃 다른주자 수비',
@@ -154,8 +153,6 @@ other_text = ['포수송구방해로 아웃',
               'LG 2루주자',
               '4심합의',
               '넘어지면서']
-
-
 
 results = ['내야안타',
            '1루타',
@@ -181,19 +178,175 @@ results = ['내야안타',
            '실책으로 출루',
            '타격방해로 출루']
 
+pa = regex.compile('^\p{Hangul}+ : [\p{Hangul}|0-9|\ ]+')
+pitch = regex.compile('^[0-9]+구 \p{Hangul}+')
+runner = regex.compile('^[0-9]루주자 \p{Hangul}+ : [\p{Hangul}|0-9|\ ()->]+')
+change = regex.compile('교체$')
 
-def parse_text(text):
-    p = re.compile('^[0-9]구 ')
-    if p.match(text):
-        return True
+
+class BallGame:
+    # game status dict
+    game_status = {
+        'game_date': '00000000',
+
+        # batter & pitcher
+        'pitcher': None,
+        'batter': None,
+
+        # bats/throws; 0 for Left, 1 for Right
+        'stand': 0,
+        'throws': 0,
+
+        # ball count & inning & score
+        'inning': 1,
+        # 0 for top, 1 for bot
+        'inning_topbot': 0,
+        'balls': 0,
+        'strikes': 0,
+        'outs': 0,
+        'score_home': 0,
+        'score_away': 0,
+
+        # pitch & pa result
+        # ?결과 나왔을 때만 기록?
+        'pa_result': None,
+        'pitch_result': None,
+
+        # pfx data
+        'pitch_type': None,
+        'speed': None,
+        'px': None,
+        'pz': None,
+        'pfx_x': None,
+        'pfx_z': None,
+        'release_x': None,
+        'release_z': None,
+        'sz_bot': None,
+        'sz_top': None,
+
+        # base
+        'runner_1b': None,
+        'runner_2b': None,
+        'runner_3b': None,
+
+        # home & away
+        'home': None,
+        'away': None,
+        'stadium': None,
+        'referee': None,
+
+        # home field
+        'home_p': None,
+        'home_c': None,
+        'home_1b': None,
+        'home_2b': None,
+        'home_3b': None,
+        'home_ss': None,
+        'home_lf': None,
+        'home_cf': None,
+        'home_rf': None,
+        'home_dh': None,
+
+        # away field
+        'away_p': None,
+        'away_c': None,
+        'away_1b': None,
+        'away_2b': None,
+        'away_3b': None,
+        'away_ss': None,
+        'away_lf': None,
+        'away_cf': None,
+        'away_rf': None,
+        'away_dh': None
+    }
+
+    def __init__(self, game_date=None):
+        # do nothing
+        # print()
+        if game_date is not None:
+            self.game_status['game_date'] = game_date
+
+    def set_home_away(self, home, away):
+        self.game_status['home'] = home
+        self.game_status['away'] = away
+
+    def set_referee(self, referee):
+        self.game_status['referee'] = referee
+
+    def set_stadium(self, stadium):
+        self.game_status['stadium'] = stadium
+
+
+##########
+
+def parse_pa_result(text):
+    # do something
+    print(pa.search(text).group().split(':')[-1].strip())
+    return True
+
+
+def parse_pitch(text):
+    # do something
+    print(pitch.search(text).group().split(' ')[-1])
+    return True
+
+
+def parse_runner(text):
+    # do something
+    if not change.findall(text):
+        print(runner.search(text).group().split(':')[-1].strip())
+    return True
+
+
+def parse_change(text):
+    src_pattern = regex.compile('[\p{Hangul}|0-9]+ \p{Hangul}+ : ')
+    dst_pattern = regex.compile('[\p{Hangul}|0-9|\ ]+ \(으\)로 교체')
+
+    src = src_pattern.search(text).group()
+    if src:
+        src_pos = src.strip().split(' ')[0]
+        src_name = src.strip().split(' ')[1]
     else:
         return False
 
+    dst = dst_pattern.search(text).group()
+    if dst:
+        dst_pos = dst.strip().split(' ')[0]
+        dst_name = dst.strip().split(' ')[1]
+    else:
+        return False
 
+    # do something
+    print('{} {} -> {} {}'.format(src_pos, src_name, dst_pos, dst_name))
+    return True
+
+
+def parse_text(text):
+    if pa.search(text):
+        return parse_pa_result(text)
+    elif pitch.search(text):
+        return parse_pitch(text)
+    elif runner.search(text):
+        return parse_runner(text)
+    elif change.search(text):
+        return parse_change(text)
+    else:
+        # do nothing
+        return True
+
+
+# main function
 def parse_game(game):
     fp = open(game, 'r', encoding='utf-8')
     js = json.loads(fp.read(), encoding='utf-8', object_pairs_hook=OrderedDict)
     fp.close()
+
+    ball_game = BallGame(game_date=game[:8])
+
+    ball_game.set_home_away(game[10:12], game[8:10])
+
+    #ball_game.set_referee()
+    #ball_game.set_stadium()
 
     rl = js['relayList']
 
@@ -212,10 +365,10 @@ def parse_game(game):
         pa_text_set = rl[str(k)]['textOptionList']
         for i in range(len(pa_text_set)):
             text = pa_text_set[i]['text']
-            if parse_text(text) is True:
-                total_pitches += 1
 
-    print('{} : {}구'.format(game.split('_')[0], total_pitches))
+            if parse_text(text) is False:
+                return False
+
     return True
 
 
