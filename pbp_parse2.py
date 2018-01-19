@@ -61,3 +61,105 @@ results = ['내야안타',
            '야수선택으로 출루',
            '실책으로 출루',
            '타격방해로 출루']
+
+
+def parse_text(text):
+    p = re.compile('^[0-9]구 ')
+    if p.match(text):
+        return True
+    else:
+        return False
+
+
+def parse_game(game):
+    fp = open(game, 'r', encoding='utf-8')
+    js = json.loads(fp.read(), encoding='utf-8', object_pairs_hook=OrderedDict)
+    fp.close()
+
+    rl = js['relayList']
+
+    # test variable
+    total_pitches = 0
+
+    keys = list(rl.keys())
+    keys = [int(v) for v in keys]
+    keys.sort()
+
+    if keys is None:
+        print('no keys')
+        return False
+
+    for k in keys:
+        pa_text_set = rl[str(k)]['textOptionList']
+        for i in range(len(pa_text_set)):
+            text = pa_text_set[i]['text']
+            if parse_text(text) is True:
+                total_pitches += 1
+
+    print('{} : {}구'.format(game.split('_')[0], total_pitches))
+    return True
+
+
+def parse_main(args, lm=None):
+    # parse arguments
+    # test
+    mon_start = args[0]
+    mon_end = args[1]
+    year_start = args[2]
+    year_end = args[3]
+
+    if lm is not None:
+        lm.resetLogHandler()
+        lm.setLogPath(os.getcwd())
+        lm.setLogFileName('parse_pitch_log.txt')
+        lm.cleanLog()
+        lm.createLogHandler()
+        lm.log('---- Relay Text Parse Log ----')
+
+    if not os.path.isdir('pbp_data'):
+        print('no data folder')
+        return False
+
+    os.chdir('pbp_data')
+
+    for year in range(year_start, year_end + 1):
+        if not os.path.isdir(str(year)):
+            print('no year dir')
+            os.chdir('..')
+            return False
+
+        os.chdir(str(year))
+
+        for month in range(mon_start, mon_end + 1):
+            if not os.path.isdir(str(month)):
+                print('no month dir')
+                os.chdir('../../')
+                return False
+
+            os.chdir(str(month))
+
+            games = [f for f in os.listdir('.') if (os.path.isfile(f)) and\
+                                                   (f.lower().find('relay.json') > 0) and\
+                                                   (os.path.getsize(f) > 512)]
+            if not len(games) > 0:
+                print('no games')
+                os.chdir('..')
+                continue
+
+            games.sort()
+
+            for game in games:
+                rc = parse_game(game)
+                if rc is False:
+                    print('parse game failure')
+                    os.chdir('../../../')
+                    return False
+
+            # end
+            os.chdir('..')
+
+        # end
+        os.chdir('..')
+
+    # end
+    os.chdir('..')

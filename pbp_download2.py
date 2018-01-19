@@ -212,7 +212,7 @@ def download_relay(args, lm=None):
                             if lm is not None:
                                 lm.log('Cannot get response : {}'.format(game_id))
 
-                    fp = open(game_id + '_relay.JSON', 'w', encoding='utf-8', newline='\n')
+                    fp = open(game_id + '_relay.json', 'w', encoding='utf-8', newline='\n')
                     json.dump(txt, fp, ensure_ascii=False, indent=4)
                     fp.close()
 
@@ -417,10 +417,16 @@ if __name__ == '__main__':
 
     if options[1] is True:
         relaylm = logManager.LogManager()
-        download_relay(args, relaylm)
+        rc = download_relay(args, relaylm)
+        if rc is False:
+            print('Error')
+            exit(1)
         relaylm.killLogManager()
 
     if options[2] is True:
         pfxlm = logManager.LogManager()
-        download_pfx(args, pfxlm)
+        rc = download_pfx(args, pfxlm)
+        if rc is False:
+            print('Error')
+            exit(1)
         pfxlm.killLogManager()
