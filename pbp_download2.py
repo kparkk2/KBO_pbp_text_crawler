@@ -44,6 +44,8 @@ playoff_start = {
     '2017': '1010'
 }
 
+teams = ['LG', 'KT', 'NC', 'SK', 'WO', 'SS', 'HH', 'HT', 'LT', 'OB']
+
 
 def get_game_ids(args):
     # set url prefix
@@ -156,6 +158,9 @@ def download_relay(args, lm=None):
                 if int(game_id[4:8]) >= int(playoff_start[game_id[:4]]):
                     skipped += 1
                     continue
+                if game_id[8:10] not in teams:
+                    skipped += 1
+                    continue
 
                 if not check_url(relay_url):
                     skipped += 1
@@ -189,6 +194,11 @@ def download_relay(args, lm=None):
                     js = res.json()
 
                     last_inning = js['currentInning']
+
+                    if last_inning is None:
+                        skipped ++ 1
+                        lm.log('Gameday not found : {}'.format(game_id))
+                        continue
 
                     txt['relayList'] = {}
                     for i in range(len(js['relayList'])):
