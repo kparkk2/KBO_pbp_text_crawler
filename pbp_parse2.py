@@ -123,6 +123,7 @@ runner_results = [
     '공과',
     # 기타
     '진루',
+    '홈인',
     '태그아웃',
     '포스아웃',
     # 나머지
@@ -255,7 +256,7 @@ class BallGame:
         'away_dh': None
     }
 
-    # True 일 때 다음 타석 전환->스코어, 아웃카운트, 이닝 초/말 등 변경.
+    # True 일 때 다음 타석/투구 전환->스코어, 아웃카운트, 이닝 초/말 등 변경.
     made_runs = False
     runs_how_many = 0
     made_outs = False
@@ -285,6 +286,7 @@ class BallGame:
     def set_stadium(self, stadium):
         self.game_status['stadium'] = stadium
 
+    # 타석 리셋
     def go_to_next_pa(self):
         self.print_row()
         self.game_status['balls'] = 0
@@ -315,9 +317,15 @@ class BallGame:
         self.made_outs = False
         self.topbot_change = False
 
+    # 득점
     def score(self, runs):
         self.made_runs = True
         self.runs_how_many += runs
+
+    # 아웃
+    def out(self, outs):
+        self.made_outs = True
+        self.outs_how_many += outs
 
     def get_ball_four(self):
         self.game_status['pa_result'] = '볼넷'
@@ -331,7 +339,10 @@ class BallGame:
         self.next_3b = runner_2b
         self.score(1)
 
-    # pitch results #
+    # --------------------------------
+    # pitch result
+    # --------------------------------
+
     def get_ball(self):
         self.game_status['pitch_result'] = '볼'
         cur_balls = self.game_status['balls']
@@ -388,17 +399,10 @@ class BallGame:
         self.game_status['pitch_result'] = '타격'
         self.print_row()
 
-    # pa result #
-    def strike_out(self):
-        self.game_status['pa_result'] = '삼진'
-        self.made_outs = True
-        self.outs_how_many += 1
+    # --------------------------------
+    # pa result
+    # --------------------------------
 
-    def four_ball(self):
-        self.game_status['pa_result'] = '볼넷'
-        self.next_1b = self.game_status['batter']
-
-    # runner result #
     def single(self):
         self.game_status['pa_result'] = '1루타'
         self.next_1b = self.game_status['batter']
@@ -416,39 +420,142 @@ class BallGame:
         self.next_1b = None
         self.next_2b = None
         self.next_3b = None
-        # score -> @runner
-
-    def hbp(self):
-        self.game_status['pa_result'] = '몸에 맞는 볼'
-        self.next_1b = self.game_status['batter']
+        # runner score -> @runner
+        self.score(1)
 
     def infield_hit(self):
         self.game_status['pa_result'] = '내야안타'
         self.next_1b = self.game_status['batter']
 
-    def hit(self):
+    # 기타 안타
+    def other_hit(self):
         self.game_status['pa_result'] = '안타'
+        self.next_1b = self.game_status['batter']
+
+    def strike_out(self):
+        self.game_status['pa_result'] = '삼진'
+        self.out(1)
+
+    def four_ball(self):
+        self.game_status['pa_result'] = '볼넷'
         self.next_1b = self.game_status['batter']
 
     def ibb(self):
         self.game_status['pa_result'] = '고의4구'
         self.next_1b = self.game_status['batter']
 
-    def roe(self):
-        self.game_status['pa_result'] = '실책'
+    def hbp(self):
+        self.game_status['pa_result'] = '몸에 맞는 볼'
+        self.next_1b = self.game_status['batter']
 
-    def out(self):
-        self.game_status['pa_result'] = '아웃'
-        self.made_outs = True
-        self.outs_how_many += 1
+    # 낫아웃 삼진
+    def not_out(self):
+        self.game_status['pa_result'] = '삼진'
+        self.out(1)
+
+    # 낫아웃 폭투
+    def not_out_wp(self):
+        self.game_status['pa_result'] = '낫아웃 폭투'
+        self.next_1b = self.game_status['batter']
+
+    # 낫아웃 포일
+    def not_out_pb(self):
+        self.game_status['pa_result'] = '낫아웃 포일'
+        self.next_1b = self.game_status['batter']
+
+    # 주자 포스 아웃, 타자 주자 출루
+    # 땅볼로 출루
+    def force_out(self):
+        self.game_status['pa_result'] = '포스 아웃'
+        self.next_1b = self.game_status['batter']
+        # out -> @runner
+
+    # 타자 주자 아웃
+    # 땅볼 아웃, 플라이 아웃, 인필드 플라이, 파울 플라이
+    # 라인드라이브 아웃, 번트 아웃
+    # 현재 수비방해(송구방해)는 땅볼 아웃으로 기록 중
+    def field_out(self):
+        self.game_status['pa_result'] = '필드 아웃'
+        self.out(1)
+
+    def double_play(self):
+        self.game_status['pa_result'] = '병살타'
+        self.out(1)
 
     def sac_hit(self):
+        self.game_status['pa_result'] = '희생번트'
+        self.out(1)
+
+    def sac_fly(self):
         self.game_status['pa_result'] = '희생플라이'
-        self.made_outs = True
-        self.outs_how_many += 1
+        self.out(1)
 
-    def reach(self):
+    def three_bunt(self):
+        self.game_status['pa_result'] = '쓰리번트 삼진'
+        self.out(1)
 
+    def hit_by_ball_out(self):
+        self.game_status['pa_result'] = '타구맞음 아웃'
+        self.out(1)
+
+    # 실책 출루
+    # 희생번트 실책, 플라이 실책, 번트 실책
+    # 라인드라이브 실책, 병살실책, 실책
+    def roe(self):
+        self.game_status['pa_result'] = '실책'
+        self.next_1b = self.game_status['batter']
+
+    def interference(self):
+        self.game_status['pa_result'] = '타격방해'
+        self.next_1b = self.game_status['batter']
+
+    def triple_play(self):
+        self.game_status['pa_result'] = '삼중살'
+        self.out(1)
+
+    # --------------------------------
+    # runner result
+    # --------------------------------
+
+    # 도루, 폭투, 포일, 보크 포함
+    # 진루 후 투구시 parse_pitch에서 next runner 업데이트
+    def runner_advance(self, src, dst):
+        runner = ''
+        if src == '1루':
+            runner = self.game_status['runner_1b']
+        elif src == '2루':
+            runner = self.game_status['runner_2b']
+        else:
+            runner = self.game_status['runner_3b']
+
+        if dst == '1루':
+            self.next_1b = runner
+        elif dst == '2루':
+            self.next_2b = runner
+        else:
+            self.next_3b = runner
+        self.runner_change = True
+
+    def runner_home_in(self, src):
+        self.score(1)
+        if src == '1루':
+            self.next_1b = None
+        elif src == '2루':
+            self.next_2b = None
+        else:
+            self.next_3b = None
+        self.runner_change = True
+
+    # 도루실패, 견제사, 진루실패 포함
+    def runner_out(self, src):
+        self.out(1)
+        if src == '1루':
+            self.next_1b = None
+        elif src == '2루':
+            self.next_2b = None
+        else:
+            self.next_3b = None
+        self.runner_change = True
 
 
 ##########
@@ -466,6 +573,27 @@ def parse_pa_result(text, ball_game):
 
 def parse_pitch(text, ball_game):
     # do something
+    if ball_game.runner_change is True:
+        ball_game.game_status['runner_1b'] = ball_game.next_1b
+        ball_game.game_status['runner_2b'] = ball_game.next_2b
+        ball_game.game_status['runner_3b'] = ball_game.next_3b
+        ball_game.next_1b = None
+        ball_game.next_2b = None
+        ball_game.next_3b = None
+
+    if ball_game.made_outs is True:
+        ball_game.game_status['outs'] += ball_game.outs_how_many
+        ball_game.made_outs = False
+        ball_game.outs_how_many = 0
+
+    if ball_game.made_runs is True:
+        if ball_game.game_status['inning_topbot'] is 0:
+            ball_game.game_status['score_away'] += ball_game.runs_how_many
+        else:
+            ball_game.game_status['score_home'] += ball_game.runs_how_many
+        ball_game.made_runs = False
+        ball_game.runs_how_many = 0
+
     print(pitch.search(text).group().split(' ')[1])
     result = pitch.search(text).group().split(' ')[1]
 
