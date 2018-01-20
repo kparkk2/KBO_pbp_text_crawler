@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import datetime
 import time
-
+import regex
 
 # custom library
 import logManager
@@ -86,6 +86,7 @@ def get_game_ids(args):
 def download_relay(args, lm=None):
     # return True or False
     relay_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/relayText.nhn'
+    record_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/record.nhn'
 
     game_ids = get_game_ids(args)
     if (game_ids is None) or (len(game_ids) == 0):
@@ -181,10 +182,13 @@ def download_relay(args, lm=None):
                 }
 
                 headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                                  'Chrome/59.0.3071.115 Safari/537.36',
                     'X-Requested-With': 'XMLHttpRequest',
                     'Host': 'm.sports.naver.com',
-                    'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?&gameId=' + game_id + '&tab=relay'
+                    'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?&gameId='
+                               + game_id
+                               + '&tab=relay'
                 }
 
                 res = requests.get(relay_url, params=params, headers=headers)
@@ -196,7 +200,7 @@ def download_relay(args, lm=None):
                     last_inning = js['currentInning']
 
                     if last_inning is None:
-                        skipped ++ 1
+                        skipped + + 1
                         lm.log('Gameday not found : {}'.format(game_id))
                         continue
 
@@ -205,6 +209,8 @@ def download_relay(args, lm=None):
                         txt['relayList'][js['relayList'][i]['no']] = js['relayList'][i]
                     txt['homeTeamLineUp'] = js['homeTeamLineUp']
                     txt['awayTeamLineUp'] = js['awayTeamLineUp']
+
+                    res.close()
 
                     for inn in range(2, last_inning + 1):
                         params = {
@@ -221,6 +227,41 @@ def download_relay(args, lm=None):
                             skipped += 1
                             if lm is not None:
                                 lm.log('Cannot get response : {}'.format(game_id))
+
+                        res.close()
+
+                    # get referee
+                    params = {
+                        'gameId': game_id
+                    }
+
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, '
+                                      'like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Host': 'm.sports.naver.com',
+                        'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?gameId='
+                                   + game_id
+                                   + '&tab=record'
+                    }
+
+                    res = requests.get(record_url, params=params, headers=headers)
+
+                    p = regex.compile('(?<=\"etcRecords\":\[)[\\\.\{\}\"0-9:\s\(\)\,\ba-z가-힣\{\}]+')
+                    result = p.findall(res.text)
+                    if len(result) == 0:
+                        txt['referee'] = ''
+                    else:
+                        txt['referee'] = result[0].split('{')[-1].split('":"')[1].split(' ')[0]
+
+                    p = regex.compile('stadiumName: \'\w+\'')
+                    result = p.findall(res.text)
+                    if len(result) == 0:
+                        txt['stadium'] = ''
+                    else:
+                        txt['stadium'] = result[0].split('\'')[1]
+
+                    res.close()
 
                     fp = open(game_id + '_relay.json', 'w', encoding='utf-8', newline='\n')
                     json.dump(txt, fp, ensure_ascii=False, indent=4)
@@ -239,7 +280,7 @@ def download_relay(args, lm=None):
             print('\n        Downloaded {} files'.format(done))
             print('        (Skipped {} files)'.format(skipped))
             end2 = time.time()
-            print('            -- elapsed {:.3f} sec for month {}'.format(end2-start2, month))
+            print('            -- elapsed {:.3f} sec for month {}'.format(end2 - start2, month))
 
             os.chdir('..')
             # path: pbp_data/year
@@ -334,8 +375,8 @@ def download_pfx(args, lm=None):
                         lm.log('URL error : {}'.format(pfx_url))
                     continue
 
-                if (os.path.isfile(game_id+'_pfx.json')) and\
-                        (os.path.getsize(game_id+'_pfx.json') > 0):
+                if (os.path.isfile(game_id + '_pfx.json')) and \
+                        (os.path.getsize(game_id + '_pfx.json') > 0):
                     done += 1
                     if lm is not None:
                         lm.log('File Duplicate : {}'.format(game_id))
@@ -346,10 +387,13 @@ def download_pfx(args, lm=None):
                 }
 
                 headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                                  'Chrome/59.0.3071.115 Safari/537.36',
                     'X-Requested-With': 'XMLHttpRequest',
                     'Host': 'm.sports.naver.com',
-                    'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?&gameId=' + game_id + '&tab=relay'
+                    'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?&gameId='
+                               + game_id
+                               + '&tab=relay'
                 }
 
                 res = requests.get(pfx_url, params=params, headers=headers)
@@ -359,34 +403,36 @@ def download_pfx(args, lm=None):
                     js = res.json()
                     if js is None:
                         lm.log('PFX data missing : {}'.format(game_id))
-                        skipped +=1
+                        skipped += 1
                         continue
                     elif len(js) == 0:
                         lm.log('PFX data missing : {}'.format(game_id))
-                        skipped +=1
+                        skipped += 1
                         continue
 
                     # json to pandas dataframe
                     df = pd.read_json(json.dumps(js))
 
                     # calculate pitch location(px, pz)
-                    t = (-df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - df['crossPlateY']))) / df['ay']
+                    t = -df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - df['crossPlateY']))
+                    t /= df['ay']
                     xp = df['x0'] + df['vx0'] * t + df['ax'] * t * t * 0.5
                     zp = df['z0'] + df['vz0'] * t + df['az'] * t * t * 0.5
                     df['plateX'] = np.round(xp, 5)
                     df['plateZ'] = np.round(zp, 5)
 
                     # calculate pitch movement(pfx_x, pfx_z)
-                    t40 = (-df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - 40))) / df['ay']
+                    t40 = -df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - 40))
+                    t40 /= df['ay']
                     x40 = df['x0'] + df['vx0'] * t40 + 0.5 * df['ax'] * t40 * t40
                     vx40 = df['vx0'] + df['ax'] * t40
                     z40 = df['z0'] + df['vz0'] * t40 + 0.5 * df['az'] * t40 * t40
                     vz40 = df['vz0'] + df['az'] * t40
                     th = t - t40
-                    x_noair = x40 + vx40 * th
-                    z_noair = z40 + vz40 * th - 0.5 * 32.174 * th * th
-                    df['pfx_x2'] = np.round((xp - x_noair) * 12, 5)
-                    df['pfx_z2'] = np.round((zp - z_noair) * 12, 5)
+                    x_no_air = x40 + vx40 * th
+                    z_no_air = z40 + vz40 * th - 0.5 * 32.174 * th * th
+                    df['pfx_x2'] = np.round((xp - x_no_air) * 12, 5)
+                    df['pfx_z2'] = np.round((zp - z_no_air) * 12, 5)
 
                     # load back to json structure
                     dfjsstr = df.to_json(orient='records', force_ascii=False)
@@ -420,7 +466,6 @@ def download_pfx(args, lm=None):
 
 
 if __name__ == '__main__':
-    # args = [6, 6, 2017, 2017]
     args = []  # m_start, m_end, y_start, y_end
     options = []  # onlyConvert, onlyDownload
     get_args(args, options)
