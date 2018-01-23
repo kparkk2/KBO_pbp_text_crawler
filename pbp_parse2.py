@@ -1619,11 +1619,13 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
 
     for k in range(len(rl.keys())):
         try:
-            text_set = rl[str(k)]['textOptionList']
+            rl_k = rl[str(k)]
         except KeyError:
-            print()
-            print('no key : {}'.format(game))
-            exit(1)
+            lm.log('error - ignore and run rest')
+            rc = 'no rl key : game id - {}'.format(game)
+            lm.log(rc)
+            return 1
+        text_set = rl[str(k)]['textOptionList']
 
         if text_set[0]['type'] == 99:
             game_over[0] = True
