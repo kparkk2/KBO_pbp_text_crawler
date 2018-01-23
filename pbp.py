@@ -2,10 +2,11 @@
 # Play-By-Play 데이터 JSON 형식으로 받아서 CSV 파일로 변환
 # get batted ball data in JSON form & convert to CSV files
 
-from check_args import get_args
+from utils import get_args
 from pbp_download import pbp_download
 from pbp_parser import pbp_parser
 from pfx_download import pfx_download
+from pbp_parse2 import parse_main
 import logManager
 
 
@@ -14,7 +15,8 @@ def run_pbp_download(args, lm=None):
 
 
 def run_pbp_parser(args, lm=None):
-    pbp_parser(args[0], args[1], args[2], args[3], lm)
+    # pbp_parser(args[0], args[1], args[2], args[3], lm)
+    parse_main(args, lm)
 
 
 def run_pfx_download(args, lm=None):
