@@ -10,7 +10,7 @@ def get_args(output, options):
     # convert arguments
     # check if not number, integer
 
-    parser = argparse.ArgumentParser(description='Get batted ball data.')
+    parser = argparse.ArgumentParser(description='Get pitch by pitch data.')
     parser.add_argument('dates',
                         metavar='dates',
                         type=int,
@@ -20,17 +20,26 @@ def get_args(output, options):
 
     parser.add_argument('-c',
                         action='store_true',
-                        help='JSON->csv only')
+                        help='convert pitch data to .csv format')
 
     parser.add_argument('-d',
                         action='store_true',
-                        help='Download only')
+                        help='Download pitch data')
 
     parser.add_argument('-p',
                         action='store_true',
-                        help='pfx Download only')
+                        help='Download pitch f/x data only')
 
     args = parser.parse_args()
+
+    options.append(args.c)
+    options.append(args.d)
+    options.append(args.p)
+
+    if (args.c and args.p) or (args.c and args.d) or (args.d and args.p):
+        print('choose one option at once!\n')
+        parser.print_help()
+        exit(1)
 
     dates = args.dates
     now = datetime.datetime.now()
@@ -122,7 +131,7 @@ def get_args(output, options):
 
         if len(years) == 0:
             ymin = now.year
-            ymax = 2016
+            ymax = now.year
         elif len(years) == 1:
             ymin = ymax = years[0]
         else:
@@ -134,9 +143,8 @@ def get_args(output, options):
         output.append(ymin)
         output.append(ymax)
 
-    options.append(args.c)
-    options.append(args.d)
-    options.append(args.p)
+    return parser
+
 
 
 def print_progress(bar_prefix, total, done, skipped):

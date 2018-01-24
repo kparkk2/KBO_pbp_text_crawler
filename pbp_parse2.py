@@ -1597,8 +1597,17 @@ header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
 
 
 def parse_game(game, lm=None, month_file=None, year_file=None):
+
     fp = open(game, 'r', encoding='utf-8')
-    js = json.loads(fp.read(), encoding='utf-8', object_pairs_hook=OrderedDict)
+    try:
+        js = json.loads(fp.read(),
+                        object_pairs_hook=OrderedDict)
+    except UnicodeDecodeError:
+        fp.close()
+        fp = open(game, 'r', encoding='cp949')
+        js = json.loads(fp.read(),
+                        object_pairs_hook=OrderedDict)
+
     fp.close()
 
     ball_game = BallGame(game_date=game[:8])
@@ -1671,7 +1680,7 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
         return 1
     else:
         of = game[:13] + '.csv'
-        ofp = open(of, 'w', encoding='utf-8', newline='\n')
+        ofp = open(of, 'w', newline='\n')
         cf = csv.writer(ofp)
         cf.writerow(header_row)
         for i in range(len(ball_game.text_row)):
@@ -1721,7 +1730,7 @@ def parse_main(args, lm=None):
         os.chdir(str(year))
 
         year_filename = '{}.csv'.format(year)
-        yf = open(year_filename, 'w', encoding='utf-8')
+        yf = open(year_filename, 'w', newline='\n')
         cy = csv.writer(yf)
         cy.writerow(header_row)
 
@@ -1747,7 +1756,7 @@ def parse_main(args, lm=None):
             games.sort()
 
             month_filename = '{}_{}.csv'.format(year, month)
-            mf = open(month_filename, 'w', encoding='utf-8', newline='\n')
+            mf = open(month_filename, 'w', newline='\n')
             cm = csv.writer(mf)
             cm.writerow(header_row)
 

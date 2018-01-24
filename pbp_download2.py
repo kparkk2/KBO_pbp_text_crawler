@@ -1,6 +1,5 @@
 # pbp_download.py
 
-
 import os
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
@@ -263,8 +262,8 @@ def download_relay(args, lm=None):
 
                     res.close()
 
-                    fp = open(game_id + '_relay.json', 'w', encoding='utf-8', newline='\n')
-                    json.dump(txt, fp, ensure_ascii=False, indent=4)
+                    fp = open(game_id + '_relay.json', 'w', newline='\n')
+                    json.dump(txt, fp, ensure_ascii=False, sort_keys=False, indent=4)
                     fp.close()
 
                     done += 1
@@ -439,8 +438,8 @@ def download_pfx(args, lm=None):
                     dfjs = json.loads(dfjsstr)
 
                     # dump to json file
-                    fp = open(game_id + '_pfx.json', 'w', encoding='utf-8', newline='\n')
-                    json.dump(dfjs, fp, ensure_ascii=False, indent=4)
+                    fp = open(game_id + '_pfx.json', 'w', newline='\n')
+                    json.dump(dfjs, fp, ensure_ascii=False, sort_keys=False, indent=4)
                     fp.close()
                     done += 1
                 else:
