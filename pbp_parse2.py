@@ -69,7 +69,7 @@ class BallGame:
         # ball count & inning & score
         'inning': 1,
         # 0 for top, 1 for bot
-        'inning_topbot': 0,
+        'inning_top_bot': 0,
         'balls': 0,
         'strikes': 0,
         'outs': 0,
@@ -204,7 +204,7 @@ class BallGame:
         self.game_status['throws'] = 0
 
         self.game_status['inning'] = 0
-        self.game_status['inning_topbot'] = 1
+        self.game_status['inning_top_bot'] = 1
         self.game_status['balls'] = 0
         self.game_status['strikes'] = 0
         self.game_status['outs'] = 0
@@ -280,7 +280,7 @@ class BallGame:
                str(self.game_status['pitch_result']), str(self.game_status['pa_result']),
                str(self.game_status['balls']), str(self.game_status['strikes']), str(self.game_status['outs']),
                str(self.game_status['inning'])]
-        if self.game_status['inning_topbot'] == 0:
+        if self.game_status['inning_top_bot'] == 0:
             row.append('초')
         else:
             row.append('말')
@@ -301,7 +301,7 @@ class BallGame:
         row.append(str(self.game_status['sz_top']))
         row.append(str(self.game_status['sz_bot']))
 
-        if self.game_status['inning_topbot'] == 0:
+        if self.game_status['inning_top_bot'] == 0:
             row.append(str(self.game_status['home_p']))
             row.append(str(self.game_status['home_c']))
             row.append(str(self.game_status['home_1b']))
@@ -330,68 +330,6 @@ class BallGame:
 
         row.append(str(self.game_status['pa_number']))
         row.append(str(self.game_status['pitch_number']))
-        '''
-        row = str(self.game_status['pitch_type']) + ','
-        row += str(self.game_status['pitcher']) + ','
-        row += str(self.game_status['batter']) + ','
-        row += str(self.game_status['pitcher_ID']) + ','
-        row += str(self.game_status['batter_ID']) + ','
-        row += str(self.game_status['speed']) + ','
-        row += str(self.game_status['pitch_result']) + ','
-        row += str(self.game_status['pa_result']) + ','
-        row += str(self.game_status['balls']) + ','
-        row += str(self.game_status['strikes']) + ','
-        row += str(self.game_status['outs']) + ','
-        row += str(self.game_status['inning']) + ','
-        if self.game_status['inning_topbot'] == 0:
-            row += '초,'
-        else:
-            row += '말,'
-        row += str(self.game_status['score_away']) + ','
-        row += str(self.game_status['score_home']) + ','
-        row += str(self.game_status['on_1b']) + ','
-        row += str(self.game_status['on_2b']) + ','
-        row += str(self.game_status['on_3b']) + ','
-
-        row += str(self.game_status['px']) + ','
-        row += str(self.game_status['pz']) + ','
-        row += str(self.game_status['pfx_x']) + ','
-        row += str(self.game_status['pfx_z']) + ','
-        row += str(self.game_status['x0']) + ','
-        row += str(self.game_status['z0']) + ','
-        row += str(self.game_status['sz_top']) + ','
-        row += str(self.game_status['sz_bot']) + ','
-
-        if self.game_status['inning_topbot'] == 0:
-            row += str(self.game_status['home_p']) + ','
-            row += str(self.game_status['home_c']) + ','
-            row += str(self.game_status['home_1b']) + ','
-            row += str(self.game_status['home_2b']) + ','
-            row += str(self.game_status['home_3b']) + ','
-            row += str(self.game_status['home_ss']) + ','
-            row += str(self.game_status['home_lf']) + ','
-            row += str(self.game_status['home_cf']) + ','
-            row += str(self.game_status['home_rf']) + ','
-        else:
-            row += str(self.game_status['away_p']) + ','
-            row += str(self.game_status['away_c']) + ','
-            row += str(self.game_status['away_1b']) + ','
-            row += str(self.game_status['away_2b']) + ','
-            row += str(self.game_status['away_3b']) + ','
-            row += str(self.game_status['away_ss']) + ','
-            row += str(self.game_status['away_lf']) + ','
-            row += str(self.game_status['away_cf']) + ','
-            row += str(self.game_status['away_rf']) + ','
-
-        row += str(self.game_status['game_date']) + ','
-        row += str(self.game_status['home']) + ','
-        row += str(self.game_status['away']) + ','
-        row += str(self.game_status['stadium']) + ','
-        row += str(self.game_status['referee']) + ','
-
-        row += str(self.game_status['pa_number']) + ','
-        row += str(self.game_status['pitch_number']) + '\n'
-        '''
         self.text_row.append(row)
 
     def print_row_debug(self):
@@ -403,7 +341,7 @@ class BallGame:
         row += str(self.game_status['strikes']) + '/'
         row += str(self.game_status['outs']) + ', '
         row += str(self.game_status['inning'])
-        if self.game_status['inning_topbot'] == 0:
+        if self.game_status['inning_top_bot'] == 0:
             row += '초,'
         else:
             row += '말,'
@@ -414,7 +352,7 @@ class BallGame:
         row += str(self.game_status['on_3b']) + ', '
         row += str(self.game_status['pa_result']) + '\n'
 
-        if self.game_status['inning_topbot'] == 0:
+        if self.game_status['inning_top_bot'] == 0:
             row += str(self.game_status['home_p']) + '/'
             row += str(self.game_status['home_c']) + '/'
             row += str(self.game_status['home_1b']) + '/'
@@ -503,18 +441,6 @@ class BallGame:
             else:
                 self.game_status['home_p'] = home_pit['name']
 
-    def reset_pfx(self):
-        self.game_status['pitch_type'] = None
-        self.game_status['speed'] = None
-        self.game_status['px'] = None
-        self.game_status['pz'] = None
-        self.game_status['pfx_x'] = None
-        self.game_status['pfx_z'] = None
-        self.game_status['x0'] = None
-        self.game_status['z0'] = None
-        self.game_status['sz_top'] = None
-        self.game_status['sz_bot'] = None
-
     # 이닝 변경
     def go_to_next_inning(self):
         if self.game_status['strikes'] == 3:
@@ -524,22 +450,27 @@ class BallGame:
         if self.made_in_play is True:
             self.print_row()
             # self.print_row_debug()
+
+        if self.made_outs is True:
+            if self.game_status['outs'] + self.outs_how_many != 3:
+                rc = 'out != 3\n'
+                rc += '{}회 종료 시'.format(
+                    self.game_status['inning']
+                )
+                return rc
+
         if self.made_runs is True:
-            if self.game_status['inning_topbot'] == 0:
+            if self.game_status['inning_top_bot'] == 0:
                 self.game_status['score_away'] += self.runs_how_many
             else:
                 self.game_status['score_home'] += self.runs_how_many
 
-        if self.made_outs is True:
-            if self.game_status['outs'] + self.outs_how_many > 3:
-                return 'out > 3'
-
-        if self.game_status['inning_topbot'] == 1:
+        if self.game_status['inning_top_bot'] == 1:
             self.game_status['inning'] += 1
 
-        self.game_status['inning_topbot'] = (1 - self.game_status['inning_topbot'])
+        self.game_status['inning_top_bot'] = (1 - self.game_status['inning_top_bot'])
 
-        if self.game_status['inning_topbot'] == 0:
+        if self.game_status['inning_top_bot'] == 0:
             self.game_status['pitcher'] = self.game_status['home_p']
         else:
             self.game_status['pitcher'] = self.game_status['away_p']
@@ -592,7 +523,7 @@ class BallGame:
         self.game_status['balls'] = 0
         self.game_status['strikes'] = 0
         if self.made_runs is True:
-            if self.game_status['inning_topbot'] == 0:
+            if self.game_status['inning_top_bot'] == 0:
                 self.game_status['score_away'] += self.runs_how_many
             else:
                 self.game_status['score_home'] += self.runs_how_many
@@ -600,7 +531,13 @@ class BallGame:
         if self.made_outs is True:
             self.game_status['outs'] += self.outs_how_many
             if self.game_status['outs'] > 3:
-                return 'out > 3'
+                rc = 'out > 3\n'
+                rc += '{}회 {}:{} 타석'.format(
+                    self.game_status['inning'],
+                    self.game_status['pitcher'],
+                    self.game_status['batter']
+                )
+                return rc
 
         if self.runner_change is True:
             if self.change_3b is True:
@@ -1120,7 +1057,13 @@ num_pattern = regex.compile('[1-3]루까지')
 def parse_pa_result(text, ball_game):
     pa = pa_pattern.search(text)
     if pa is None:
-        return 'unexpected error - text : {}'.format(text)
+        rc = 'parse error - text : {}\n'.format(text)
+        rc += '{}회 {}:{} 타석'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter']
+        )
+        return rc
     result = pa.group().split(':')[-1].strip()
 
     if result.find('삼진') >= 0:
@@ -1198,12 +1141,57 @@ def parse_pa_result(text, ball_game):
         # '이용규 : 좌익수 앞 번트' 하나 있는 예외(20160709SSHH0)
         ball_game.other_hit()
     else:
-        return 'unexpected error - text : {}'.format(text)
+        rc = 'unexpected PA result - text : {}\n'.format(text)
+        rc += '{}회 {}:{} 타석'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter']
+        )
+        return rc
 
     return True
 
 
-def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pid, bid, pts_data):
+def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, bid, pts_data):
+    if ball_game.game_status['balls'] > 3:
+        rc = 'balls > 3 - text : {}\n'.format(text)
+        rc += '{}회 {}:{} {}구'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter'],
+            pitch_num
+        )
+        return rc
+    elif ball_game.game_status['strikes'] > 2:
+        rc = 'strikes > 2 - text : {}\n'.format(text)
+        rc += '{}회 {}:{} 타석 {}구'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter'],
+            pitch_num
+        )
+        return rc
+    elif ball_game.game_status['outs'] > 2:
+        rc = 'outs > 3 - text : {}\n'.format(text)
+        rc += '{}회 {}:{} {}구'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter'],
+            pitch_num
+        )
+        return rc
+
+    if pitch_num == ball_game.game_status['pitch_number']:
+        # relay error
+        rc = 'same pitch number - text : {}\n'.format(text)
+        rc += '{}회 {}:{} {}구'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter'],
+            pitch_num
+        )
+        return rc
+
     if ball_game.ball_and_not_hbp is True:
         ball_game.game_status['balls'] -= 1
         ball_game.print_row()
@@ -1238,7 +1226,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pid, bid, pts_dat
         ball_game.outs_how_many = 0
 
     if ball_game.made_runs is True:
-        if ball_game.game_status['inning_topbot'] is 0:
+        if ball_game.game_status['inning_top_bot'] is 0:
             ball_game.game_status['score_away'] += ball_game.runs_how_many
         else:
             ball_game.game_status['score_home'] += ball_game.runs_how_many
@@ -1247,7 +1235,14 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pid, bid, pts_dat
 
     pitch = pitch_pattern.search(text)
     if pitch is None:
-        return 'unexpected error - text : {}'.format(text)
+        rc = 'parse error - text : {}\n'.format(text)
+        rc += '{}회 {}:{} 타석 {}구'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter'],
+            pitch_num
+        )
+        return rc
     result = pitch.group().split(' ')[1]
 
     if ball_game.prev_pid != pid:
@@ -1255,7 +1250,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pid, bid, pts_dat
         # change throws
         ball_game.game_status['pitcher_ID'] = pid
         throws = None
-        if ball_game.game_status['inning_topbot'] == 0:
+        if ball_game.game_status['inning_top_bot'] == 0:
             for p in home_pitchers:
                 if pid == p['pCode']:
                     if p['hitType'] is not None:
@@ -1333,7 +1328,14 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pid, bid, pts_dat
     elif result == '12초':
         ball_game.get_ball()
     else:
-        return 'unexpected error - text : {}'.format(text)
+        rc = 'unexpected pitch result - text : {}\n'.format(text)
+        rc += '{}회 {}:{} 타석 {}구'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter'],
+            pitch_num
+        )
+        return rc
 
     return True
 
@@ -1348,7 +1350,17 @@ def parse_runner(text, ball_game):
 
     run = runner_pattern.search(text)
     if not run:
-        return 'unexpected error - text: {}'.format(text)
+        if text.find('BH') > 0:
+            # 특수한 예외 - 넘어감
+            return True
+        else:
+            rc = 'parse error - text : {}\n'.format(text)
+            rc += '{}회 {}:{} 타석'.format(
+                ball_game.game_status['inning'],
+                ball_game.game_status['pitcher'],
+                ball_game.game_status['batter']
+            )
+            return rc
     result = run.group()
     src_base = int(result.split(' ')[0][0])
     src_name = result.split(' ')[1]
@@ -1365,14 +1377,26 @@ def parse_runner(text, ball_game):
                     dst = int(num_pattern.search(tokens[i]).group()[0])
                     break
             if dst is 0:
-                return 'unexpected error - text: {}'.format(text)
+                rc = 'parse error - 진루 목표지 확정 불가; text : {}\n'.format(text)
+                rc += '{}회 {}:{} 타석'.format(
+                    ball_game.game_status['inning'],
+                    ball_game.game_status['pitcher'],
+                    ball_game.game_status['batter']
+                )
+                return rc
             ball_game.runner_advance(src_base, src_name, dst)
     elif result.find('아웃') > 0:
         ball_game.runner_out(src_base, src_name)
     elif result.find('홈인') > 0:
         ball_game.runner_home_in(src_base, src_name)
     else:
-        return 'unexpected error - text: {}'.format(text)
+        rc = 'unexpected type of runner text : {}\n'.format(text)
+        rc += '{}회 {}:{} 타석'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter']
+        )
+        return rc
 
     return True
 
@@ -1386,9 +1410,17 @@ def parse_change(text, ball_game):
         src_pos = src.group().strip().split(' ')[0]
         src_name = src.group().strip().split(' ')[1]
     else:
-        return 'unexpected error - text : {}'.format(text)
+        rc = 'parse error - change text : {}\n'.format(text)
+        rc += '{}회 {}:{} 타석'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter']
+        )
+        return rc
 
     dst = dst_pattern.search(text)
+    dst2 = None
+    dst_name = None
     if dst:
         dst_pos = dst.group().strip().split(' ')[0]
         dst_name = dst.group().strip().split(' ')[1]
@@ -1405,12 +1437,28 @@ def parse_change(text, ball_game):
                 dst_pos = dst3.group().strip().split('(')[0]
                 move = True
             else:
-                return 'unexpected error - text : {}'.format(text)
-
+                rc = 'parse error - change text : {}\n'.format(text)
+                rc += '{}회 {}:{} 타석'.format(
+                    ball_game.game_status['inning'],
+                    ball_game.game_status['pitcher'],
+                    ball_game.game_status['batter']
+                )
+                return rc
+            
+    if dst or dst2:
+        if dst_name is None:
+            rc = 'parse error - no name in change text : {}\n'.format(text)
+            rc += '{}회 {}:{} 타석'.format(
+                ball_game.game_status['inning'],
+                ball_game.game_status['pitcher'],
+                ball_game.game_status['batter']
+            )
+            return rc
+            
     if change:
         if (dst_pos == '대타') or (dst_pos == '대주자'):
             lineup_no = int(src_pos[0]) - 1
-            if ball_game.game_status['inning_topbot'] == 0:
+            if ball_game.game_status['inning_top_bot'] == 0:
                 # away
                 if (ball_game.game_status['away_lineup'][lineup_no]['pos'] == src_pos) and \
                         (ball_game.game_status['away_lineup'][lineup_no]['name'] == src_name):
@@ -1439,12 +1487,16 @@ def parse_change(text, ball_game):
             try:
                 pos_num = position[dst_pos]
             except KeyError:
-                rc = 'unexpected error - text : {}'.format(text)
-                rc += '\n key : {}'.format(dst_pos)
+                rc = 'unexpected position - text : {}\n'.format(text)
+                rc += '{}회 {}:{} 타석'.format(
+                    ball_game.game_status['inning'],
+                    ball_game.game_status['pitcher'],
+                    ball_game.game_status['batter']
+                )
                 return rc
             if pos_num == 1:
                 ball_game.game_status['pitcher'] = dst_name
-            if ball_game.game_status['inning_topbot'] == 0:
+            if ball_game.game_status['inning_top_bot'] == 0:
                 # away
                 for i in range(9):
                     if (ball_game.game_status['home_lineup'][i]['pos'] == src_pos) and \
@@ -1466,7 +1518,7 @@ def parse_change(text, ball_game):
         pos_num = position[dst_pos]
         if pos_num == 1:
             ball_game.game_status['pitcher'] = src_name
-        if ball_game.game_status['inning_topbot'] == 0:
+        if ball_game.game_status['inning_top_bot'] == 0:
             # top; change home lineup
             ball_game.game_status[field_home[pos_num]] = src_name
             for i in range(9):
@@ -1483,7 +1535,13 @@ def parse_change(text, ball_game):
                     ball_game.game_status['away_lineup'][i]['pos'] = dst_pos
                     break
     else:
-        return 'unexpected error - text : {}'.format(text)
+        rc = 'unexpected type of text : {}\n'.format(text)
+        rc += '{}회 {}:{} 타석'.format(
+            ball_game.game_status['inning'],
+            ball_game.game_status['pitcher'],
+            ball_game.game_status['batter']
+        )
+        return rc
 
     return True
 
@@ -1491,17 +1549,20 @@ def parse_change(text, ball_game):
 def parse_batter(text, home_batters, away_batters, bid, ball_game):
     bat = batter_pattern.search(text)
     if not bat:
-        return 'unexpected error - text : {}'.format(text)
+        rc = 'parse error - text : {}\n'.format(text)
+        rc += '{}회'.format(
+            ball_game.game_status['inning'],
+        )
+        return rc
     result = batter_pattern.search(text).group().split(' ')[-1]
 
     # substitution - > @parse_change
     rc = ball_game.go_to_next_pa()
     if type(rc) is str:
-        rc += '\nunexpected error - text : {}'.format(text)
         return rc
     else:
         ball_game.game_status['batter'] = result
-        if ball_game.game_status['inning_topbot'] == 0:
+        if ball_game.game_status['inning_top_bot'] == 0:
             for b in away_batters:
                 if b['pCode'] == bid:
                     if b['hitType'] is None:
@@ -1523,16 +1584,15 @@ def parse_batter(text, home_batters, away_batters, bid, ball_game):
 
 def parse_text(text, text_type, ball_game, game_over,
                home_batters, away_batters, home_pitchers, away_pitchers,
-               pid, bid, pts_data):
+               pitch_num, pid, bid, pts_data):
     if text_type == 0:
         rc = ball_game.go_to_next_inning()
         if type(rc) is str:
-            rc += '\nunexpected error - text : {}'.format(text)
-            return rc
+            return rc + '\ntext : {}'.format(text)
         else:
             return True
     elif text_type == 1:
-        rc = parse_pitch(text, ball_game, home_pitchers, away_pitchers, pid, bid, pts_data)
+        rc = parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, bid, pts_data)
         if type(rc) is str:
             return rc
         else:
@@ -1584,12 +1644,17 @@ def parse_text(text, text_type, ball_game, game_over,
         game_over[0] = True
         return True
     else:
-        return 'unexpected error - text : {}'.format(text)
+        rc = 'unexpected type of text : {}\n'.format(text)
+        rc += '{}회, text type : {}'.format(
+            ball_game.game_status['inning'],
+            text_type
+        )
+        return rc
 
 
 header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'speed', 'pitch_result', 'pa_result', 'balls', 'strikes', 'outs',
-              'inning', 'inning_top_bot', 'score_away', 'score_home',
+              'inning', 'inning_topbot', 'score_away', 'score_home',
               'stands', 'throws', 'on_1b', 'on_2b', 'on_3b', 'px', 'pz', 'pfx_x', 'pfx_z',
               'x0', 'z0', 'sz_top', 'sz_bot', 'pos_1', 'pos_2', 'pos_3', 'pos_4', 'pos_5',
               'pos_6', 'pos_7', 'pos_8', 'pos_9', 'game_date', 'home', 'away',
@@ -1627,9 +1692,7 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
     rc = True
 
     for k in range(len(rl.keys())):
-        try:
-            rl_k = rl[str(k)]
-        except KeyError:
+        if str(k) not in rl.keys():
             lm.log('error - ignore and run rest')
             rc = 'no rl key : game id - {}'.format(game)
             lm.log(rc)
@@ -1661,9 +1724,16 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
                     pts_data['speed'] = text_set[i]['speed']
                     pts_data['stuff'] = text_set[i]['stuff']
 
+            pitch_num = None
+            if text_type == 1:
+                try:
+                    pitch_num = text_set[i]['pitchNum']
+                except KeyError:
+                    pitch_num = None
+
             rc = parse_text(text, text_type, ball_game, game_over,
                             home_batters, away_batters, home_pitchers, away_pitchers,
-                            pid, bid, pts_data)
+                            pitch_num, pid, bid, pts_data)
             if type(rc) is str:
                 lm.log('error - ignore and run rest')
                 rc += '    game id : {}\n'.format(game[:13])
@@ -1718,7 +1788,8 @@ def parse_main(args, lm=None):
     print("##################################################")
     print("#######          PARSE RELAY TEXT          #######")
     print("##################################################")
-
+    total_done = 0
+    total_skipped = 0
     for year in range(year_start, year_end + 1):
         print(" Year {}".format(year))
         if not os.path.isdir(str(year)):
@@ -1766,6 +1837,7 @@ def parse_main(args, lm=None):
                 rc = parse_game(game, lm, month_file=cm, year_file=cy)
                 if type(rc) is int:
                     skipped += 1
+                    total_skipped += 1
                 elif type(rc) is str:
                     print('\nparse game failure')
                     lm.log('parse game failure')
@@ -1773,7 +1845,8 @@ def parse_main(args, lm=None):
                     return False
                 else:
                     done += 1
-                print_progress('    Parsing: ', len(games), done, 0)
+                    total_done += 1
+                print_progress('    Parsing: ', len(games), done, skipped)
             print()
             print('          Done : {}'.format(done))
             print('          Skipped : {}'.format(skipped))
@@ -1788,3 +1861,5 @@ def parse_main(args, lm=None):
 
     # end
     os.chdir('..')
+    print('Done : {}'.format(total_done))
+    print('Skipped : {}'.format(total_skipped))
