@@ -1294,7 +1294,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
 
         t = (-vy0 - (vy0 * vy0 - 2 * ay * (y0 - cross_plate_y)) ** 0.5) / ay
         px = x0 + vx0 * t + ax * t * t * 0.5
-        pz = z0 + vz0 * t + ax * t * t * 0.5
+        pz = z0 + vz0 * t + az * t * t * 0.5
         ball_game.game_status['px'] = round(px, 5)
         ball_game.game_status['pz'] = round(pz, 5)
 
