@@ -6,7 +6,6 @@ import logging.handlers
 import os
 import inspect
 import traceback
-import errorManager as em
 
 formatter = logging.Formatter(fmt='[%(asctime)s.%(msecs)03d %(message)s',
                               datefmt='%Y-%m-%d %H:%M:%S')
