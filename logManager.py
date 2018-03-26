@@ -5,10 +5,27 @@ import logging.config
 import logging.handlers
 import os
 import inspect
+import traceback
 import errorManager as em
 
 formatter = logging.Formatter(fmt='[%(asctime)s.%(msecs)03d %(message)s',
                               datefmt='%Y-%m-%d %H:%M:%S')
+
+
+error_msg = None
+
+
+def getTracebackStr():
+    lines = traceback.format_exc().strip().split('\n')
+    if error_msg is not None:
+        rl = [error_msg, lines[-1]]
+    else:
+        rl = [lines[-1]]
+    lines = lines[1:-1]
+    lines.reverse()
+    for i in range(0, len(lines), 2):
+        rl.append('  %s at %s' % (lines[i].strip(), lines[i + 1].strip()))
+    return '\n'.join(rl)
 
 
 class LogManager:
@@ -46,12 +63,6 @@ class LogManager:
         if not os.path.isdir(self.logPath):
             os.mkdir(self.logPath)
 
-        '''
-        file_handler =\
-            logging.handlers.RotatingFileHandler('{}/{}'.format(self.logPath, self.logFileName),
-                                                 encoding='utf-8', maxBytes=1024*10,
-                                                 backupCount=4)
-        '''
         file_handler = logging.FileHandler('{}/{}'.format(self.logPath, self.logFileName,
                                                           encoding='utf-8'))
         file_handler.setFormatter(formatter)
@@ -85,29 +96,3 @@ class LogManager:
         if os.path.isdir(self.logPath) and os.listdir(self.logPath) is not None:
             if os.path.isfile(self.logFileName):
                 os.remove(os.path.join(self.logPath, self.logFileName))
-            '''
-            files = [f for f in os.listdir(self.logPath)]
-            for f in files:
-                elem = self.logPath.split('/')
-                if len(elem) == 1:
-                    os.remove(os.path.join(self.logPath, f))
-                else:
-                    cp = ''
-                    for e in elem:
-                        cp = os.path.join(cp, e)
-                    try:
-                        if os.path.isfile(os.path.join(cp, f)):
-                            os.remove(os.path.join(cp, f))
-                    except FileNotFoundError:
-                        print()
-                        print(em.getTracebackStr())
-                        print(os.path.join(cp, f))
-                        print('Basepath : {}'.format(cp))
-                        print('File : {}'.format(f))
-                        exit(1)
-                    except Exception as e:
-                        print()
-                        print('Unexpected Error :\n\t{}'.format(e))
-                        print(em.getTracebackStr())
-                        exit(1)
-            '''

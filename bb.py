@@ -2,7 +2,7 @@
 # 타구 데이터 JSON 형식으로 받아서 CSV 파일로 변환
 # get batted ball data in JSON form & convert to CSV files
 
-from check_args import get_args
+from utils import get_args
 from bb_download import bb_download
 from bb_convert_to_csv import bb_convert_to_csv
 import logManager
@@ -19,14 +19,23 @@ def run_bb_convert_to_csv(arg, lm=None):
 if __name__ == "__main__":
     args = []       # m_start, m_end, y_start, y_end
     options = []    # onlyConvert, onlyDownload
-    get_args(args, options)
-    lm = logManager.LogManager()
+    parser = get_args(args, options)
 
-    if (options[0] is True) & (options[1] is False):
+    # option : -c, -d, -p
+    if (options[0] is True) & (options[1] is False) & (options[2] is False):
+        lm = logManager.LogManager()
         run_bb_convert_to_csv(args, lm)
-    elif (options[0] is False) & (options[1] is True):
+        lm.killLogManager()
+    elif (options[0] is False) & (options[1] is True) & (options[2] is False):
+        lm = logManager.LogManager()
         run_bb_download(args, lm)
+        lm.killLogManager()
+    elif (options[0] is False) & (options[1] is False) & (options[2] is True):
+        print('pfx option is not supported for bb.py')
+        parser.print_help()
+    elif (options[0] is False) & (options[1] is False) & (options[2] is False):
+        print('choose at least one option!\n')
+        parser.print_help()
     else:
-        run_bb_download(args, lm)
-        run_bb_convert_to_csv(args, lm)
-    lm.killLogManager()
+        print('choose one option at once!\n')
+        parser.print_help()

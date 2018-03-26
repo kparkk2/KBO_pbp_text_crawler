@@ -12,7 +12,7 @@ import os
 import json
 import sys
 import csv
-import errorManager as em
+from logManager import getTracebackStr
 
 
 pos_lst = [
@@ -101,8 +101,8 @@ def write_data(ball_ids, csv_file, js, match_info, is_home, lm):
             pitcher_team = teams[match_home]
         except KeyError as e:
             print()
-            print(em.getTracebackStr())
-            lm.bugLog(em.getTracebackStr())
+            print(getTracebackStr())
+            lm.bugLog(getTracebackStr())
             lm.bugLog("Key Value Error : {}".format(e))
             lm.bugLog("Match Info : {}".format(match_info))
             lm.bugLog("homeaway : {}".format(homeaway))

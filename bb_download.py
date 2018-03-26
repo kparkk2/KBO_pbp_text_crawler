@@ -8,7 +8,7 @@ import os
 from bs4 import BeautifulSoup
 import re
 import sys
-import errorManager as em
+from logManager import getTracebackStr
 
 regular_start = {
     '2012': '0407',
@@ -149,9 +149,9 @@ def bb_download(mon_start, mon_end, year_start, year_end, lm=None):
                 except AttributeError:
                     print()
                     print('JSON parse error in : {}'.format(game_id))
-                    print(em.getTracebackStr())
+                    print(getTracebackStr())
                     lm.bugLog('JSON parse error in : {}'.format(game_id))
-                    lm.bugLog(em.getTracebackStr())
+                    lm.bugLog(getTracebackStr())
                     lm.killLogManager()
                     exit(1)
 

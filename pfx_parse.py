@@ -1,4 +1,8 @@
-# pbp_parse2.py
+# pfx_parse.py
+#
+# parse JSON, make game structure, convert to CSV.
+# JSON 데이터를 읽어와 게임 상황을 구현하고
+# gameday line 하나에 맞는 text row를 생성, CSV 파일에 저장한다.
 
 import os
 import json
@@ -679,7 +683,7 @@ class BallGame:
         self.next_1b = None
         self.next_2b = None
         self.next_3b = None
-        # runner score -> @runner
+        # runner score -> runner 처리할 때 같이 처리.
         self.score(1)
 
     def infield_hit(self):
@@ -752,7 +756,7 @@ class BallGame:
         self.change_1b = True
         self.next_1b = self.game_status['batter']
         self.set_hitter_to_base = True
-        # out -> @runner
+        # out -> runner 처리할 때 같이 처리.
 
     # 타자 주자 아웃
     # 땅볼 아웃, 플라이 아웃, 인필드 플라이, 파울 플라이
