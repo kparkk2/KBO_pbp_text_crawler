@@ -17,7 +17,7 @@ Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
 Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c', '파울':'#edf72c', '타격':'#8348d1', '번트파울':'#edf72c', '번트헛스윙':'#1a1b1c' }
 
-def plot_calls(df, title=None, pitch_number=0, print_std=False, calls=None, legends=False):
+def plot_calls(df, title=None, print_std=False, calls=None, legends=True, show_pitch_number=False):
     if os.name == 'posix':
         fm.get_fontconfig_fonts()
         font_location = '/Library/Fonts/NanumSquareOTFRegular.otf'
@@ -74,72 +74,49 @@ def plot_calls(df, title=None, pitch_number=0, print_std=False, calls=None, lege
         st.set_horizontalalignment('center')
     
     if calls is None:
+        plt.scatter(df.px, df.pz, color='#ef2926', alpha=.5, s=np.pi*50, label=df.pitch_result)
+        
+        if show_pitch_number is True:
+            for i in df.index:
+                ax.text(df.loc[i].px, df.loc[i].pz-0.05, df.loc[i].pitch_number,
+                        color='white', fontsize=10, horizontalalignment='center')
+        '''
         strikes = df.loc[df.pitch_result == '스트라이크']
         balls = df.loc[df.pitch_result == '볼']
         
-        if pitch_number <= 0:
-            plt.scatter(strikes.px, strikes.pz, color='#ef2926', alpha=.5, s=np.pi*50, label='스트라이크')
-            plt.scatter(balls.px, balls.pz, color='#3245ef', alpha=.5, s=np.pi*50, label='볼')
-        else:
-            target_s = strikes.loc[strikes.pitch_number == pitch_number]
-            nontarget_s = strikes.loc[strikes.pitch_number != pitch_number]
-            target_b = balls.loc[balls.pitch_number == pitch_number]
-            nontarget_b = balls.loc[balls.pitch_number != pitch_number]
-            
-            plt.scatter(target_s.px, target_s.pz, color='ef2926', alpha=.5, s=np.pi*50, label='{}구'.format(pitch_number))
-            plt.scatter(nontarget_s.px, nontarget_s.pz, color='3245ef', alpha=.5, s=np.pi*50)
-            plt.scatter(target_b.px, target_b.pz, color='ef2926', alpha=.5, s=np.pi*50, label='{}구'.format(pitch_number))
-            plt.scatter(nontarget_b.px, nontarget_b.pz, color='3245ef', alpha=.5, s=np.pi*50)
-            
-            for i in target_s.index:
-                if (target_s.loc[i, 'px'] > lb) & (target_s.loc[i, 'pz'] < rb) &\
-                    (target_s.loc[i, 'pz'] > bb) & (target_s.loc[i, 'pz'] < tb):
-                    ax.text(target_s.loc[i, 'px'], target_s.loc[i, 'pz']-0.05,
-                            str(pitch_number), color='white', fontsize=10, horizontalalignment='center')
-            for i in target_s.index:
-                if (target_b.loc[i, 'px'] > lb) & (target_b.loc[i, 'pz'] < rb) &\
-                    (target_b.loc[i, 'pz'] > bb) & (target_b.loc[i, 'pz'] < tb):
-                    ax.text(target_b.loc[i, 'px'], target_b.loc[i, 'pz']-0.05,
-                            str(pitch_number), color='white', fontsize=10, horizontalalignment='center')
+        plt.scatter(strikes.px, strikes.pz, color='#ef2926', alpha=.5, s=np.pi*50, label=df.pitch_result)
+        plt.scatter(balls.px, balls.pz, color='#3245ef', alpha=.5, s=np.pi*50, label='볼')
+
+        if show_pitch_number is True:
+            for i in strikes.index:
+                ax.text(strikes.loc[i].px, strikes.loc[i].pz-0.05, strikes.loc[i].pitch_number,
+                        color='white', fontsize=10, horizontalalignment='center')
+            for i in balls.index:
+                ax.text(balls.loc[i].px, balls.loc[i].pz-0.05, balls.loc[i].pitch_number,
+                        color='white', fontsize=10, horizontalalignment='center')
+        '''
     else:
         if type(calls) is list:
             for call in calls:
                 filtered = df.loc[df.pitch_result == call]
                 color = Colors[call]
-
-                if pitch_number <= 0:
-                    plt.scatter(filtered.px, filtered.pz, color=color, alpha=.5, s=np.pi*50, label=call)
-                else:
-                    target = filtered.loc[filtered.pitch_number == pitch_number]
-                    nontarget = filtered.loc[filtered.pitch_number != pitch_number]
-
-                    plt.scatter(target.px, target.pz, color='ef2926', alpha=.5, s=np.pi*50, label='{}구'.format(pitch_number))
-                    plt.scatter(nontarget.px, nontarget.pz, color='3245ef', alpha=.5, s=np.pi*50)
-
-                    for i in target.index:
-                        if (target.loc[i, 'px'] > lb) & (target.loc[i, 'pz'] < rb) &\
-                            (target.loc[i, 'pz'] > bb) & (target.loc[i, 'pz'] < tb):
-                            ax.text(target.loc[i, 'px'], target.loc[i, 'pz']-0.05,
-                                    str(pitch_number), color='white', fontsize=10, horizontalalignment='center')
-                            
+                
+                plt.scatter(filtered.px, filtered.pz, color=color, alpha=.5, s=np.pi*50, label=call)
+                
+                if show_pitch_number is True:
+                    for i in filtered.index:
+                        ax.text(filtered.loc[i].px, filtered.loc[i].pz-0.05, filtered.loc[i].pitch_number,
+                                color='white', fontsize=10, horizontalalignment='center')
         elif type(calls) is str:
             filtered = df.loc[df.pitch_result == calls]
             color = Colors[calls]
-
-            if pitch_number <= 0:
-                plt.scatter(filtered.px, filtered.pz, color=color, alpha=.5, s=np.pi*50, label=calls)
-            else:
-                target = filtered.loc[filtered.pitch_number == pitch_number]
-                nontarget = filtered.loc[filtered.pitch_number != pitch_number]
-
-                plt.scatter(target.px, target.pz, color='ef2926', alpha=.5, s=np.pi*50, label='{}구'.format(pitch_number))
-                plt.scatter(nontarget.px, nontarget.pz, color='3245ef', alpha=.5, s=np.pi*50)
-
-                for i in target_s.index:
-                    if (target.loc[i, 'px'] > lb) & (target.loc[i, 'pz'] < rb) &\
-                        (target.loc[i, 'pz'] > bb) & (target.loc[i, 'pz'] < tb):
-                        ax.text(target.loc[i, 'px'], target.loc[i, 'pz']-0.05,
-                                str(pitch_number), color='white', fontsize=10, horizontalalignment='center')
+            
+            plt.scatter(filtered.px, filtered.pz, color=color, alpha=.5, s=np.pi*50, label=calls)            
+            
+            if show_pitch_number is True:
+                for i in filtered.index:
+                    ax.text(filtered.loc[i].px, filtered.loc[i].pz-0.05, filtered.loc[i].pitch_number,
+                            color='white', fontsize=10, horizontalalignment='center')
         else:
             print()
             print( 'ERROR: call option must be either string or list' )
@@ -172,10 +149,10 @@ def plot_calls(df, title=None, pitch_number=0, print_std=False, calls=None, lege
     ax.set_xticklabels([])
     plt.axis('off')
     ax.autoscale_view('tight')
-    
+
     if legends is True:
         plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
-
+        
     plt.show()
     #return fig, ax
     
