@@ -35,7 +35,7 @@
 
 처음 Git Bash를 실행하면 까만 화면이 뜬다. 여기서 당황하지 말고, 지금 이 문서가 있는 github 홈페이지로 돌아가보자.
 
-![github_main_page](https://i.imgur.com/SUkCNhX.png "github_main_page)
+![github_main_page](https://i.imgur.com/SUkCNhX.png "github_main_page")
 
 오른쪽 위를 보면  __Clone or download__ 라고 써있는 초록색 버튼이 있다.
 
