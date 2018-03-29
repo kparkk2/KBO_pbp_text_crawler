@@ -52,7 +52,7 @@ def clean_data(df):
     return df
         
 
-def plot_calls(df, title=None, print_std=False, calls=None, legends=True, show_pitch_number=False):
+def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, print_std=False):
     set_fonts()
 
     # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
@@ -64,33 +64,28 @@ def plot_calls(df, title=None, print_std=False, calls=None, legends=True, show_p
     ll = -17/24  # leftLine
     rl = +17/24  # rightLine
     tl = +3.325  # topLine
-    bl = +1.579  # bototmLine
+    bl = +1.579  # bottomLine
     
     oll = -17/24-1/8  # outerLeftLine
     orl = +17/24+1/8  # outerRightLine
     otl = +3.325+1/8  # outerTopLine
     obl = +1.579-1/8  # outerBottomLine
     
-    # 타자 상하 존 경계에 맞춰 표준화하는 경우 -> 추후 구현
+    # 타자 상하 존 경계에 맞춰 표준화하는 경우
     if print_std is True:
-        lb = -1.5  # leftBorder
-        rb = +1.5  # rightBorder
-        tb = +4.0  # topBorder
-        bb = +1.0  # bottomBorder
-        '''
-        tb = +21/12
-        bb = -21/12
-        tl = +1.0
-        bl = -1.0
-        otl = +1.0+1/8
-        obl = -1.0-1/8
-        '''
+        tb = +41/24     # topBorder
+        bb = -41/24     # bottomBorder
+        tl = +1.0       # topLine
+        bl = -1.0       # bottomLine
+        otl = +1.0+1/8  # outerTopLine
+        obl = -1.0-1/8  # outerBottomLine
+        df = df.assign(pz_std = (df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2)
         
     # 스트라이크, 볼만 표기 -> 서브플롯 1개
     fig, ax = plt.subplots(figsize=(4,4), dpi=80, facecolor='#898f99')
     ax.tick_params(axis='x', colors='white')
     ax.tick_params(axis='y', colors='white')
-
+    
     if title is not None:
         st = fig.suptitle(title, fontsize=20)
         st.set_color('white')
@@ -101,37 +96,66 @@ def plot_calls(df, title=None, print_std=False, calls=None, legends=True, show_p
         calls_ = df.pitch_result.drop_duplicates()
         
         for c in calls_:
-            plt.scatter(df.loc[df.pitch_result == c].px, df.loc[df.pitch_result == c].pz,
-                        color=Colors[c], alpha=.5, s=np.pi*50,
-                        label=c)
-        
-        if show_pitch_number is True:
-            for i in df.index:
-                if (df.loc[i].px < rb) & (df.loc[i].px > lb) & (df.loc[i].pz < tb) & (df.loc[i].pz > bb):
-                    ax.text(df.loc[i].px, df.loc[i].pz-0.05, df.loc[i].pitch_number,
-                            color='white', fontsize=10, horizontalalignment='center')
+            f = df.loc[df.pitch_result == c]
+            
+            if print_std is True:
+                ax.scatter(f.px, f.pz_std, color=Colors[c], alpha=.5, s=np.pi*50, label=c)
+                
+                if show_pitch_number is True:
+                    for i in f.index:
+                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
+                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
+                                    color='white', fontsize=10, horizontalalignment='center')
+            else:
+                ax.scatter(f.px, f.pz, color=Colors[c], alpha=.5, s=np.pi*50, label=c)
+                
+                if show_pitch_number is True:
+                    for i in f.index:
+                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                                    color='white', fontsize=10, horizontalalignment='center')
     else:
         if type(calls) is list:
             for call in calls:
-                filtered = df.loc[df.pitch_result == call]
+                f = df.loc[df.pitch_result == call]
                 color = Colors[call]
                 
-                plt.scatter(filtered.px, filtered.pz, color=color, alpha=.5, s=np.pi*50, label=call)
-                
-                if show_pitch_number is True:
-                    for i in filtered.index:
-                        ax.text(filtered.loc[i].px, filtered.loc[i].pz-0.05, filtered.loc[i].pitch_number,
-                                color='white', fontsize=10, horizontalalignment='center')
+                if print_std is True:
+                    ax.scatter(f.px, f.pz_std, color=Colors[c], alpha=.5, s=np.pi*50, label=c)
+                    
+                    if show_pitch_number is True:
+                        for i in f.index:
+                            if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
+                                ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
+                                        color='white', fontsize=10, horizontalalignment='center')
+                else:
+                    ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*50, label=call)
+
+                    if show_pitch_number is True:
+                        for i in f.index:
+                            if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                                ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                                        color='white', fontsize=10, horizontalalignment='center')
         elif type(calls) is str:
-            filtered = df.loc[df.pitch_result == calls]
+            f = df.loc[df.pitch_result == calls]
             color = Colors[calls]
             
-            plt.scatter(filtered.px, filtered.pz, color=color, alpha=.5, s=np.pi*50, label=calls)            
-            
-            if show_pitch_number is True:
-                for i in filtered.index:
-                    ax.text(filtered.loc[i].px, filtered.loc[i].pz-0.05, filtered.loc[i].pitch_number,
-                            color='white', fontsize=10, horizontalalignment='center')
+            if print_std is True:
+                ax.scatter(f.px, f.pz_std, color=Colors[c], alpha=.5, s=np.pi*50, label=c)
+                
+                if show_pitch_number is True:
+                    for i in f.index:
+                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
+                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
+                                    color='white', fontsize=10, horizontalalignment='center')
+            else:
+                ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*50, label=call)
+
+                if show_pitch_number is True:
+                    for i in f.index:
+                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                                    color='white', fontsize=10, horizontalalignment='center')
         else:
             print()
             print( 'ERROR: call option must be either string or list' )
@@ -166,7 +190,145 @@ def plot_calls(df, title=None, print_std=False, calls=None, legends=True, show_p
         
     plt.show()
     return fig, ax
+
+
+def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, print_std=False):
+    set_fonts()
+
+    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
+    lb = -1.5  # leftBorder
+    rb = +1.5  # rightBorder
+    tb = +4.0  # topBorder
+    bb = +1.0  # bottomBorder
     
+    ll = -17/24  # leftLine
+    rl = +17/24  # rightLine
+    tl = +3.325  # topLine
+    bl = +1.579  # bototmLine
+    
+    oll = -17/24-1/8  # outerLeftLine
+    orl = +17/24+1/8  # outerRightLine
+    otl = +3.325+1/8  # outerTopLine
+    obl = +1.579-1/8  # outerBottomLine
+    
+    # 타자 상하 존 경계에 맞춰 표준화하는 경우
+    if print_std is True:
+        tb = +41/24     # topBorder
+        bb = -41/24     # bottomBorder
+        tl = +1.0       # topLine
+        bl = -1.0       # bottomLine
+        otl = +1.0+1/8  # outerTopLine
+        obl = -1.0-1/8  # outerBottomLine
+        df = df.assign(pz_std = (df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2)
+        
+    # 스트라이크, 볼만 표기 -> 서브플롯 1개
+    fig, ax = plt.subplots(figsize=(4,4), dpi=80, facecolor='#898f99')
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+
+    if title is not None:
+        st = fig.suptitle(title, fontsize=20)
+        st.set_color('white')
+        st.set_weight('bold')
+        st.set_horizontalalignment('center')
+        
+    if pitch_types is None:
+        pitch_types_ = df.pitch_type.drop_duplicates()
+        
+        for p in pitch_types_:
+            f = df.loc[df.pitch_type == p]
+            
+            if print_std is True:
+                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*50, label=p, cmap='set1')
+                
+                if show_pitch_number is True:
+                    for i in f.index:
+                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
+                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
+                                    color='white', fontsize=10, horizontalalignment='center')
+            else:
+                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*50, label=p, cmap='set1')
+                
+                if show_pitch_number is True:
+                    for i in f.index:
+                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                                    color='white', fontsize=10, horizontalalignment='center')
+    else:
+        if type(pitch_types) is list:
+            for p in pitch_types:
+                f = df.loc[df.pitch_type == p]
+                
+                if print_std is True:
+                    ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*50, label=p, cmap='set1')
+                    
+                    if show_pitch_number is True:
+                        for i in f.index:
+                            if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
+                                ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
+                                        color='white', fontsize=10, horizontalalignment='center')
+                else:
+                    ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*50, label=p, cmap='set1')
+
+                    if show_pitch_number is True:
+                        for i in f.index:
+                            if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                                ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                                        color='white', fontsize=10, horizontalalignment='center')
+        elif type(pitch_types) is str:
+            f = df.loc[df.pitch_type == pitch_types]
+            
+            if print_std is True:
+                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*50, label=pitch_types, cmap='set1')
+                
+                if show_pitch_number is True:
+                    for i in f.index:
+                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
+                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
+                                    color='white', fontsize=10, horizontalalignment='center')
+            else:
+                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*50, label=pitch_types, cmap='set1')
+
+                if show_pitch_number is True:
+                    for i in f.index:
+                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                                    color='white', fontsize=10, horizontalalignment='center')
+        else:
+            print()
+            print( 'ERROR: call option must be either string or list' )
+            exit(1)
+
+    ax.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
+
+    ax.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
+
+    ax.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
+    ax.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
+
+    ax.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
+    ax.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
+
+    ax.axis( [lb, rb, bb, tb] )
+
+    plt.rcParams['axes.unicode_minus'] = False
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+    plt.axis('off')
+    ax.autoscale_view('tight')
+
+    if legends is True:
+        ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
+        
+    plt.show()
+    return fig, ax
+
     
 # 경기 전체 call
 def plot_match_calls(df, title=None):
