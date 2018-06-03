@@ -32,6 +32,13 @@ def set_fonts():
         rc('font', family='NanumSquare')
         
 
+def clean_debug(df):
+    return df[['pitcher', 'batter', 'inning', 'inning_topbot', 'outs', 'balls', 'strikes',
+               'pitch_result', 'pa_result', 'pitch_type', 'pa_number', 'pitch_number',
+               'score_away', 'score_home',
+               'on_1b', 'on_2b', 'on_3b']]
+    
+        
 def read_light(fname):
     import warnings
     warnings.filterwarnings("ignore")
@@ -720,7 +727,7 @@ def plot_contour_balls(df, title=None, print_std=False):
         st = fig.suptitle(title, fontsize=16)
         st.set_weight('bold')
         
-    plt.show()
+    #plt.show()
     
     return fig, ax
 
@@ -987,11 +994,22 @@ def pitcher_info(df, pitcher=None):
     return groupped
 
 
-def pitcher_plate_discipline(df, pitcher=None):
+def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
     if pitcher is not None:
-        sub_df = df.loc[df.pitcher == pitcher]
+        if isinstance(pitcher, str):
+            sub_df = df.loc[df.pitcher == pitcher]
+        elif isinstance(pitcher, list):
+            sub_df = df.loc[df.pitcher.isin(pitcher)]
+        elif isinstance(pitcher, pd.Series):
+            if batter.dtypes == np.object:
+                sub_df = df.loc[df.pitcher.isin(pitcher)]
+            else:
+                sub_df = df.loc[df.pitcher.isin(pitcher.index)]
+        else:
+            return False
     else:
         sub_df = df
+
     
     sub_df = sub_df.assign(swing=np.where(sub_df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울']), 1, 0))
     sub_df = sub_df.assign(miss=np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙']), 1, 0))
@@ -1011,16 +1029,55 @@ def pitcher_plate_discipline(df, pitcher=None):
     sub_df = sub_df.assign(oz_miss=np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙'])
                                             & ozmask, 1, 0))
 
-    tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
-                         'swing': sub_df.groupby('pitch_type').sum().swing,
-                         'miss': sub_df.groupby('pitch_type').sum().miss,
-                         'iz_raw_num': sub_df.loc[izmask].groupby('pitch_type').count().speed,
-                         'iz_swing': sub_df.groupby('pitch_type').sum().iz_swing,
-                         'iz_miss': sub_df.groupby('pitch_type').sum().iz_miss,
-                         'oz_raw_num': sub_df.loc[ozmask].groupby('pitch_type').count().speed,
-                         'oz_swing': sub_df.groupby('pitch_type').sum().oz_swing,
-                         'oz_miss': sub_df.groupby('pitch_type').sum().oz_miss
-                        })
+    if isinstance(pitcher, str):
+        if by_pitch is True:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
+                                 'swing': sub_df.groupby('pitch_type').sum().swing,
+                                 'miss': sub_df.groupby('pitch_type').sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby('pitch_type').count().speed,
+                                 'iz_swing': sub_df.groupby('pitch_type').sum().iz_swing,
+                                 'iz_miss': sub_df.groupby('pitch_type').sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby('pitch_type').count().speed,
+                                 'oz_swing': sub_df.groupby('pitch_type').sum().oz_swing,
+                                 'oz_miss': sub_df.groupby('pitch_type').sum().oz_miss
+                                })
+        else:
+            d = {'raw_num': sub_df.count().speed,
+                 'swing': sub_df.sum().swing,
+                 'miss': sub_df.sum().miss,
+                 'iz_raw_num': sub_df.loc[izmask].count().speed,
+                 'iz_swing': sub_df.sum().iz_swing,
+                 'iz_miss': sub_df.sum().iz_miss,
+                 'oz_raw_num': sub_df.loc[ozmask].count().speed,
+                 'oz_swing': sub_df.sum().oz_swing,
+                 'oz_miss': sub_df.sum().oz_miss
+                }
+
+            tab = pd.DataFrame(data=d, index=[pitcher])
+    else:
+        if by_pitch is True:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby(['pitcher', 'pitch_type']).count().speed,
+                                 'swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().swing,
+                                 'miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby(['pitcher', 'pitch_type']).count().speed,
+                                 'iz_swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().iz_swing,
+                                 'iz_miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['pitcher', 'pitch_type']).count().speed,
+                                 'oz_swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().oz_swing,
+                                 'oz_miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().oz_miss
+                                })
+        else:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby(['pitcher']).count().speed,
+                                 'swing': sub_df.groupby(['pitcher']).sum().swing,
+                                 'miss': sub_df.groupby(['pitcher']).sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby(['pitcher']).count().speed,
+                                 'iz_swing': sub_df.groupby(['pitcher']).sum().iz_swing,
+                                 'iz_miss': sub_df.groupby(['pitcher']).sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['pitcher']).count().speed,
+                                 'oz_swing': sub_df.groupby(['pitcher']).sum().oz_swing,
+                                 'oz_miss': sub_df.groupby(['pitcher']).sum().oz_miss
+                                })
+        
     tab = tab.assign(swing_p = tab.swing / tab.raw_num*100,
                      swstr_p = tab.miss / tab.raw_num*100,
                      iz_swing_p = tab.iz_swing / tab.iz_raw_num*100,
