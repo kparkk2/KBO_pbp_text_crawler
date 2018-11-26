@@ -29,14 +29,19 @@ Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
 Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c', '파울':'#edf72c', '타격':'#8348d1', '번트파울':'#edf72c', '번트헛스윙':'#1a1b1c' }
 
-def set_fonts():
+def set_fonts(name=None):
     if os.name == 'posix':
         fm.get_fontconfig_fonts()
         font_location = '/Library/Fonts/NanumSquareOTFRegular.otf'
         font_name = fm.FontProperties(fname=font_location).get_name()
         rc('font', family=font_name)
     else:
-        rc('font', family='NanumSquare')
+        if name is not None:
+            rc('font', family=name)
+            if fm.FontProperties().get_name() == 'DejaVu Sans':
+                rc('font', family='NanumSquare')
+        else:
+            rc('font', family='NanumSquare')
         
 
 def clean_debug(df):
@@ -822,7 +827,7 @@ def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True):
     return P, S
 
 
-def plot_heatmap(df, title=None, print_std=False, gaussian=False):
+def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi=dpi):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -842,14 +847,27 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False):
         bb = +1.0  # bottomBorder
         tb = +4.0  # topBorder
         y = np.arange(+1.0, +4.0, 1/12)
-    X, Y = np.meshgrid(x, y)
 
-    fig, ax = plt.subplots(figsize=(6,5), dpi=80, facecolor='white')
+    if dpi is None:
+        fig, ax = plt.subplots(figsize=(5,4), dpi=144, facecolor='white')
+    else:
+        fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
+    ax.set_facecolor('#dddddd')
+    ax.grid(alpha=1.0, color='white')
+    
+    X, Y = np.meshgrid(x, y)    
+    levels = np.asarray([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+    
+    if cmap is None:
+        c1 = ax.contour(X, Y, P, levels=levels, linewidths=2)
+        ax.contourf(X, Y, P, levels=levels)
+    else:
+        c1 = ax.contour(X, Y, P, levels=levels, cmap=cmap, linewidths=2)
+        ax.contourf(X, Y, P, levels=levels, cmap=cmap)
 
     plt.rcParams['axes.unicode_minus'] = False
-    plt.pcolormesh(X, Y, P)
-    plt.colorbar(format=ticker.FuncFormatter(fmt))
-    
+    plt.colorbar(c1, ax=ax, format=ticker.FuncFormatter(fmt))
+
     ll = -17/24
     rl = +17/24
     oll = -20/24
@@ -858,30 +876,30 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False):
     tl = 3.325
     obl = 1.579-3/24
     otl = 3.325+3/24
-    
+
     if print_std is True:
         bl = -1.0
         tl = +1.0
         obl = -1.0-3/24
         otl = +1.0+3/24
-    
-    plt.plot( [ll, ll], [bl, tl], color='#ffffff', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#ffffff', linestyle= '-', lw=1 )
 
-    plt.plot( [ll, rl], [bl, bl], color='#ffffff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#ffffff', linestyle= '-', lw=1 )
+    plt.plot( [ll, ll], [bl, tl], color='black', linestyle= 'dashed', lw=1 )
+    plt.plot( [rl, rl], [bl, tl], color='black', linestyle= 'dashed', lw=1 )
 
-    plt.plot( [oll, oll], [obl, otl], color='#ffffff', linestyle= '-', lw=1 )
-    plt.plot( [orl, orl], [obl, otl], color='#ffffff', linestyle= '-', lw=1 )
+    plt.plot( [ll, rl], [bl, bl], color='black', linestyle= 'dashed', lw=1 )
+    plt.plot( [ll, rl], [tl, tl], color='black', linestyle= 'dashed', lw=1 )
 
-    plt.plot( [oll, orl], [obl, obl], color='#ffffff', linestyle= '-', lw=1 )
-    plt.plot( [oll, orl], [otl, otl], color='#ffffff', linestyle= '-', lw=1 )
+    plt.plot( [oll, oll], [obl, otl], color='black', linestyle= 'dashed', lw=1 )
+    plt.plot( [orl, orl], [obl, otl], color='black', linestyle= 'dashed', lw=1 )
+
+    plt.plot( [oll, orl], [obl, obl], color='black', linestyle= 'dashed', lw=1 )
+    plt.plot( [oll, orl], [otl, otl], color='black', linestyle= 'dashed', lw=1 )
 
     if title is not None:
         plt.title(title)
 
-    plt.axis( [lb+1/12, rb-1/12, bb+1/12, tb-1/12])
-    
+    plt.axis( [lb+1/12, rb-1/12, bb+1/12, tb-1/12] )
+
     return fig, ax
 
 
