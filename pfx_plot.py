@@ -755,7 +755,7 @@ def plot_contour_balls(df, title=None, print_std=False):
     return fig, ax
 
     
-def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True):
+def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, is_cm=False):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -766,6 +766,10 @@ def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True):
     else:
         y = np.arange(+1.0, +4.0, 1/12)
         
+    if is_cm is True:
+        x = x * 30.48
+        y = y * 30.48
+    
     P = np.zeros((36,36))
     S = np.zeros((36,36))
     
@@ -827,12 +831,12 @@ def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True):
     return P, S
 
 
-def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi=dpi):
+def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi=None, is_cm=False):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
     
-    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian)
+    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian, is_cm=is_cm)
     
     lb = -1.5  # leftBorder
     rb = +1.5  # rightBorder
@@ -847,6 +851,10 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi
         bb = +1.0  # bottomBorder
         tb = +4.0  # topBorder
         y = np.arange(+1.0, +4.0, 1/12)
+        
+    if is_cm is True:
+        x = x * 30.48
+        y = y * 30.48
 
     if dpi is None:
         fig, ax = plt.subplots(figsize=(5,4), dpi=144, facecolor='white')
@@ -859,14 +867,14 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi
     levels = np.asarray([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
     
     if cmap is None:
-        c1 = ax.contour(X, Y, P, levels=levels, linewidths=2)
-        ax.contourf(X, Y, P, levels=levels)
+        ax.contour(X, Y, P, levels=levels, linewidths=2)
+        c1 = ax.contourf(X, Y, P, levels=levels)
     else:
-        c1 = ax.contour(X, Y, P, levels=levels, cmap=cmap, linewidths=2)
-        ax.contourf(X, Y, P, levels=levels, cmap=cmap)
+        ax.contour(X, Y, P, levels=levels, cmap=cmap, linewidths=2)
+        c1 = ax.contourf(X, Y, P, levels=levels, cmap=cmap)
 
     plt.rcParams['axes.unicode_minus'] = False
-    plt.colorbar(c1, ax=ax, format=ticker.FuncFormatter(fmt))
+    plt.colorbar(c1, format=ticker.FuncFormatter(fmt))
 
     ll = -17/24
     rl = +17/24
@@ -882,6 +890,16 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi
         tl = +1.0
         obl = -1.0-3/24
         otl = +1.0+3/24
+        
+    if is_cm is True:
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
 
     plt.plot( [ll, ll], [bl, tl], color='black', linestyle= 'dashed', lw=1 )
     plt.plot( [rl, rl], [bl, tl], color='black', linestyle= 'dashed', lw=1 )
@@ -898,8 +916,13 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi
     if title is not None:
         plt.title(title)
 
-    plt.axis( [lb+1/12, rb-1/12, bb+1/12, tb-1/12] )
+    if is_cm is False:
+        plt.axis( [lb+1/12, rb-1/12, bb+1/12, tb-1/12] )
+    else:
+        plt.axis( [lb*30.48 + 1/12*30.48, rb*30.48 - 1/12*30.48, bb*30.48 + 1/12*30.48, tb*30.48 - 1/12*30.48] )
 
+    plt.tight_layout()
+    
     return fig, ax
 
 
