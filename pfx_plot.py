@@ -14,6 +14,7 @@ from matplotlib import font_manager as fm, rc
 from IPython.display import HTML
 from IPython.display import display
 import pandas as pd
+import seaborn as sns
 import os
 from enum import Enum
 import numbers
@@ -421,7 +422,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
         
     return fig, ax
 
-    
+
 # 경기 전체 call
 def plot_match_calls(df, title=None):
     set_fonts()
@@ -668,259 +669,30 @@ def fmt(x, pos):
     return r'{}%'.format(int(x*100))
 
 
-def plot_contour_balls(df, title=None, print_std=False):
+def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
     
-    lb = -2.0
-    rb = +2.0
+    lb = -1.5
+    rb = +1.5
     ll = -17/24
     rl = +17/24
     oll = -20/24
     orl = +20/24
+
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16
+    tb = (bl+tl)/2 + (tl-bl)*15/16
     
-    if print_std is False:
-        bb = 0.452
-        tb = 4.452
-        bl = 1.579
-        tl = 3.325
-        obl = 1.579-3/24
-        otl = 3.325+3/24
-    else:
-        lb = -2.291
-        rb = +2.291
-        bb = -2.291
-        tb = +2.291
-        bl = -1.0
-        tl = +1.0
-        obl = -1.0-3/24
-        otl = +1.0+3/24
-        
-    from scipy.stats.kde import gaussian_kde
-    
-    if print_std is False:
-        k = gaussian_kde(np.vstack([df.px.values, df.pz.values]))
-    else:
-        k = gaussian_kde(np.vstack([df.px.values,
-                                    (df.pz.values - (df.sz_top.values+df.sz_bot.values)/2) / (df.sz_top.values-df.sz_bot.values)*2]
-                                  ))
-    
-    length = len(df)
-    
-    xi, yi = np.mgrid[lb:rb:length**0.5*1j,bb:tb:length**0.5*1j]
-    zi = k(np.vstack([xi.flatten(), yi.flatten()]))
-
-    fig, ax = plt.subplots(figsize=(4,3), dpi=160)
-
-    if print_std is False:
-        cs = ax.contourf(xi, yi, zi.reshape(xi.shape), cmap='YlOrRd' )
-    else:
-        from matplotlib.colors import LinearSegmentedColormap
-        cmap = LinearSegmentedColormap.from_list('mycmap', ['#fff6b6', '#fee38b', '#fec561', '#fd9f44', '#fc6c33', '#f03523', '#cf0c1e', '#9f0026'])
-
-        cs = ax.contourf(xi, yi, zi.reshape(xi.shape), cmap=cmap)
-    
-    cbar = plt.colorbar(cs, format=ticker.FuncFormatter(fmt))
-
-    ax.set_xbound(lb, rb)
-    ax.set_ybound(bb, tb)
-    
-    plt.plot( [ll, ll], [bl, tl], color='#2d2d2d', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#2d2d2d', linestyle= '-', lw=1 )
-
-    plt.plot( [ll, rl], [bl, bl], color='#2d2d2d', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#2d2d2d', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#000000', linestyle= '-', lw=0.5 )
-    plt.plot( [orl, orl], [obl, otl], color='#000000', linestyle= '-', lw=0.5 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#000000', linestyle= '-', lw=0.5 )
-    plt.plot( [oll, orl], [otl, otl], color='#000000', linestyle= '-', lw=0.5 )
-
-    plt.axis( [lb, rb, bb, tb] )
-
-    ax.axis('off')
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    ax.autoscale_view('tight')
-    fig.set_facecolor('white')
-
-    if title is not None:
-        st = fig.suptitle(title, fontsize=16)
-        st.set_weight('bold')
-        
-    #plt.show()
-    
-    return fig, ax
-
-    
-def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, is_cm=False):
-    set_fonts()
-    if df.px.dtypes == np.object:
-        df = clean_data(df)
-    
-    x = np.arange(-1.5, +1.5, 1/12)
-    if print_std is True:
-        y = np.arange(-1.5, +1.5, 1/12)
-    else:
-        y = np.arange(+1.0, +4.0, 1/12)
-        
     if is_cm is True:
-        x = x * 30.48
-        y = y * 30.48
-    
-    P = np.zeros((36,36))
-    S = np.zeros((36,36))
-    
-    smask = (df.pitch_result == '스트라이크')
-    bmask = (df.pitch_result == '볼')
-    
-    if ('sz_top' in df.keys()) & ('sz_bot' in df.keys()):
-        sub_df = df[['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot']]
-    else:
-        if print_std is True:
-            return False
-        sub_df = df[['px', 'pz', 'pitch_result']]
-    
-    if print_std is True:
-        sub_df['pz_std'] = (sub_df.pz-(sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2
-    
-    for i in range(len(x)):
-        for j in range(len(y)):
-            s = 0
-            b = 0
-            if i == 0:
-                if j == 0:
-                    if print_std is True:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.pz_std <= y[j])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.pz_std <= y[j])])
-                    else:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.pz <= y[j])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.pz <= y[j])])
-                else:
-                    if print_std is True:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                    else:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-            else:
-                if j == 0:
-                    if print_std is True:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j])])
-                    else:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j])])
-                else:
-                    if print_std is True:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                    else:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-            if s+b > 0:
-                P[i,j] = s/(s+b)
-            else:
-                P[i,j] = 0
-    P = P.T
-    if gaussian is True:
-        P = gaussian_filter(P, sigma=0.85, truncate=1, mode='constant', output=np.float32)
-    S = (P >= threshold)
-    return P, S
-
-
-def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi=None, is_cm=False):
-    set_fonts()
-    if df.px.dtypes == np.object:
-        df = clean_data(df)
-    
-    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian, is_cm=is_cm)
-    
-    lb = -1.5  # leftBorder
-    rb = +1.5  # rightBorder           
-    
-    x = np.arange(lb, rb, 1/12)
-    
-    if print_std is True:
-        bb = -1.5  # bottomBorder
-        tb = +1.5  # topBorder
-        y = np.arange(bb, tb, 1/12)
-    else:
-        bb = +1.0  # bottomBorder
-        tb = +4.0  # topBorder
-        y = np.arange(+1.0, +4.0, 1/12)
-        
-    if is_cm is True:
-        x = x * 30.48
-        y = y * 30.48
-
-    if dpi is None:
-        fig, ax = plt.subplots(figsize=(5,4), dpi=144, facecolor='white')
-    else:
-        fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
-    ax.set_facecolor('#dddddd')
-    
-    if is_cm is False:
-        major_xticks = np.arange(-2, 2, 1/2)
-        minor_xticks = np.arange(-2, 2, 1/8)
-    else:
-        major_xticks = np.arange(-60, 60, 20)
-        minor_xticks = np.arange(-60, 60, 5)
-    
-    if is_cm is False:
-        if print_std is True:
-            major_yticks = np.arange(-2, 2, 1/2)
-            minor_yticks = np.arange(-2, 2, 1/8)
-        else:
-            major_yticks = np.arange(0, 5, 1/2)
-            minor_yticks = np.arange(0, 5, 1/8)
-    else:
-        if print_std is True:
-            major_yticks = np.arange(-50, 50, 20)
-            minor_yticks = np.arange(-50, 50, 5)
-        else:
-            major_yticks = np.arange(30, 120, 20)
-            minor_yticks = np.arange(30, 120, 5)
-            
-    ax.set_xticks(major_xticks)
-    ax.set_xticks(minor_xticks, minor=True)
-    ax.set_yticks(major_yticks)
-    ax.set_yticks(minor_yticks, minor=True)
-    
-    ax.grid(which='major', alpha=1.0, color='white', lw=0.2)
-    ax.grid(which='minor', alpha=1.0, color='white', lw=0.2)
-    
-    X, Y = np.meshgrid(x, y)    
-    levels = np.asarray([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-    
-    if cmap is None:
-        ax.contour(X, Y, P, levels=levels, linewidths=2)
-        c1 = ax.contourf(X, Y, P, levels=levels)
-    else:
-        ax.contour(X, Y, P, levels=levels, cmap=cmap, linewidths=2)
-        c1 = ax.contourf(X, Y, P, levels=levels, cmap=cmap)
-
-    plt.rcParams['axes.unicode_minus'] = False
-    plt.colorbar(c1, format=ticker.FuncFormatter(fmt))
-
-    ll = -17/24
-    rl = +17/24
-    oll = -20/24
-    orl = +20/24
-    bl = 1.579
-    tl = 3.325
-    obl = 1.579-3/24
-    otl = 3.325+3/24
-
-    if print_std is True:
-        bl = -1.0
-        tl = +1.0
-        obl = -1.0-3/24
-        otl = +1.0+3/24
-        
-    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
         ll = ll * 30.48
         rl = rl * 30.48
         oll = oll * 30.48
@@ -929,102 +701,272 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi
         tl = tl * 30.48
         obl = obl * 30.48
         otl = otl * 30.48
+    
+    fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
+    
+    if is_cm is False:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/8
+    else:
+        major_xtick_step = major_ytick_step = 20
+        minor_xtick_step = minor_ytick_step = 5
+    
+    major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
+    minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
+    
+    major_yticks = np.arange(bb, tb+major_ytick_step, major_ytick_step)
+    minor_yticks = np.arange(bb, tb+minor_ytick_step, minor_ytick_step)
+            
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_yticks(major_yticks)
+    ax.set_yticks(minor_yticks, minor=True)
+    
+    plt.tight_layout()
+    
+    if cmap is None:
+        cmap='Reds'
+    
+    sns.kdeplot(df.px, df.pz, shade=True, clip=((lb, rb), (bb, tb)), legend=False,
+                cbar=True, cmap=cmap, cbar_kws={'format': ticker.FuncFormatter(fmt)},
+                ax=ax, zorder=0)
 
-    plt.plot( [ll, ll], [bl, tl], color='black', linestyle= 'dashed', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='black', linestyle= 'dashed', lw=1 )
+    sns.kdeplot(df.px, df.pz, clip=((lb, rb), (bb, tb)), legend=False,
+                cmap=cmap, linewidths=2.5,
+                ax=ax, zorder=1)
+    
+    ax.plot( [ll, ll], [bl, tl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='black', linestyle='dashed', lw=1 )
 
-    plt.plot( [ll, rl], [bl, bl], color='black', linestyle= 'dashed', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='black', linestyle= 'dashed', lw=1 )
+    ax.plot( [ll, rl], [bl, bl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='black', linestyle='dashed', lw=1 )
 
-    plt.plot( [oll, oll], [obl, otl], color='black', linestyle= 'dashed', lw=1 )
-    plt.plot( [orl, orl], [obl, otl], color='black', linestyle= 'dashed', lw=1 )
+    ax.plot( [oll, oll], [obl, otl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color='black', linestyle='dashed', lw=1 )
 
-    plt.plot( [oll, orl], [obl, obl], color='black', linestyle= 'dashed', lw=1 )
-    plt.plot( [oll, orl], [otl, otl], color='black', linestyle= 'dashed', lw=1 )
+    ax.plot( [oll, orl], [obl, obl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color='black', linestyle='dashed', lw=1 )
+
+    ax.grid(which='minor', alpha=1.0, color='white', linewidth=0.2, zorder=10)
+    ax.grid(which='major', alpha=1.0, color='white', linewidth=0.2, zorder=10)
+    
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xticks([], minor=True)
+    ax.set_yticks([], minor=True)
 
     if title is not None:
         plt.title(title)
-
-    if is_cm is False:
-        plt.axis( [lb+1/12, rb-1/12, bb+1/12, tb-1/12] )
-    else:
-        plt.axis( [lb*30.48 + 1/12*30.48, rb*30.48 - 1/12*30.48, bb*30.48 + 1/12*30.48, tb*30.48 - 1/12*30.48] )
-
-    plt.tight_layout()
     
     return fig, ax
 
 
-def plot_szone(df, threshold=0.5, title=None, show_area=True, print_std=False, gaussian=False):
+def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
     
-    P, S = get_heatmap(df, threshold=threshold, print_std=print_std, gaussian=gaussian)
-    
-    fig, ax = plt.subplots(figsize=(5,5), dpi=80, facecolor='white')
-        
-    lb = -1.5  # leftBorder
-    rb = +1.5  # rightBorder
-    
-    x = np.arange(lb, rb, 1/12)
-    
-    if print_std is True:
-        bb = -1.5  # bottomBorder
-        tb = +1.5  # topBorder
-        y = np.arange(bb, tb, 1/12)
-    else:
-        bb = +1.0  # bottomBorder
-        tb = +4.0  # topBorder
-        y = np.arange(+1.0, +4.0, 1/12)
-    X, Y = np.meshgrid(x, y)
-    
-    plt.rcParams['axes.unicode_minus'] = False
-    cmap = matplotlib.colors.ListedColormap(['white', '#ccffcc'])
-    plt.pcolor(X, Y, S, cmap=cmap)
-    ax.set_title('threshold: {}%'.format(round(threshold*100,1)))
-    for i in range(len(x)):
-        plt.axvline(x=float(x[i]), color='grey', linestyle='--', lw=0.2)
-
-    for j in range(len(y)):
-        plt.axhline(y=float(y[j]), color='grey', linestyle='--', lw=0.2)
-        
+    lb = -1.5
+    rb = +1.5
     ll = -17/24
     rl = +17/24
     oll = -20/24
     orl = +20/24
-    if print_std is True:
-        bl = -1.0
-        tl = +1.0
-        obl = -1.0-3/24
-        otl = +1.0+3/24
-    else:
-        bl = 1.579
-        tl = 3.325
-        obl = 1.579-3/24
-        otl = 3.325+3/24
-        
-    plt.plot( [rl, rl], [bl, tl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [ll, ll], [bl, tl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [ll, rl], [bl, bl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [ll, rl], [tl, tl], color='dimgrey', linestyle= '-', lw=0.3 )
-    
-    plt.plot( [oll, oll], [obl, otl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [orl, orl], [obl, otl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [oll, orl], [obl, obl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [oll, orl], [otl, otl], color='dimgrey', linestyle= '-', lw=0.3 )
 
-    plt.axis( [lb, rb, bb, tb])    
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16
+    tb = (bl+tl)/2 + (tl-bl)*15/16
+    
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+    
+    strikes = df.loc[df.pitch_result == '스트라이크']
+    balls = df.loc[df.pitch_result == '볼']
+
+    bins = 50
+
+    c1, x, y, i = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, i = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    rg = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant', output=np.float32)
+    
+    x, y = np.mgrid[lb:rb:bins*1j, bb:tb:bins*1j]
+    
+    fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
+    
+    if cmap is None:
+        cmap='Reds'
+    cs = ax.contourf(x, y, rg, levels=np.asarray([.5, .6, .7, .8, .9, 1.]), cmap=cmap)
+    ax.contour(x, y, rg, levels=np.asarray([.5, .6, .7, .8, .9, 1.]), cmap=cmap, linewidths=2)
+    ax.set_facecolor('#cccccc')
+    plt.colorbar(cs, format=ticker.FuncFormatter(fmt))
+    
+    if is_cm is False:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/8
+    else:
+        major_xtick_step = major_ytick_step = 20
+        minor_xtick_step = minor_ytick_step = 5
+    
+    major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
+    minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
+    
+    major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
+    minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
+
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_yticks(major_yticks)
+    ax.set_yticks(minor_yticks, minor=True)
+    
+    ax.plot( [ll, ll], [bl, tl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [ll, rl], [bl, bl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [oll, oll], [obl, otl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [oll, orl], [obl, obl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color='black', linestyle='dashed', lw=1 )
+
+    ax.grid(which='minor', alpha=1.0, color='white', linewidth=0.1)
+    ax.grid(which='major', alpha=1.0, color='white', linewidth=0.3)
+
+    plt.tight_layout()
     
     if title is not None:
-        ax.text( 0, tl+0.25, title, color='black', fontsize=14, horizontalalignment='center')
-        
-    area = np.sum(S)
+        plt.title(title)
+    
+    return fig, ax
+
+
+def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False):
+    set_fonts()
+    if df.px.dtypes == np.object:
+        df = clean_data(df)
+    
+    lb = -1.5
+    rb = +1.5
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
+
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = 1.0
+    tb = 4.0
+    
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+    
+    strikes = df.loc[df.pitch_result == '스트라이크']
+    balls = df.loc[df.pitch_result == '볼']
+
+    bins = 36
+
+    c1, x, y, i = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, i = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    rg = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant', output=np.float32)
+    
+    x, y = np.meshgrid(np.arange(lb, rb, (rb-lb)/bins), np.arange(bb, tb, (tb-bb)/bins))
+
+    x = x.T
+    y = y.T
+    
+    fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='white')
+    
+    cmap = matplotlib.colors.ListedColormap(['white', '#ccffcc'])
+    plt.pcolor(x, y, rg, cmap=cmap)
+    
+    if is_cm is False:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/12
+    else:
+        major_xtick_step = major_ytick_step = 20
+        minor_xtick_step = minor_ytick_step = 20/6
+    
+    major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
+    minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
+    
+    major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
+    minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
+
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_yticks(major_yticks)
+    ax.set_yticks(minor_yticks, minor=True)
+    
+    ax.plot( [ll, ll], [bl, tl], color='black', linestyle='solid', lw=0.5 )
+    ax.plot( [rl, rl], [bl, tl], color='black', linestyle='solid', lw=0.5 )
+
+    ax.plot( [ll, rl], [bl, bl], color='black', linestyle='solid', lw=0.5 )
+    ax.plot( [ll, rl], [tl, tl], color='black', linestyle='solid', lw=0.5 )
+
+    ax.plot( [oll, oll], [obl, otl], color='black', linestyle='solid', lw=0.5 )
+    ax.plot( [orl, orl], [obl, otl], color='black', linestyle='solid', lw=0.5 )
+
+    ax.plot( [oll, orl], [obl, obl], color='black', linestyle='solid', lw=0.5 )
+    ax.plot( [oll, orl], [otl, otl], color='black', linestyle='solid', lw=0.5 )
+
+    ax.grid(which='minor', alpha=1.0, color='grey', linewidth=0.2)
+    ax.grid(which='major', alpha=1.0, color='grey', linewidth=0.2)
+
+    bb = (bl+tl)/2 - (tl-bl)*15/16
+    tb = (bl+tl)/2 + (tl-bl)*15/16
+    
+    ax.set_ybound(bb, tb)
+    
+    plt.tight_layout()
+    
+    if title is not None:
+        plt.title(title, fontsize=14, horizontalalignment='center')
+    
+    area = np.sum(rg >= 0.5)
     print('S-Zone size: {} sq.inch'.format(area))
     
     if show_area is True:
-        ax.text( 0, (tl+bl)/2, '{} sq. inch'.format(str(area)), color='black', fontsize=16, horizontalalignment='center' )
-
+        ax.text( 0, (tb+bb)/2, '{} sq. inch'.format(str(area)), color='black',
+                 fontsize=16, horizontalalignment='center' )
+    
     return fig, ax
 
 
