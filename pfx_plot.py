@@ -706,7 +706,7 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None):
     
     if is_cm is False:
         major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/8
+        minor_xtick_step = minor_ytick_step = 1/10
     else:
         major_xtick_step = major_ytick_step = 20
         minor_xtick_step = minor_ytick_step = 5
@@ -723,6 +723,7 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None):
     ax.set_yticks(minor_yticks, minor=True)
     
     plt.tight_layout()
+    plt.rcParams['axes.unicode_minus'] = False
     
     if cmap is None:
         cmap='Reds'
@@ -815,13 +816,13 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None):
     if cmap is None:
         cmap='Reds'
     cs = ax.contourf(x, y, rg, levels=np.asarray([.5, .6, .7, .8, .9, 1.]), cmap=cmap)
-    ax.contour(x, y, rg, levels=np.asarray([.5, .6, .7, .8, .9, 1.]), cmap=cmap, linewidths=2)
+    ax.contour(x, y, rg, levels=np.asarray([.5, .6, .7, .8, .9, 1.]), cmap=cmap, linewidths=2, zorder=1)
     ax.set_facecolor('#cccccc')
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt))
     
     if is_cm is False:
         major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/8
+        minor_xtick_step = minor_ytick_step = 1/10
     else:
         major_xtick_step = major_ytick_step = 20
         minor_xtick_step = minor_ytick_step = 5
@@ -849,10 +850,11 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None):
     ax.plot( [oll, orl], [obl, obl], color='black', linestyle='dashed', lw=1 )
     ax.plot( [oll, orl], [otl, otl], color='black', linestyle='dashed', lw=1 )
 
-    ax.grid(which='minor', alpha=1.0, color='white', linewidth=0.1)
-    ax.grid(which='major', alpha=1.0, color='white', linewidth=0.3)
+    ax.grid(which='minor', color='white', linewidth=0.1, zorder=10)
+    ax.grid(which='major', color='white', linewidth=0.2, zorder=10)
 
     plt.tight_layout()
+    plt.rcParams['axes.unicode_minus'] = False
     
     if title is not None:
         plt.title(title)
@@ -919,10 +921,10 @@ def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False):
     
     if is_cm is False:
         major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/12
+        minor_xtick_step = minor_ytick_step = 1/10
     else:
         major_xtick_step = major_ytick_step = 20
-        minor_xtick_step = minor_ytick_step = 20/6
+        minor_xtick_step = minor_ytick_step = 5
     
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
@@ -956,6 +958,7 @@ def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False):
     ax.set_ybound(bb, tb)
     
     plt.tight_layout()
+    plt.rcParams['axes.unicode_minus'] = False
     
     if title is not None:
         plt.title(title, fontsize=14, horizontalalignment='center')
