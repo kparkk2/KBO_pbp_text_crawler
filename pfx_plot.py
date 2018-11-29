@@ -839,7 +839,7 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi
     P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian, is_cm=is_cm)
     
     lb = -1.5  # leftBorder
-    rb = +1.5  # rightBorder
+    rb = +1.5  # rightBorder           
     
     x = np.arange(lb, rb, 1/12)
     
@@ -861,7 +861,36 @@ def plot_heatmap(df, title=None, print_std=False, gaussian=False, cmap=None, dpi
     else:
         fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
     ax.set_facecolor('#dddddd')
-    ax.grid(alpha=1.0, color='white')
+    
+    if is_cm is False:
+        major_xticks = np.arange(-2, 2, 1/2)
+        minor_xticks = np.arange(-2, 2, 1/8)
+    else:
+        major_xticks = np.arange(-60, 60, 20)
+        minor_xticks = np.arange(-60, 60, 5)
+    
+    if is_cm is False:
+        if print_std is True:
+            major_yticks = np.arange(-2, 2, 1/2)
+            minor_yticks = np.arange(-2, 2, 1/8)
+        else:
+            major_yticks = np.arange(0, 5, 1/2)
+            minor_yticks = np.arange(0, 5, 1/8)
+    else:
+        if print_std is True:
+            major_yticks = np.arange(-50, 50, 20)
+            minor_yticks = np.arange(-50, 50, 5)
+        else:
+            major_yticks = np.arange(30, 120, 20)
+            minor_yticks = np.arange(30, 120, 5)
+            
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_yticks(major_yticks)
+    ax.set_yticks(minor_yticks, minor=True)
+    
+    ax.grid(which='major', alpha=1.0, color='white', lw=0.2)
+    ax.grid(which='minor', alpha=1.0, color='white', lw=0.2)
     
     X, Y = np.meshgrid(x, y)    
     levels = np.asarray([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
