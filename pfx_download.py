@@ -1,148 +1,439 @@
 # pfx_download.py
-# (1) get all match text relay broadcast URL; all match in YEAR/MONTH.
-# (2) open URL and parse.
+#
+# 'N' gameday crawler
+#
+# Play-by-play 데이터를 parse하기 위해 raw resource를 가져온다.
+# xml 포맷의 데이터에서 원하는 JSON 영역만 추출해온다.
 
-import csv
-import math
-import datetime
-from urllib.request import urlopen
 import os
+from urllib.request import urlopen
 from bs4 import BeautifulSoup
+import json
 import requests
+import numpy as np
+import pandas as pd
+import datetime
+import time
+import regex
 import collections
-import operator
+import ast
+
+# custom library
+import logManager
+from utils import print_progress
+from utils import check_url
+from utils import get_args
 
 regular_start = {
+    '3333': '0101', # playoff
+    '4444': '0101', # playoff
+    '5555': '0101', # playoff
+    '7777': '0101', # playoff
+    '2008': '0329',
+    '2009': '0404',
+    '2010': '0327',
+    '2011': '0402',
     '2012': '0407',
     '2013': '0330',
     '2014': '0329',
     '2015': '0328',
     '2016': '0401',
-    '2017': '0331'
+    '2017': '0331',
+    '2018': '0324'
 }
 
 playoff_start = {
+    '3333': '1231', # playoff
+    '4444': '1231', # playoff
+    '5555': '1231', # playoff
+    '7777': '1231', # playoff
+    '2008': '1008',
+    '2009': '0920',
+    '2010': '1005',
+    '2011': '1008',
     '2012': '1008',
     '2013': '1008',
     '2014': '1019',
     '2015': '1010',
     '2016': '1021',
-    '2017': '1010'
+    '2017': '1010',
+    '2018': '1015'
 }
 
-
-def print_progress(bar_prefix, mon_file_num, done, skipped):
-    if mon_file_num > 30:
-        progress_pct = (float(done + skipped) / float(mon_file_num))
-        bar = '+' * int(progress_pct * 30) + '-' * (30 - int(progress_pct * 30))
-        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                   progress_pct * 100), end="")
-    elif mon_file_num > 0:
-        bar = '+' * (done + skipped) + '-' * (mon_file_num - done - skipped)
-        print('\r{}[{}] {} / {}, {:2.1f} %'.format(bar_prefix, bar, (done + skipped), mon_file_num,
-                                                   float(done + skipped) / float(mon_file_num) * 100),
-              end="")
+teams = ['LG', 'KT', 'NC', 'SK', 'WO', 'SS', 'HH', 'HT', 'LT', 'OB']
 
 
-def pfx_download(mon_start, mon_end, year_start, year_end, lm=None):
-    current_date = datetime.datetime.now().strftime('%Y%m%d')
-
+def get_game_ids(args):
     # set url prefix
-    schedule_url_prefix = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?"
-    pfx_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/pitches.nhn'
+    timetable_url = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
 
-    # make directory
-    if not os.path.isdir("./pbp_data"):
-        os.mkdir("./pbp_data")
+    # parse arguments
+    mon_start = args[0]
+    mon_end = args[1]
+    year_start = args[2]
+    year_end = args[3]
+
+    # get game ids
+    game_ids = {}
 
     for year in range(year_start, year_end + 1):
-        # make year directory
-        if not os.path.isdir("./pbp_data/{0}".format(str(year))):
-            os.mkdir("./pbp_data/{0}".format(str(year)))
+        year_ids = {}
 
         for month in range(mon_start, mon_end + 1):
-            if month < 10:
-                mon = '0{}'.format(str(month))
-            else:
-                mon = str(month)
-            if not os.path.isdir("./pbp_data/{0}/{1}".format(str(year), mon)):
-                os.mkdir("./pbp_data/{0}/{1}".format(str(year), mon))
+            month_ids = []
+            timetable = timetable_url + '{}&year={}'.format(str(month), str(year))
 
-    os.chdir("./pbp_data")
-    # current path : ./pbp_data/
+            table_page = urlopen(timetable).read()
+            soup = BeautifulSoup(table_page, 'lxml')
+            buttons = soup.findAll('span', attrs={'class': 'td_btn'})
+
+            for btn in buttons:
+                address = btn.a['href']
+                game_id = address.split('gameId=')[1]
+                month_ids.append(game_id)
+
+            year_ids[month] = month_ids
+
+        game_ids[year] = year_ids
+
+    return game_ids
+
+
+def download_relay(args, lm=None):
+    # return True or False
+    relay_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/relayText.nhn'
+    record_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/record.nhn'
+
+    game_ids = get_game_ids(args)
+    if (game_ids is None) or (len(game_ids) == 0):
+        print('no game ids')
+        print('args: {}'.format(args))
+        if lm is not None:
+            lm.log('no game ids')
+            lm.log('args: {}'.format(args))
+        return False
+
+    if lm is not None:
+        lm.resetLogHandler()
+        lm.setLogPath(os.getcwd())
+        lm.setLogFileName('relay_download_log.txt')
+        lm.cleanLog()
+        lm.createLogHandler()
+        lm.log('---- Relay Text Download Log ----')
+
+    if not os.path.isdir('pbp_data'):
+        os.mkdir('pbp_data')
+    os.chdir('pbp_data')
+    # path: pbp_data
+
+    print("##################################################")
+    print("######        DOWNLOAD RELAY DATA          #######")
+    print("##################################################")
+
+    for year in game_ids.keys():
+        start1 = time.time()
+        print(" Year {}".format(year))
+        if len(game_ids[year]) == 0:
+            print('month id is empty')
+            print('args: {}'.format(args))
+            if lm is not None:
+                lm.log('month id is empty')
+                lm.log('args : {}'.format(args))
+            return False
+
+        if not os.path.isdir(str(year)):
+            os.mkdir(str(year))
+        os.chdir(str(year))
+        # path: pbp_data/year
+
+        for month in game_ids[year].keys():
+            start2 = time.time()
+            print("  Month {}".format(month))
+            if len(game_ids[year][month]) == 0:
+                print('month id is empty')
+                print('args: {}'.format(args))
+                if lm is not None:
+                    lm.log('month id is empty')
+                    lm.log('args : {}'.format(args))
+                return False
+
+            if not os.path.isdir(str(month)):
+                os.mkdir(str(month))
+            os.chdir(str(month))
+            # path: pbp_data/year/month
+
+            # download
+            done = 0
+            skipped = 0
+            for game_id in game_ids[year][month]:
+                if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > 7777):
+                    skipped += 1
+                    continue
+                if (int(game_id[:4]) == datetime.datetime.now().year) and (int(game_id[4:8]) > int(datetime.datetime.now().date().strftime('%m%d'))):
+                    skipped += 1
+                    continue
+                if int(game_id[4:8]) < int(regular_start[game_id[:4]]):
+                    skipped += 1
+                    continue
+                if int(game_id[4:8]) >= int(playoff_start[game_id[:4]]):
+                    skipped += 1
+                    continue
+                if game_id[8:10] not in teams:
+                    skipped += 1
+                    continue
+
+                if not check_url(relay_url):
+                    skipped += 1
+                    if lm is not None:
+                        lm.log('URL error : {}'.format(relay_url))
+                    continue
+
+                if (int(game_id[:4]) == datetime.datetime.now().year) &\
+                   (int(game_id[4:6]) == datetime.datetime.now().month) &\
+                   (int(game_id[6:8]) == datetime.datetime.now().day):
+                        # do nothing
+                       done = done
+                elif (os.path.isfile(game_id + '_relay.json')) and \
+                        (os.path.getsize(game_id + '_relay.json') > 0):
+                    done += 1
+                    if lm is not None:
+                        lm.log('File Duplicate : {}'.format(game_id))
+                    continue
+
+                params = {
+                    'gameId': game_id,
+                    'half': '1'
+                }
+
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                                  'Chrome/59.0.3071.115 Safari/537.36',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Host': 'm.sports.naver.com',
+                    'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?&gameId='
+                               + game_id
+                               + '&tab=relay'
+                }
+
+                res = requests.get(relay_url, params=params, headers=headers)
+
+                if res is not None:
+                    txt = {}
+                    js = res.json()
+                    if isinstance(js, str):
+                        js = json.loads(js)
+                        #js = ast.literal_eval(js)
+                    last_inning = js['currentInning']
+
+                    if last_inning is None:
+                        skipped += 1
+                        lm.log('Gameday not found : {}'.format(game_id))
+                        continue
+
+                    txt['relayList'] = {}
+                    for i in range(len(js['relayList'])):
+                        txt['relayList'][js['relayList'][i]['no']] = js['relayList'][i]
+                    txt['homeTeamLineUp'] = js['homeTeamLineUp']
+                    txt['awayTeamLineUp'] = js['awayTeamLineUp']
+
+                    res.close()
+
+                    for inn in range(2, last_inning + 1):
+                        params = {
+                            'gameId': game_id,
+                            'half': str(inn)
+                        }
+
+                        res = requests.get(relay_url, params=params, headers=headers)
+                        if res is not None:
+                            js = res.json()
+                            if isinstance(js, str):
+                                js = json.loads(js)
+                                #js = ast.literal_eval(js)
+
+                            # BUGBUG
+                            # 문자중계 텍스트에 비 unicode 문자가 들어간 경우.
+                            # gameid : 20180717LGWO02018
+                            # 문제가 되는 텍스트: \ufffd (REPLACEMENT CHARACTER) - cp949로 저장 불가
+                            # 해결책: cp949로 encoding 불가능한 문자가 있을 때는 blank text로 교체.
+                            for i in range(len(js['relayList'])):
+                                txt['relayList'][js['relayList'][i]['no']] = js['relayList'][i]
+                                texts = txt['relayList'][js['relayList'][i]['no']]['textOptionList']
+                                for i in range(len(texts)):
+                                    try:
+                                        texts[i]['text'].encode('cp949')
+                                    except UnicodeEncodeError:
+                                        texts[i]['text'] = ''
+                        else:
+                            skipped += 1
+                            if lm is not None:
+                                lm.log('Cannot get response : {}'.format(game_id))
+
+                        res.close()
+
+                    # get referee
+                    params = {
+                        'gameId': game_id
+                    }
+
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, '
+                                      'like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Host': 'm.sports.naver.com',
+                        'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?gameId='
+                                   + game_id
+                                   + '&tab=record'
+                    }
+
+                    res = requests.get(record_url, params=params, headers=headers)
+
+                    p = regex.compile('(?<=\"etcRecords\":\[)[\\\.\{\}\"0-9:\s\(\)\,\ba-z가-힣\{\}]+')
+                    result = p.findall(res.text)
+                    if len(result) == 0:
+                        txt['referee'] = ''
+                    else:
+                        txt['referee'] = result[0].split('{')[-1].split('":"')[1].split(' ')[0]
+
+                    p = regex.compile('stadiumName: \'\w+\'')
+                    result = p.findall(res.text)
+                    if len(result) == 0:
+                        txt['stadium'] = ''
+                    else:
+                        txt['stadium'] = result[0].split('\'')[1]
+
+                    res.close()
+
+                    fp = open(game_id + '_relay.json', 'w', newline='\n')
+                    json.dump(txt, fp, ensure_ascii=False, sort_keys=False, indent=4)
+                    fp.close()
+
+                    done += 1
+                else:
+                    skipped += 1
+                    if lm is not None:
+                        lm.log('Cannot get response : {}'.format(game_id))
+
+                print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
+
+            # download done
+            print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
+            print('\n        Downloaded {} files'.format(done))
+            print('        (Skipped {} files)'.format(skipped))
+            end2 = time.time()
+            print('            -- elapsed {:.3f} sec for month {}'.format(end2 - start2, month))
+
+            os.chdir('..')
+            # path: pbp_data/year
+        end1 = time.time()
+        print('   -- elapsed {:.3f} sec for year {}'.format(end1 - start1, year))
+        # months done
+        os.chdir('..')
+        # path: pbp_data/
+    # years done
+    os.chdir('..')
+    # path: root
+    return True
+
+
+def download_pfx(args, lm=None):
+    # return True or False
+    pfx_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/pitches.nhn'
+
+    game_ids = get_game_ids(args)
+    if (game_ids is None) or (len(game_ids) == 0):
+        print('no game ids')
+        print('args: {}'.format(args))
+        if lm is not None:
+            lm.log('no game ids')
+            lm.log('args: {}'.format(args))
+        return False
+
+    if lm is not None:
+        lm.resetLogHandler()
+        lm.setLogPath(os.getcwd())
+        lm.setLogFileName('relaypfx_download_log.txt')
+        lm.cleanLog()
+        lm.createLogHandler()
+        lm.log('---- Pitch Data Download Log ----')
+
+    if not os.path.isdir('pbp_data'):
+        os.mkdir('pbp_data')
+    os.chdir('pbp_data')
+    # path: pbp_data
 
     print("##################################################")
     print("######          DOWNLOAD PFX DATA          #######")
     print("##################################################")
 
-    for year in range(year_start, year_end + 1):
-        print("  for Year {0}... ".format(str(year)))
+    for year in game_ids.keys():
+        start1 = time.time()
+        print(" Year {}".format(year))
+        if len(game_ids[year]) == 0:
+            print('month id is empty')
+            print('args: {}'.format(args))
+            if lm is not None:
+                lm.log('month id is empty')
+                lm.log('args : {}'.format(args))
+            return False
 
-        for month in range(mon_start, mon_end + 1):
-            if month < 10:
-                mon = '0{}'.format(str(month))
-            else:
-                mon = str(month)
+        if not os.path.isdir(str(year)):
+            os.mkdir(str(year))
+        os.chdir(str(year))
+        # path: pbp_data/year
 
-            os.chdir("{0}/{1}".format(str(year), mon))
-            # current path : ./pbp_data/YEAR/MONTH/
+        for month in game_ids[year].keys():
+            start2 = time.time()
+            print("  Month {}".format(month))
+            if len(game_ids[year][month]) == 0:
+                print('month id is empty')
+                print('args: {}'.format(args))
+                if lm is not None:
+                    lm.log('month id is empty')
+                    lm.log('args : {}'.format(args))
+                return False
 
-            # get URL
-            schedule_url = "{0}month={1}&year={2}".format(schedule_url_prefix, str(month), str(year))
+            if not os.path.isdir(str(month)):
+                os.mkdir(str(month))
+            os.chdir(str(month))
+            # path: pbp_data/year/month
 
-            # open URL
-            print("    Month {0}... ".format(str(month)))
-            # get relay URL list, write in text file
-            # all GAME RESULTS in month/year
-            bar_prefix = '    Downloading: '
-            print('\r{}[waiting]'.format(bar_prefix), end="")
-
-            # '경기결과' 버튼을 찾아서 태그를 모두 리스트에 저장.
-            schedule_html = urlopen(schedule_url).read()
-            schedule_soup = BeautifulSoup(schedule_html, 'lxml')
-            schedule_button = schedule_soup.findAll('span', attrs={'class': 'td_btn'})
-
-            # '경기결과' 버튼을 찾아서 태그를 모두 리스트에 저장.
-            game_ids = []
-            for btn in schedule_button:
-                link = btn.a['href']
-                suffix = link.split('gameId=')[1]
-                game_ids.append(suffix)
-
-            mon_file_num = sum(1 for game_id in game_ids if int(game_id[:4]) <= 2050)
-
-            # gameID가 있는 게임은 모두 경기 결과가 있는 것으로 판단함
+            # download
             done = 0
             skipped = 0
-
-            lm.resetLogHandler()
-            lm.setLogPath(os.getcwd() + '/log/')
-            lm.setLogFileName('pfxDownloadLog.txt')
-            lm.cleanLog()
-            lm.createLogHandler()
-
-            for game_id in game_ids:
-                if int(game_id[0:4]) < 2010:
+            for game_id in game_ids[year][month]:
+                if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > datetime.datetime.now().year):
+                    skipped += 1
                     continue
-                if int(game_id[0:4]) > 2050:
+                if (int(game_id[:4]) == datetime.datetime.now().year) and (int(game_id[4:8]) > int(datetime.datetime.now().date().strftime('%m%d'))):
+                    skipped += 1
                     continue
-
-                if int(regular_start[game_id[:4]]) > int(game_id[4:8]):
+                if int(game_id[4:8]) < int(regular_start[game_id[:4]]):
+                    skipped += 1
+                    continue
+                if int(game_id[4:8]) >= int(playoff_start[game_id[:4]]):
+                    skipped += 1
+                    continue
+                if game_id[8:10] not in teams:
                     skipped += 1
                     continue
 
-                if int(playoff_start[game_id[:4]]) <= int(game_id[4:8]):
+                if not check_url(pfx_url):
                     skipped += 1
+                    if lm is not None:
+                        lm.log('URL error : {}'.format(pfx_url))
                     continue
 
-                if int(game_id[:8]) > int(current_date):
-                    skipped += 1
-                    continue
-
-                pfx_filename = game_id[:13]+'_pfx.csv'
-
-                if os.path.isfile(pfx_filename) and (os.path.getsize(pfx_filename) > 0):
+                if (int(game_id[:4]) == datetime.datetime.now().year) &\
+                   (int(game_id[4:6]) == datetime.datetime.now().month) &\
+                   (int(game_id[6:8]) == datetime.datetime.now().day):
+                        # do nothing
+                       done = done
+                elif (os.path.isfile(game_id + '_pfx.json')) and \
+                        (os.path.getsize(game_id + '_pfx.json') > 0):
                     done += 1
+                    if lm is not None:
+                        lm.log('File Duplicate : {}'.format(game_id))
                     continue
 
                 params = {
@@ -150,69 +441,112 @@ def pfx_download(mon_start, mon_end, year_start, year_end, lm=None):
                 }
 
                 headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                                  'Chrome/59.0.3071.115 Safari/537.36',
                     'X-Requested-With': 'XMLHttpRequest',
                     'Host': 'm.sports.naver.com',
-                    'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?&gameId='+game_id+'&tab=relay'
+                    'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?&gameId='
+                               + game_id
+                               + '&tab=relay'
                 }
 
                 res = requests.get(pfx_url, params=params, headers=headers)
 
-                pfx = res.json()
+                if res is not None:
+                    # load json structure
+                    js = res.json()
+                    if isinstance(js, str):
+                        js = json.loads(js)
+                        #js = ast.literal_eval(js)
 
-                if len(pfx) == 0:
-                    lm.bugLog('pfx error in : {}'.format(game_id))
+                    if js is None:
+                        lm.log('PFX data missing : {}'.format(game_id))
+                        skipped += 1
+                        continue
+                    elif len(js) == 0:
+                        lm.log('PFX data missing : {}'.format(game_id))
+                        skipped += 1
+                        continue
+
+                    # json to pandas dataframe
+                    #df = pd.read_json(json.dumps(js))
+                    df = pd.DataFrame(js)
+
+                    # calculate pitch location(px, pz)
+                    t = -df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - df['crossPlateY']))
+                    t /= df['ay']
+                    xp = df['x0'] + df['vx0'] * t + df['ax'] * t * t * 0.5
+                    zp = df['z0'] + df['vz0'] * t + df['az'] * t * t * 0.5
+                    df['plateX'] = np.round(xp, 5)
+                    df['plateZ'] = np.round(zp, 5)
+
+                    # calculate pitch movement(pfx_x, pfx_z)
+                    t40 = -df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - 40))
+                    t40 /= df['ay']
+                    x40 = df['x0'] + df['vx0'] * t40 + 0.5 * df['ax'] * t40 * t40
+                    vx40 = df['vx0'] + df['ax'] * t40
+                    z40 = df['z0'] + df['vz0'] * t40 + 0.5 * df['az'] * t40 * t40
+                    vz40 = df['vz0'] + df['az'] * t40
+                    th = t - t40
+                    x_no_air = x40 + vx40 * th
+                    z_no_air = z40 + vz40 * th - 0.5 * 32.174 * th * th
+                    df['pfx_x2'] = np.round((xp - x_no_air) * 12, 5)
+                    df['pfx_z2'] = np.round((zp - z_no_air) * 12, 5)
+
+                    # load back to json structure
+                    dfjsstr = df.to_json(orient='records', force_ascii=False)
+                    dfjs = json.loads(dfjsstr)
+
+                    # dump to json file
+                    fp = open(game_id + '_pfx.json', 'w', newline='\n')
+                    json.dump(dfjs, fp, ensure_ascii=False, sort_keys=False, indent=4)
+                    fp.close()
+                    done += 1
+                else:
                     skipped += 1
-                    continue
+                    if lm is not None:
+                        lm.log('Cannot get response : {}'.format(game_id))
 
-                pfx_file = open(pfx_filename, 'w', newline='\n')
-                csvwriter = csv.writer(pfx_file)
+                print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
 
-                i = 0
-                for p in pfx:
-                    t = (-p['vy0']-math.sqrt(pow(p['vy0'], 2)-2*p['ay']*(p['y0']-p['crossPlateY'])))/p['ay']
-                    xp = p['x0']+p['vx0']*t+p['ax']*pow(t, 2)*0.5
-                    zp = p['z0']+p['vz0']*t+p['az']*pow(t, 2)*0.5
-                    t = round(t, 5)
-                    p_a = p
-                    p_a['plateX'] = round(xp, 5)
-                    p_a['plateZ'] = round(zp, 5)
-                    p_a['t'] = t
-                    t40 = (-p['vy0']-math.sqrt(pow(p['vy0'],2)-2*p['ay']*(p['y0']-40)))/p['ay']
-                    x40 = p['x0']+p['vx0']*t40+0.5*p['ax']*pow(t40, 2)
-                    vx40 = p['vx0']+p['ax']*t40
-                    z40 = p['z0'] + p['vz0'] * t40 + 0.5 * p['az'] * pow(t40, 2)
-                    vz40 = p['vz0'] + p['az'] * t40
-                    th = t-t40
-                    x_noair = x40+vx40*th
-                    z_noair = z40+vz40*th-0.5*32.174*pow(th, 2)
-                    x_break = round(xp - x_noair, 5)
-                    z_break = round(zp - z_noair, 5)
-                    p_a['pfx_x'] = x_break
-                    p_a['pfx_z'] = z_break
+            # download done
+            print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
+            print('\n        Downloaded {} files'.format(done))
+            print('        (Skipped {} files)'.format(skipped))
+            end2 = time.time()
+            print('            -- elapsed {:.3f} sec for month {}'.format(end2 - start2, month))
 
-                    sp = collections.OrderedDict([k, v] for k, v in sorted(p_a.items(), key=operator.itemgetter(0)))
 
-                    if i == 0:
-                        csvwriter.writerow(sp.keys())
-                        i += 1
-                    csvwriter.writerow(sp.values())
-
-                pfx_file.close()
-
-                # BUGBUG : 20170509 KT-HT 경기 타구 정보 실종
-                # 생략
-
-                done += 1
-                lm.log('{} download'.format(game_id))
-
-                print_progress(bar_prefix, mon_file_num, done, skipped)
-            print_progress(bar_prefix, mon_file_num, done, skipped)
-            print()
-            print('        Downloaded {0} files.'.format(str(done)))
-            print('        (Skipped {0} files)'.format(str(skipped)))
-            os.chdir('../..')
-            # current path : ./pbp_data/
+            os.chdir('..')
+            # path: pbp_data/year
+        end1 = time.time()
+        print('   -- elapsed {:.3f} sec for year {}'.format(end1 - start1, year))
+        # months done
+        os.chdir('..')
+        # path: pbp_data/
+    # years done
     os.chdir('..')
-    # current path : ./
-    print("DOWNLOAD PFX DATA DONE.")
+    # path: root
+    return True
+
+
+if __name__ == '__main__':
+    args = []  # m_start, m_end, y_start, y_end
+    options = []  # onlyConvert, onlyDownload
+    get_args(args, options)
+
+    if options[1] is True:
+        relaylm = logManager.LogManager()
+        rc = download_relay(args, relaylm)
+        if rc is False:
+            print('Error')
+            exit(1)
+        relaylm.killLogManager()
+
+    if options[2] is True:
+        pfxlm = logManager.LogManager()
+        rc = download_pfx(args, pfxlm)
+        if rc is False:
+            print('Error')
+            exit(1)
+        pfxlm.killLogManager()
