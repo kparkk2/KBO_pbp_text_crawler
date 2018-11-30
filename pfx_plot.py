@@ -269,156 +269,88 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     return fig, ax
 
 
-def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, print_std=False):
+def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
-    lb = -1.5  # leftBorder
+    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트    
+    lb = -1.5 # leftBorder
     rb = +1.5  # rightBorder
-    tb = +4.0  # topBorder
-    bb = +1.0  # bottomBorder
-    
-    ll = -17/24  # leftLine
-    rl = +17/24  # rightLine
-    tl = +3.325  # topLine
-    bl = +1.579  # bototmLine
-    
-    oll = -17/24-1/8  # outerLeftLine
-    orl = +17/24+1/8  # outerRightLine
-    otl = +3.325+1/8  # outerTopLine
-    obl = +1.579-1/8  # outerBottomLine
-    
-    # 타자 상하 존 경계에 맞춰 표준화하는 경우
-    # Reference
-    # http://tangotiger.com/index.php/site/article/stacast-lab-pitch-zones-heart-shadow-ozone
-    
-    # 상단 경계 위의 공은 경계선과의 차이를 먼저 계산하고
-    # 경계선을 3.5피트로 조정하여 환산.
-    # ex) sz_top=3.7, pz=4.3 -> sz_top이 3.5인걸로 가정해 pz_std를 4.1로 보정
-    
-    # 하단 경계 밑의 공은 존 하단 경계선을 1.5피트로 가정하고
-    # 지면(0피트)과 경계선 사이의 상대적인 비율에 맞춰 보정.
-    # ex) sz_bot=2, pz=1 -> sz_bot이 1.5인걸로 가정해 pz_std를 0.75로 보정
-    
-    # 상단-하단 사이, 존 내부의 공은 1.5~3.5 사이의 비율에 맞춰 보정.
-    # ex) sz_bot=2, sz_top=5, pz=3.5 -> sz_top=1.5, sz_bot=3.5로 가정해 2.5로 보정
-    
-    if print_std is True:
-        tl = 3.5        # topLine
-        bl = 1.5        # bottomLine
-        ll = -20/24  # leftLine
-        rl = +20/24  # rightLine
-        
-        df = df.assign(pz_std=np.where(df.pz < df.sz_bot, (df.pz*1.5/df.sz_bot),
-                                       np.where(df.pz > df.sz_top, df.pz-(df.sz_top-3.5),
-                                                (df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2+2.5)))
-    
-    fig, ax = plt.subplots(figsize=(2,2), dpi=150, facecolor='#898f99')
-    ax.tick_params(axis='x', colors='white')
-    ax.tick_params(axis='y', colors='white')
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
 
-    if title is not None:
-        st = fig.suptitle(title, fontsize='medium')
-        st.set_color('white')
-        st.set_weight('bold')
-        st.set_horizontalalignment('center')
-        
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
+    tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
+    
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+    
+    fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
+    
     if pitch_types is None:
         pitch_types_ = df.pitch_type.drop_duplicates()
-        
-        for p in pitch_types_:
-            f = df.loc[df.pitch_type == p]
-            
-            if print_std is True:
-                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-            else:
-                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
+    elif type(pitch_types) is list:
+        pitch_types_ = pitch_types
+    elif type(pitch_types) is str:
+        pitch_types_ = pitch_types
     else:
-        if type(pitch_types) is list:
-            for p in pitch_types:
-                f = df.loc[df.pitch_type == p]
-                
-                if print_std is True:
-                    ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
-                    
-                    if show_pitch_number is True:
-                        for i in f.index:
-                            if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                                ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                        color='white', fontsize='xx-small', horizontalalignment='center')
-                else:
-                    ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
+        print()
+        print( 'ERROR: call option must be either string or list' )
+        exit(1)
+        
+    for p in pitch_types_:
+        f = df.loc[df.pitch_type == p]
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*fig.dpi, label=p, cmap='set1', zorder=0)
 
-                    if show_pitch_number is True:
-                        for i in f.index:
-                            if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                                ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                        color='white', fontsize='xx-small', horizontalalignment='center')
-        elif type(pitch_types) is str:
-            f = df.loc[df.pitch_type == pitch_types]
-            
-            if print_std is True:
-                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=pitch_types, cmap='set1')
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-            else:
-                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=pitch_types, cmap='set1')
+        if show_pitch_number is True:
+            for i in f.index:
+                if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                    ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                            color='white', fontsize='medium', weight='bold', horizontalalignment='center')
+    
+    ax.plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
+    ax.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
 
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-        else:
-            print()
-            print( 'ERROR: call option must be either string or list' )
-            exit(1)
+    ax.plot( [ll, rl], [bl, bl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='white', linestyle= 'solid', lw=.5 )
+    ax.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='white', linestyle= 'solid', lw=.5 )
 
-    ax.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [oll, oll], [obl, otl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color='white', linestyle='solid', lw=1 )
 
-    ax.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    if print_std is False:
-        ax.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-        ax.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-        ax.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-        ax.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
+    ax.plot( [oll, orl], [obl, obl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color='white', linestyle='solid', lw=1 )
     ax.axis( [lb, rb, bb, tb] )
 
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
+    if title is not None:
+        plt.title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+    
     plt.axis('off')
-    ax.autoscale_view('tight')
-
+    plt.tight_layout()
+    
     if legends is True:
-        ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2, fontsize='xx-small')
+        ax.legend(loc='lower center', ncol=2, fontsize='medium')
         
     return fig, ax
 
