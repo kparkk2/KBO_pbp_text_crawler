@@ -1251,13 +1251,13 @@ def calc_framing_gam(df):
     
     results.sort(key=lambda tup:tup[2]-tup[3], reverse=True)
     
-    return pd.DataFrame({'catcher': [x[0] for x in results],
-                          'num': [x[1] for x in results],
-                          'exstr': [x[2] for x in results],
-                          'exball': [x[3] for x in results],
-                          'plus_rv': [x[4] for x in results],
-                          'minus_rv': [x[5] for x in results]
-                        })
+    return fr, pd.DataFrame({'catcher': [x[0] for x in results],
+                             'num': [x[1] for x in results],
+                             'exstr': [x[2] for x in results],
+                             'exball': [x[3] for x in results],
+                             'plus_rv': [x[4] for x in results],
+                             'minus_rv': [x[5] for x in results]
+                           })
 
     
 '''
