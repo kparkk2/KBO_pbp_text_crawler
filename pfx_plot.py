@@ -1203,20 +1203,18 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
 
 
 def calc_framing_gam(df):
-    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼'])]
+    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼']) & (df.stands != 'None') & (df.throws != 'None')]
     sub_df = sub_df.assign(stands = np.where(sub_df.stands == '양',
                                      np.where(sub_df.throws == '좌', '우', '좌'),
                                      sub_df.stands))
-    sub_df.stands = pd.Categorical(sub_df.stands)
-    sub_df.stands = sub_df.stands.cat.codes
-    sub_df.throws = pd.Categorical(sub_df.throws)
-    sub_df.throws = sub_df.throws.cat.codes
+    sub_df = sub_df.assign(stands = np.where(sub_df.stands=='우', 0, 1)) # 우=0, 좌=1
+    sub_df = sub_df.assign(throws = np.where(sub_df.throws=='우', 0, 1)) # 우=0, 좌=1
     sub_df.stadium = pd.Categorical(sub_df.stadium)
-    sub_df.stadium = sub_df.stadium.cat.codes
+    sub_df = sub_df.assign(venue = sub_df.stadium.cat.codes)
 
     sub_df = sub_df.assign(pitch_result=np.where(sub_df.pitch_result=='스트라이크', 1, 0))
 
-    features = ['px', 'pz', 'stands', 'throws', 'stadium']
+    features = ['px', 'pz', 'stands', 'throws', 'venue']
     label = ['pitch_result']
 
     x = sub_df[features]
@@ -1226,19 +1224,19 @@ def calc_framing_gam(df):
     predictions = gam.predict(x)
     proba = gam.predict_proba(x)
 
-    fr = sub_df[label + ['pos_2', 'balls', 'strikes', 'px', 'pz']]
-    fr = fr.rename(index=str, columns={'pos_2':'catcher'})
+    detail_log = sub_df[features + label + ['pos_2', 'balls', 'strikes', 'stadium']]
+    detail_log = detail_log.rename(index=str, columns={'pos_2':'catcher'})
 
-    fr = fr.assign(prediction = predictions)
-    fr = fr.assign(proba = proba)
-    fr = fr.assign(rv = RV[fr.balls + fr.strikes*4])
+    detail_log = detail_log.assign(prediction = predictions)
+    detail_log = detail_log.assign(proba = proba)
+    detail_log = detail_log.assign(rv = RV[detail_log.balls + detail_log.strikes*4])
 
-    catchers = fr.catcher.drop_duplicates()
+    catchers = detail_log.catcher.drop_duplicates()
 
     # 포수, catch 개수, extra strike, extra ball, RV sum
     results = []
     for c in catchers:
-        caughts = fr.loc[(fr.catcher == c)]
+        caughts = detail_log.loc[(detail_log.catcher == c)]
         if len(caughts) == 0:
             continue
 
@@ -1251,13 +1249,13 @@ def calc_framing_gam(df):
     
     results.sort(key=lambda tup:tup[2]-tup[3], reverse=True)
     
-    return fr, pd.DataFrame({'catcher': [x[0] for x in results],
-                             'num': [x[1] for x in results],
-                             'exstr': [x[2] for x in results],
-                             'exball': [x[3] for x in results],
-                             'plus_rv': [x[4] for x in results],
-                             'minus_rv': [x[5] for x in results]
-                           })
+    return detail_log, pd.DataFrame({'catcher': [x[0] for x in results],
+                                     'num': [x[1] for x in results],
+                                     'exstr': [x[2] for x in results],
+                                     'exball': [x[3] for x in results],
+                                     'plus_rv': [x[4] for x in results],
+                                     'minus_rv': [x[5] for x in results]
+                                    })
 
     
 '''
