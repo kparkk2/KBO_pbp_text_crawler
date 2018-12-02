@@ -1161,12 +1161,12 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     if cmap is None:
         cmap='Reds'
     ax.set_facecolor('#cccccc')
-    cs = ax.scatter(df.px, df.pz, alpha=.5, s=np.pi*dpi, c=df.proba, cmap=cmap, zorder=0, vmin=0, vmax=1)
+    cs = ax.scatter(df.px, df.pz, alpha=.5, s=np.pi/2*dpi, c=df.proba, cmap=cmap, zorder=0, vmin=0, vmax=1)
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt), spacing='proportional', ax=ax)
     
     if is_cm is False:
         major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/10
+        minor_xtick_step = minor_ytick_step = 1/12
     else:
         major_xtick_step = major_ytick_step = 20
         minor_xtick_step = minor_ytick_step = 5
@@ -1204,7 +1204,7 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     plt.rcParams['axes.unicode_minus'] = False
     
     if title is not None:
-        ax.set_title(title)
+        ax.set_title(title, fontsize='xx-large')
     
     return fig, ax
 
@@ -1244,7 +1244,7 @@ def calc_framing_gam(df):
     logs = logs.assign(exball=np.where(logs.excall==-1, 1, 0))
     logs = logs.assign(exrv=logs.excall * logs.rv)
     logs = logs.assign(exrv_prob=np.where(logs.excall==1, (1-logs.proba)*logs.rv,
-                                              np.where(logs.excall==-1, logs.proba*logs.rv, 0), 0))
+                                              np.where(logs.excall==-1, -logs.proba*logs.rv, 0)))
 
     # 포수, catch 개수, extra strike, extra ball, RV sum
     tab = logs.pivot_table(index='catcher',
@@ -1312,7 +1312,7 @@ def calc_framing_cell(df, is_cm=False):
     logs = logs.assign(exball=np.where(logs.excall==-1, 1, 0))
     logs = logs.assign(exrv=logs.excall * logs.rv)
     logs = logs.assign(exrv_prob=np.where(logs.excall==1, (1-logs.proba)*logs.rv,
-                                          np.where(logs.excall==-1, logs.proba*logs.rv, 0), 0))
+                                          np.where(logs.excall==-1, -logs.proba*logs.rv, 0)))
 
     # 포수, catch 개수, extra strike, extra ball, RV sum
     tab = logs.pivot_table(index='catcher',
