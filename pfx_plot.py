@@ -522,7 +522,7 @@ def fmt(x, pos):
     return r'{}%'.format(int(x*100))
 
 
-def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None):
+def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -555,7 +555,10 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None):
         obl = obl * 30.48
         otl = otl * 30.48
     
-    fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
+    else:
+        fig = None
     
     if is_cm is False:
         major_xtick_step = major_ytick_step = 1/2
@@ -608,9 +611,11 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None):
     ax.set_yticks([])
     ax.set_xticks([], minor=True)
     ax.set_yticks([], minor=True)
+    
+    plt.tight_layout()
 
     if title is not None:
-        plt.title(title)
+        ax.set_title(title, fontsize='medium')
     
     return fig, ax
 
@@ -1202,6 +1207,7 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
 
 
 def calc_framing_gam(df):
+    # 10-80% 구간 측정이 mean을 0에 가깝게 맞출 수 있음.
     sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼']) & (df.stands != 'None') & (df.throws != 'None')]
     sub_df = sub_df.assign(stands = np.where(sub_df.stands == '양',
                                      np.where(sub_df.throws == '좌', '우', '좌'),
@@ -1223,8 +1229,8 @@ def calc_framing_gam(df):
     predictions = gam.predict(x)
     proba = gam.predict_proba(x)
 
-    detail_log = sub_df[features + label + ['pos_2', 'balls', 'strikes', 'stadium']]
-    detail_log = detail_log.rename(index=str, columns={'pos_2':'catcher'})
+    detail_log = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium']]
+    detail_log = detail_log.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
 
     detail_log = detail_log.assign(prediction = predictions)
     detail_log = detail_log.assign(proba = proba)
@@ -1248,6 +1254,12 @@ def calc_framing_gam(df):
     
     results.sort(key=lambda tup:tup[2]-tup[3], reverse=True)
     
+    detail_log = detail_log.assign(excall=np.where(detail_log.prediction!=detail_log.pitch_result,
+                                       np.where(detail_log.pitch_result==1, 1, -1),0))
+    detail_log = detail_log.assign(exstr=np.where(detail_log.excall==1, 1, 0))
+    detail_log = detail_log.assign(exball=np.where(detail_log.excall==-1, 1, 0))
+    detail_log = detail_log.assign(exrv=detail_log.excall * detail_log.rv)
+    
     return detail_log, pd.DataFrame({'catcher': [x[0] for x in results],
                                      'num': [x[1] for x in results],
                                      'exstr': [x[2] for x in results],
@@ -1257,121 +1269,79 @@ def calc_framing_gam(df):
                                     })
 
     
-'''
-def count_extra_strike_balls(df, rmap, lmap, print_std=True, use_RV=False):
-    # 36x36 size heatmap
-    
-    # bin 별로 스트라이크 개수/볼 개수 측정
-    # (1-strike확률)*스트라이크 - (strike확률)*볼
-    
-    es = 0
-    eb = 0
-    
-    if df.px.dtypes == np.object:
-        df = clean_data(df)
+def calc_framing_cell(df, is_cm=False):
+    # 20-80% 구간 측정이 mean을 0에 가깝게 맞출 수 있음.
+    is_cm=False
+    features = ['px', 'pz', 'pitch_result', 'stands', 'throws', 'pitcher', 'catcher',
+                'stadium', 'referee', 'balls', 'strikes']
 
-    smask = (df.pitch_result == '스트라이크')
-    bmask = (df.pitch_result == '볼')
-    
-    if ('sz_bot' in df.keys()) & ('sz_top' in df.keys()):
-        sub_df = df.loc[smask | bmask].loc[:, ['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot', 'stands', 'balls', 'strikes']]
-    else:
-        if print_std is True:
-            return False
-        sub_df = df.loc[smask | bmask].loc[:, ['px', 'pz', 'pitch_result', 'stands', 'balls', 'strikes']]
-        
-    if print_std is True:
-        sub_df['pz_std'] = (sub_df.pz-(sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2
-    
-    for i in range(len(sub_df)):
-        row = sub_df.iloc[i]
+    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼']) & (df.stands != 'None') & (df.throws != 'None')]
+    sub_df = sub_df.assign(stands = np.where(sub_df.stands == '양',
+                                     np.where(sub_df.throws == '좌', '우', '좌'),
+                                     sub_df.stands))
+    sub_df = sub_df.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
+    sub_df = sub_df[features]
 
-        x = row.px
-        if not (-13 <= x*12 <= 13):
-            continue
+    catchers = sub_df.catcher.drop_duplicates()
 
-        if print_std is True:
-            y = row.pz_std
-            if not (-13 <= y*12 <= 13):
-                continue
+    sub_df = sub_df.assign(pitch_result=np.where(sub_df.pitch_result=='스트라이크', 1, 0))
+    strikes = sub_df.loc[sub_df.pitch_result == 1]
+    balls = sub_df.loc[sub_df.pitch_result == 0]
 
-            ind1 = int((x+1.5)*12)
-            ind2 = int((y+1.5)*12)
+    lb = -1.5
+    rb = +1.5
+    bb = 1.0
+    tb = 4.0
 
-        else:
-            y = row.pz
-            if not (15 <= y*12 <= 45):
-                continue
-            
-            ind1 = int((x+1.5)*12)
-            ind2 = int((y-1)*12)
-        
-        if use_RV is False:
-            if row.stands == '우':
-                if row.pitch_result == '스트라이크':
-                    es += 1-rmap[ind2][ind1]
-                else:
-                    eb += rmap[ind2][ind1]
-            else:
-                if row.pitch_result == '스트라이크':
-                    es += 1-lmap[ind2][ind1]
-                else:
-                    eb += lmap[ind2][ind1]
-        else:
-            if row.stands == '우':
-                if row.pitch_result == '스트라이크':
-                    es += (1-rmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
-                else:
-                    eb += (rmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
-            else:
-                if row.pitch_result == '스트라이크':
-                    es += (1-lmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
-                else:
-                    eb += (lmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
-    return es, eb
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+    #sub_df = sub_df.loc[sub_df.px.between(lb, rb) & sub_df.pz.between(bb, tb)]
 
+    bins = 36
 
-def get_season_framing_cell(df, use_RV=False, min_catch=0):
-    if '양' in df.stands.drop_duplicates():
-        df = df.assign(stands_cat=np.where(df.stands=='양',
-                                           np.where(df.throws=='좌', '우', '좌'),
-                                           np.where(df.stands=='우', '좌', '우'))
-                      )
+    c1, x, y, i = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, i = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
 
-    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼'])]
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    probs = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
 
-    if sub_df.px.dtypes == np.object:
-        sub_df = clean_data(sub_df)
+    sub_df = sub_df.assign(x_ind = ((sub_df.px+1.5)*12).astype(np.int8))
+    sub_df = sub_df.assign(y_ind = ((sub_df.pz-1)*12).astype(np.int8))
+    sub_df = sub_df.assign(proba = -1)
+    for i in range(0, bins):
+        for j in range(0, bins):
+            sub_df = sub_df.assign(proba = np.where((sub_df.x_ind == i) & (sub_df.y_ind == j),
+                                                    probs[i][j], sub_df.proba))
 
-    Rmap, _ = get_heatmap(sub_df.loc[sub_df.stands == '우'], print_std=False, gaussian=True)
-    Lmap, _ = get_heatmap(sub_df.loc[sub_df.stands == '좌'], print_std=False, gaussian=True)
+    sub_df = sub_df.drop(columns='x_ind')
+    sub_df = sub_df.drop(columns='y_ind')
+    sub_df = sub_df.assign(prediction = np.where(sub_df.proba >=0.5, 1, 0))
+    sub_df = sub_df.assign(rv= RV[sub_df.balls + sub_df.strikes*4])
+    sub_df = sub_df.assign(excall=np.where(sub_df.prediction!=sub_df.pitch_result,
+                                  np.where(sub_df.pitch_result==1, 1, -1),0))
+    sub_df = sub_df.assign(exstr=np.where(sub_df.excall==1, 1, 0))
+    sub_df = sub_df.assign(exball=np.where(sub_df.excall==-1, 1, 0))
+    sub_df = sub_df.assign(exrv=sub_df.excall * sub_df.rv)
 
-    catchers = sub_df.pos_2.drop_duplicates()
-    extras = []
-
+    results = []
     for c in catchers:
-        caughts = sub_df.loc[sub_df.pos_2 == c]
-        es, eb = count_extra_strike_balls(caughts, Rmap, Lmap, print_std=False, use_RV=use_RV)
-        if use_RV is False:
-            es *= 0.198
-            eb *= 0.198
-
-        extras.append((c, len(caughts), es, eb))
-
-    extras.sort(key=lambda tup:tup[2]-tup[3], reverse=True)
-
-    print('Framing w/ Cell')
-    if use_RV is True:
-        print('이름\t판정횟수\tExStr\tExBall\tExRun\tExRun/2000')
-    else:
-        print('이름\t판정횟수\tExStr\tExBall\tExCall\tExCall/2000')
-
-    for x in extras:
-        if x[1] < min_catch:
+        caughts = sub_df.loc[sub_df.catcher == c]
+        if len(caughts) == 0:
             continue
-        print('{}\t{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}'.format(x[0], x[1], x[2], x[3], x[2]-x[3],
-                                                              (x[2]-x[3])/x[1]*2000))
-'''
+        es = len(caughts.loc[(caughts.pitch_result == 1) & (caughts.prediction == False)])
+        eb = len(caughts.loc[(caughts.pitch_result == 0) & (caughts.prediction == True)])
+        plus = caughts.loc[(caughts.pitch_result == 1) & (caughts.pitch_result != caughts.prediction)].rv.sum()
+        minus = caughts.loc[(caughts.pitch_result == 0) & (caughts.pitch_result != caughts.prediction)].rv.sum()    
+
+        results.append([c, len(caughts), es, eb, plus, minus])
+
+    return sub_df, results
 
 
 def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True, True]):
