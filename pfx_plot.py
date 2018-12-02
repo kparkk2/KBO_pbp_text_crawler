@@ -1153,7 +1153,7 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     if cmap is None:
         cmap='Reds'
     ax.set_facecolor('#cccccc')
-    cs = ax.scatter(df.px, df.pz, alpha=.5, s=np.pi/4*dpi, c=df.proba, cmap=cmap, zorder=0, vmin=0, vmax=1)
+    cs = ax.scatter(df.px, df.pz, alpha=.5, s=np.pi*dpi, c=df.proba, cmap=cmap, zorder=0, vmin=0, vmax=1)
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt), spacing='proportional', ax=ax)
     
     if is_cm is False:
