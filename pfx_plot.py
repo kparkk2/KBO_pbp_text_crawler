@@ -654,9 +654,8 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     bins = 50
 
     c1, x, y, _ = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
-    #plt.close()
     c2, x, y, _ = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
-    #plt.close()
+    plt.close()
 
     np.seterr(divide='ignore', invalid='ignore')
     r = np.nan_to_num(c1 / (c1+c2))
