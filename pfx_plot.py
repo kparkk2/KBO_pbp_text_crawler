@@ -16,6 +16,9 @@ from enum import Enum
 from scipy.ndimage.filters import gaussian_filter
 import ipywidgets as widgets
 from IPython.display import clear_output
+import scipy as sp
+from scipy import stats
+import pylab as pl
 
 if importlib.util.find_spec('pygam') is not None:
     from pygam import LogisticGAM
@@ -1229,44 +1232,27 @@ def calc_framing_gam(df):
     predictions = gam.predict(x)
     proba = gam.predict_proba(x)
 
-    detail_log = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium']]
-    detail_log = detail_log.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
+    logs = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium']]
+    logs = logs.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
 
-    detail_log = detail_log.assign(prediction = predictions)
-    detail_log = detail_log.assign(proba = proba)
-    detail_log = detail_log.assign(rv = RV[detail_log.balls + detail_log.strikes*4])
-
-    catchers = detail_log.catcher.drop_duplicates()
+    logs = logs.assign(prediction = predictions)
+    logs = logs.assign(proba = proba)
+    logs = logs.assign(rv = RV[logs.balls + logs.strikes*4])
+    logs = logs.assign(excall=np.where(logs.prediction!=logs.pitch_result,
+                                       np.where(logs.pitch_result==1, 1, -1),0))
+    logs = logs.assign(exstr=np.where(logs.excall==1, 1, 0))
+    logs = logs.assign(exball=np.where(logs.excall==-1, 1, 0))
+    logs = logs.assign(exrv=logs.excall * logs.rv)
+    logs = logs.assign(exrv_prob=np.where(logs.excall==1, (1-logs.proba)*logs.rv,
+                                              np.where(logs.excall==-1, logs.proba*logs.rv, 0), 0))
 
     # 포수, catch 개수, extra strike, extra ball, RV sum
-    results = []
-    for c in catchers:
-        caughts = detail_log.loc[(detail_log.catcher == c)]
-        if len(caughts) == 0:
-            continue
-
-        es = len(caughts.loc[(caughts.pitch_result == 1) & (caughts.prediction == False)])
-        eb = len(caughts.loc[(caughts.pitch_result == 0) & (caughts.prediction == True)])
-        plus = caughts.loc[(caughts.pitch_result == 1) & (caughts.pitch_result != caughts.prediction)].rv.sum()
-        minus = caughts.loc[(caughts.pitch_result == 0) & (caughts.pitch_result != caughts.prediction)].rv.sum()
-
-        results.append([c, len(caughts), es, eb, plus, minus])
+    tab = logs.pivot_table(index='catcher',
+                           values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
+                           aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
+    tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
     
-    results.sort(key=lambda tup:tup[2]-tup[3], reverse=True)
-    
-    detail_log = detail_log.assign(excall=np.where(detail_log.prediction!=detail_log.pitch_result,
-                                       np.where(detail_log.pitch_result==1, 1, -1),0))
-    detail_log = detail_log.assign(exstr=np.where(detail_log.excall==1, 1, 0))
-    detail_log = detail_log.assign(exball=np.where(detail_log.excall==-1, 1, 0))
-    detail_log = detail_log.assign(exrv=detail_log.excall * detail_log.rv)
-    
-    return detail_log, pd.DataFrame({'catcher': [x[0] for x in results],
-                                     'num': [x[1] for x in results],
-                                     'exstr': [x[2] for x in results],
-                                     'exball': [x[3] for x in results],
-                                     'plus_rv': [x[4] for x in results],
-                                     'minus_rv': [x[5] for x in results]
-                                    })
+    return logs, tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
 
     
 def calc_framing_cell(df, is_cm=False):
@@ -1280,13 +1266,11 @@ def calc_framing_cell(df, is_cm=False):
                                      np.where(sub_df.throws == '좌', '우', '좌'),
                                      sub_df.stands))
     sub_df = sub_df.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
-    sub_df = sub_df[features]
+    logs = sub_df[features]
 
-    catchers = sub_df.catcher.drop_duplicates()
-
-    sub_df = sub_df.assign(pitch_result=np.where(sub_df.pitch_result=='스트라이크', 1, 0))
-    strikes = sub_df.loc[sub_df.pitch_result == 1]
-    balls = sub_df.loc[sub_df.pitch_result == 0]
+    logs = logs.assign(pitch_result=np.where(logs.pitch_result=='스트라이크', 1, 0))
+    strikes = logs.loc[logs.pitch_result == 1]
+    balls = logs.loc[logs.pitch_result == 0]
 
     lb = -1.5
     rb = +1.5
@@ -1298,7 +1282,6 @@ def calc_framing_cell(df, is_cm=False):
         rb = rb * 30.48
         bb = bb * 30.48
         tb = tb * 30.48
-    #sub_df = sub_df.loc[sub_df.px.between(lb, rb) & sub_df.pz.between(bb, tb)]
 
     bins = 36
 
@@ -1311,37 +1294,111 @@ def calc_framing_cell(df, is_cm=False):
     np.seterr(divide=None, invalid=None)
     probs = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
 
-    sub_df = sub_df.assign(x_ind = ((sub_df.px+1.5)*12).astype(np.int8))
-    sub_df = sub_df.assign(y_ind = ((sub_df.pz-1)*12).astype(np.int8))
-    sub_df = sub_df.assign(proba = -1)
+    logs = logs.assign(x_ind = ((logs.px+1.5)*12).astype(np.int8))
+    logs = logs.assign(y_ind = ((logs.pz-1)*12).astype(np.int8))
+    logs = logs.assign(proba = -1)
     for i in range(0, bins):
         for j in range(0, bins):
-            sub_df = sub_df.assign(proba = np.where((sub_df.x_ind == i) & (sub_df.y_ind == j),
-                                                    probs[i][j], sub_df.proba))
+            logs = logs.assign(proba = np.where((logs.x_ind == i) & (logs.y_ind == j),
+                                                probs[i][j], logs.proba))
 
-    sub_df = sub_df.drop(columns='x_ind')
-    sub_df = sub_df.drop(columns='y_ind')
-    sub_df = sub_df.assign(prediction = np.where(sub_df.proba >=0.5, 1, 0))
-    sub_df = sub_df.assign(rv= RV[sub_df.balls + sub_df.strikes*4])
-    sub_df = sub_df.assign(excall=np.where(sub_df.prediction!=sub_df.pitch_result,
-                                  np.where(sub_df.pitch_result==1, 1, -1),0))
-    sub_df = sub_df.assign(exstr=np.where(sub_df.excall==1, 1, 0))
-    sub_df = sub_df.assign(exball=np.where(sub_df.excall==-1, 1, 0))
-    sub_df = sub_df.assign(exrv=sub_df.excall * sub_df.rv)
+    logs = logs.drop(columns='x_ind')
+    logs = logs.drop(columns='y_ind')
+    logs = logs.assign(prediction = np.where(logs.proba >=0.5, 1, 0))
+    logs = logs.assign(rv= RV[logs.balls + logs.strikes*4])
+    logs = logs.assign(excall=np.where(logs.prediction!=logs.pitch_result,
+                                  np.where(logs.pitch_result==1, 1, -1),0))
+    logs = logs.assign(exstr=np.where(logs.excall==1, 1, 0))
+    logs = logs.assign(exball=np.where(logs.excall==-1, 1, 0))
+    logs = logs.assign(exrv=logs.excall * logs.rv)
+    logs = logs.assign(exrv_prob=np.where(logs.excall==1, (1-logs.proba)*logs.rv,
+                                          np.where(logs.excall==-1, logs.proba*logs.rv, 0), 0))
 
-    results = []
-    for c in catchers:
-        caughts = sub_df.loc[sub_df.catcher == c]
-        if len(caughts) == 0:
-            continue
-        es = len(caughts.loc[(caughts.pitch_result == 1) & (caughts.prediction == False)])
-        eb = len(caughts.loc[(caughts.pitch_result == 0) & (caughts.prediction == True)])
-        plus = caughts.loc[(caughts.pitch_result == 1) & (caughts.pitch_result != caughts.prediction)].rv.sum()
-        minus = caughts.loc[(caughts.pitch_result == 0) & (caughts.pitch_result != caughts.prediction)].rv.sum()    
+    # 포수, catch 개수, extra strike, extra ball, RV sum
+    tab = logs.pivot_table(index='catcher',
+                           values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
+                           aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
+    tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
+    
+    return logs, tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
 
-        results.append([c, len(caughts), es, eb, plus, minus])
 
-    return sub_df, results
+def calc_framing_gam_adv(df, max_dist=0.25):
+    lb = -1.5
+    rb = +1.5
+    bb = 1.0
+    tb = 4.0
+
+    strikes = df.loc[df.pitch_result == '스트라이크']
+    balls = df.loc[df.pitch_result == '볼']
+
+    bins = 36
+
+    c1, x, y, _ = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, _ = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    rg = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
+
+    x, y = np.mgrid[lb:rb:bins*1j, bb:tb:bins*1j]
+
+    CS = plt.contour(x, y, rg, levels=np.asarray([.5]), linewidths=2, zorder=1)
+    path = CS.collections[0].get_paths()[0]
+    cts = path.vertices
+    d = sp.spatial.distance.cdist(cts, cts)
+    plt.close()
+    
+    logs, _ = calc_framing_gam(df)
+    logs = logs.assign(dist = np.min(sp.spatial.distance.cdist(logs[['px', 'pz']], cts), axis=1))
+
+    tab = logs.pivot_table(index='catcher',
+                           values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
+                           aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
+    tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
+    
+    return logs.loc[logs.dist < max_dist], tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
+
+
+def calc_framing_cell_adv(df, max_dist=0.25):
+    lb = -1.5
+    rb = +1.5
+    bb = 1.0
+    tb = 4.0
+
+    strikes = df.loc[df.pitch_result == '스트라이크']
+    balls = df.loc[df.pitch_result == '볼']
+
+    bins = 36
+
+    c1, x, y, _ = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, _ = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    rg = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
+
+    x, y = np.mgrid[lb:rb:bins*1j, bb:tb:bins*1j]
+
+    CS = plt.contour(x, y, rg, levels=np.asarray([.5]), linewidths=2, zorder=1)
+    path = CS.collections[0].get_paths()[0]
+    cts = path.vertices
+    d = sp.spatial.distance.cdist(cts, cts)
+    plt.close()
+    
+    logs, _ = calc_framing_cell(df)
+    logs = logs.assign(dist = np.min(sp.spatial.distance.cdist(logs[['px', 'pz']], cts), axis=1))
+
+    tab = logs.pivot_table(index='catcher',
+                           values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
+                           aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
+    tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
+    
+    return logs.loc[logs.dist < max_dist], tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
 
 
 def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True, True]):
