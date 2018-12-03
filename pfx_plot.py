@@ -628,7 +628,7 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None)
     return fig, ax
 
 
-def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_full=False):
+def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_full=False, color=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -685,13 +685,18 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_
     
     if cmap is None:
         cmap='Reds'
+    
+    if cmap is not None:
+        from matplotlib.colors import LinearSegmentedColormap
+        cmap = LinearSegmentedColormap.from_list('mycmap', [color]*6)
 
     if show_full is True:
         levels = np.asarray([.1, .2, .3, .4, .5, .6, .7, .8, .9, 1.])
+        cmap = LinearSegmentedColormap.from_list('mycmap', [color]*10)
     else:
         levels = np.asarray([.5, .6, .7, .8, .9, 1.])
 
-    cs = ax.contourf(x, y, rg, levels=levels, cmap=cmap)
+    cs = ax.contourf(x, y, rg, levels=levels, cmap=cmap, zorder=1)
     ax.contour(x, y, rg, levels=levels, cmap=cmap, linewidths=2, zorder=1)
     
     ax.set_facecolor('#cccccc')
@@ -733,8 +738,11 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_
     ax.autoscale_view('tight')
     plt.rcParams['axes.unicode_minus'] = False
     
+    ax.set_xbound(lb, rb)
+    ax.set_ybound(bb, tb)
+    
     if title is not None:
-        ax.set_title(title)
+        ax.set_title(title, fontsize='x-large')
     
     return fig, ax
 
