@@ -107,7 +107,7 @@ def plot_strike_calls(df, title=None, show_pitch_number=False, print_std=False):
     return plot_by_call(df, title, calls=['스트라이크', '볼'], legends=True, show_pitch_number=show_pitch_number, print_std=print_std)
 
 
-def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80):
+def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -141,7 +141,10 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         obl = obl * 30.48
         otl = otl * 30.48
     
-    fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
+    else:
+        fig = None
     
     if calls is None:
         calls_ = df.calls.drop_duplicates()
@@ -185,7 +188,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         plt.title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
     
     plt.axis('off')
-    plt.tight_layout()
+    ax.autoscale_view('tight')
     
     if legends is True:
         ax.legend(loc='lower center', ncol=2, fontsize='medium')
@@ -193,7 +196,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     return fig, ax
 
 
-def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80):
+def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -227,7 +230,10 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
         obl = obl * 30.48
         otl = otl * 30.48
     
-    fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
+    else:
+        fig = None
     
     if pitch_types is None:
         pitch_types_ = df.pitch_type.drop_duplicates()
@@ -271,7 +277,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
         plt.title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
     
     plt.axis('off')
-    plt.tight_layout()
+    ax.autoscale_view('tight')
     
     if legends is True:
         ax.legend(loc='lower center', ncol=2, fontsize='medium')
@@ -581,7 +587,6 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None)
     ax.set_yticks(major_yticks)
     ax.set_yticks(minor_yticks, minor=True)
     
-    plt.tight_layout()
     plt.rcParams['axes.unicode_minus'] = False
     
     if cmap is None:
@@ -615,7 +620,7 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None)
     ax.set_xticks([], minor=True)
     ax.set_yticks([], minor=True)
     
-    plt.tight_layout()
+    ax.autoscale_view('tight')
 
     if title is not None:
         ax.set_title(title, fontsize='medium')
@@ -623,7 +628,7 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None)
     return fig, ax
 
 
-def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
+def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_full=False):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -659,7 +664,7 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     strikes = df.loc[df.pitch_result == '스트라이크']
     balls = df.loc[df.pitch_result == '볼']
 
-    bins = 50
+    bins = 36
 
     c1, x, y, _ = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
     c2, x, y, _ = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
@@ -680,17 +685,24 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     
     if cmap is None:
         cmap='Reds'
-    cs = ax.contourf(x, y, rg, levels=np.asarray([.5, .6, .7, .8, .9, 1.]), cmap=cmap)
-    ax.contour(x, y, rg, levels=np.asarray([.5, .6, .7, .8, .9, 1.]), cmap=cmap, linewidths=2, zorder=1)
+
+    if show_full is True:
+        levels = np.asarray([.1, .2, .3, .4, .5, .6, .7, .8, .9, 1.])
+    else:
+        levels = np.asarray([.5, .6, .7, .8, .9, 1.])
+
+    cs = ax.contourf(x, y, rg, levels=levels, cmap=cmap)
+    ax.contour(x, y, rg, levels=levels, cmap=cmap, linewidths=2, zorder=1)
+    
     ax.set_facecolor('#cccccc')
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt), ax=ax)
     
     if is_cm is False:
         major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/10
+        minor_xtick_step = minor_ytick_step = 1/12
     else:
         major_xtick_step = major_ytick_step = 20
-        minor_xtick_step = minor_ytick_step = 5
+        minor_xtick_step = minor_ytick_step = 20/6
     
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
@@ -718,7 +730,7 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     ax.grid(which='minor', color='white', linewidth=0.1, zorder=10)
     ax.grid(which='major', color='white', linewidth=0.2, zorder=10)
 
-    plt.tight_layout()
+    ax.autoscale_view('tight')
     plt.rcParams['axes.unicode_minus'] = False
     
     if title is not None:
@@ -727,7 +739,7 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     return fig, ax
 
 
-def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False):
+def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -779,7 +791,10 @@ def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False):
     x = x.T
     y = y.T
     
-    fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='white')
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='white')
+    else:
+        fig = None
     
     cmap = matplotlib.colors.ListedColormap(['white', '#ccffcc'])
     plt.pcolor(x, y, rg, cmap=cmap)
@@ -822,7 +837,7 @@ def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False):
     
     ax.set_ybound(bb, tb)
     
-    plt.tight_layout()
+    ax.autoscale_view('tight')
     plt.rcParams['axes.unicode_minus'] = False
     
     if title is not None:
@@ -838,7 +853,7 @@ def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False):
     return fig, ax
 
 
-def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=True):
+def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=True, ax=None):
     if pitcher is not None:
         sub_df = df.loc[df.pitcher == pitcher]
     else:
@@ -849,7 +864,10 @@ def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=Tru
     
     pitches = sub_df.pitch_type.drop_duplicates()
     
-    fig, ax = plt.subplots(figsize=(4,4), dpi=100, facecolor='white')
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(4,4), dpi=100, facecolor='white')
+    else:
+        fig = None
     
     for p in pitches:
         ax.scatter(sub_df.loc[sub_df.pitch_type == p].x0, sub_df.loc[sub_df.pitch_type == p].z0, s=np.pi*20, label=p,cmap='set1')
@@ -876,9 +894,7 @@ def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=Tru
         ax.set_ybound((ymax+ymin)/2 - 1, (ymax+ymin)/2 + 1)
         
     if title is not None:
-        st = fig.suptitle(title, fontsize=12)
-        st.set_weight('bold')
-    #display(fig)
+        ax.set_title(title, fontsize='medium')
     
     return fig, ax
 
@@ -1169,7 +1185,7 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
         minor_xtick_step = minor_ytick_step = 1/12
     else:
         major_xtick_step = major_ytick_step = 20
-        minor_xtick_step = minor_ytick_step = 5
+        minor_xtick_step = minor_ytick_step = 20/6
     
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
@@ -1200,7 +1216,7 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     ax.set_xbound(lb, rb)
     ax.set_ybound(bb, tb)
     
-    plt.tight_layout()
+    ax.autoscale_view('tight')
     plt.rcParams['axes.unicode_minus'] = False
     
     if title is not None:
