@@ -9,3 +9,4 @@ venv/
 Untitled.ipynb
 pfx_plot.ipynb
 *.json
+*.csv
