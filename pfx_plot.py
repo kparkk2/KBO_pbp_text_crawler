@@ -147,7 +147,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         fig = None
     
     if calls is None:
-        calls_ = df.calls.drop_duplicates()
+        calls_ = df.pitch_result.drop_duplicates()
     elif type(calls) is list:
         calls_ = calls
     elif type(calls) is str:
