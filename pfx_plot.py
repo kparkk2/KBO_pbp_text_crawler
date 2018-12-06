@@ -1378,7 +1378,7 @@ def calc_framing_gam_adv(df, max_dist=0.25):
     logs, _ = calc_framing_gam(df)
     logs = logs.assign(dist = np.min(sp.spatial.distance.cdist(logs[['px', 'pz']], cts), axis=1))
 
-    tab = logs.pivot_table(index='catcher',
+    tab = logs.loc[logs.dist < max_dist].pivot_table(index='catcher',
                            values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
                            aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
     tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
@@ -1417,7 +1417,7 @@ def calc_framing_cell_adv(df, max_dist=0.25):
     logs, _ = calc_framing_cell(df)
     logs = logs.assign(dist = np.min(sp.spatial.distance.cdist(logs[['px', 'pz']], cts), axis=1))
 
-    tab = logs.pivot_table(index='catcher',
+    tab = logs.loc[logs.dist < max_dist].pivot_table(index='catcher',
                            values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
                            aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
     tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
