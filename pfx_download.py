@@ -17,6 +17,7 @@ import time
 import regex
 import collections
 import ast
+import csv
 
 # custom library
 import logManager
@@ -215,11 +216,11 @@ def download_relay(args, lm=None):
                                + '&tab=relay'
                 }
 
-                res = requests.get(relay_url, params=params, headers=headers)
+                response = requests.get(relay_url, params=params, headers=headers)
 
-                if res is not None:
+                if response is not None:
                     txt = {}
-                    js = res.json()
+                    js = response.json()
                     if isinstance(js, str):
                         js = json.loads(js)
                         #js = ast.literal_eval(js)
@@ -236,7 +237,7 @@ def download_relay(args, lm=None):
                     txt['homeTeamLineUp'] = js['homeTeamLineUp']
                     txt['awayTeamLineUp'] = js['awayTeamLineUp']
 
-                    res.close()
+                    response.close()
 
                     for inn in range(2, last_inning + 1):
                         params = {
@@ -244,9 +245,9 @@ def download_relay(args, lm=None):
                             'half': str(inn)
                         }
 
-                        res = requests.get(relay_url, params=params, headers=headers)
-                        if res is not None:
-                            js = res.json()
+                        response = requests.get(relay_url, params=params, headers=headers)
+                        if response is not None:
+                            js = response.json()
                             if isinstance(js, str):
                                 js = json.loads(js)
                                 #js = ast.literal_eval(js)
@@ -269,7 +270,7 @@ def download_relay(args, lm=None):
                             if lm is not None:
                                 lm.log('Cannot get response : {}'.format(game_id))
 
-                        res.close()
+                        response.close()
 
                     # get referee
                     params = {
@@ -286,27 +287,62 @@ def download_relay(args, lm=None):
                                    + '&tab=record'
                     }
 
-                    res = requests.get(record_url, params=params, headers=headers)
+                    response = requests.get(record_url, params=params, headers=headers)
 
                     p = regex.compile('(?<=\"etcRecords\":\[)[\\\.\{\}\"0-9:\s\(\)\,\ba-z가-힣\{\}]+')
-                    result = p.findall(res.text)
+                    result = p.findall(response.text)
                     if len(result) == 0:
                         txt['referee'] = ''
                     else:
                         txt['referee'] = result[0].split('{')[-1].split('":"')[1].split(' ')[0]
 
                     p = regex.compile('stadiumName: \'\w+\'')
-                    result = p.findall(res.text)
+                    result = p.findall(response.text)
                     if len(result) == 0:
                         txt['stadium'] = ''
                     else:
                         txt['stadium'] = result[0].split('\'')[1]
 
-                    res.close()
+                    response.close()
 
                     fp = open(game_id + '_relay.json', 'w', newline='\n')
                     json.dump(txt, fp, ensure_ascii=False, sort_keys=False, indent=4)
                     fp.close()
+                    
+                    ##### 텍스트만 저장
+                    text_list = []
+                    pts_list = []
+                    for k in sorted(txt['relayList'].keys()):
+                        textset = txt['relayList'][k]
+                        textOptionList = textset['textOptionList']
+                        for to in textOptionList:
+                            row = [k, to['type'], to['text']]
+                            if 'ptsPitchId' in to.keys():
+                                row.append(to['ptsPitchId'])
+                            if 'stuff' in to.keys():
+                                row.append(to['stuff'])
+                            if 'speed' in to.keys():
+                                row.append(to['speed'])
+                            text_list.append(row)
+
+                        if 'ptsOptionList' in textset.keys():
+                            ptsOptionList = textset['ptsOptionList']
+                            for po in ptsOptionList:
+                                row = [k] + list(po.values())
+                                pts_list.append(row)
+
+                    fp = open(game_id + '_textset.txt', 'w', newline='\n')
+                    cf = csv.writer(fp)
+                    for tl in text_list:
+                        cf.writerow(tl)
+                    fp.close()
+
+                    fp = open(game_id + '_ptsset.txt', 'w', newline='\n')
+                    cf = csv.writer(fp)
+                    for pl in pts_list:
+                        cf.writerow(pl)
+                    fp.close()
+                    #####
 
                     done += 1
                 else:
@@ -450,11 +486,11 @@ def download_pfx(args, lm=None):
                                + '&tab=relay'
                 }
 
-                res = requests.get(pfx_url, params=params, headers=headers)
+                response = requests.get(pfx_url, params=params, headers=headers)
 
-                if res is not None:
+                if response is not None:
                     # load json structure
-                    js = res.json()
+                    js = response.json()
                     if isinstance(js, str):
                         js = json.loads(js)
                         #js = ast.literal_eval(js)
