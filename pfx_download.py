@@ -526,8 +526,8 @@ def download_pfx(args, lm=None):
                     th = t - t40
                     x_no_air = x40 + vx40 * th
                     z_no_air = z40 + vz40 * th - 0.5 * 32.174 * th * th
-                    df['pfx_x2'] = np.round((xp - x_no_air) * 12, 5)
-                    df['pfx_z2'] = np.round((zp - z_no_air) * 12, 5)
+                    df['pfx_x'] = np.round((xp - x_no_air) * 12, 5)
+                    df['pfx_z'] = np.round((zp - z_no_air) * 12, 5)
 
                     # load back to json structure
                     dfjsstr = df.to_json(orient='records', force_ascii=False)
@@ -537,6 +537,33 @@ def download_pfx(args, lm=None):
                     fp = open(game_id + '_pfx.json', 'w', newline='\n')
                     json.dump(dfjs, fp, ensure_ascii=False, sort_keys=False, indent=4)
                     fp.close()
+
+                    # dump to csv file
+                    fp = open(game_id + '_pfx.csv', 'w', newline='\n')
+                    cf = csv.writer(fp)
+                    cf.writerow(['x0', 'y0', 'z0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'plateX', 'plateZ', 'crossPlateX', 'crossPlateY', 'topSz', 'bottomSz', 'stuff', 'speed', 'pitcherName', 'batterName'])
+                    for x in dfjs:
+                        cf.writerow([x['x0'],
+                                     x['y0'],
+                                     x['z0'],
+                                     x['vx0'],
+                                     x['vy0'],
+                                     x['vz0'],
+                                     x['ax'],
+                                     x['ay'],
+                                     x['az'],
+                                     x['plateX'],
+                                     x['plateZ'],
+                                     x['crossPlateX'],
+                                     x['crossPlateY'],
+                                     x['topSz'],
+                                     x['bottomSz'],
+                                     x['stuff'],
+                                     x['speed'],
+                                     x['pitcherName'],
+                                     x['batterName']])
+                    fp.close()
+
                     done += 1
                 else:
                     skipped += 1
