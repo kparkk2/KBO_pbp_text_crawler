@@ -375,6 +375,7 @@ def download_relay(args, lm=None):
 def download_pfx(args, lm=None):
     # return True or False
     pfx_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/pitches.nhn'
+    pfx_header_row = ['x0', 'y0', 'z0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'plateX', 'plateZ', 'crossPlateX', 'crossPlateY', 'topSz', 'bottomSz', 'stuff', 'speed', 'pitcherName', 'batterName']
 
     game_ids = get_game_ids(args)
     if (game_ids is None) or (len(game_ids) == 0):
@@ -417,6 +418,10 @@ def download_pfx(args, lm=None):
             os.mkdir(str(year))
         os.chdir(str(year))
         # path: pbp_data/year
+        
+        year_fp = open(f'{year}_pfx.csv', 'w', newline='\n')
+        year_cf = csv.writer(year_fp)
+        year_cf.writerow(pfx_header_row)
 
         for month in game_ids[year].keys():
             start2 = time.time()
@@ -433,6 +438,10 @@ def download_pfx(args, lm=None):
                 os.mkdir(str(month))
             os.chdir(str(month))
             # path: pbp_data/year/month
+
+            month_fp = open(f'{year}_{month}_pfx.csv', 'w', newline='\n')
+            month_cf = csv.writer(month_fp)
+            month_cf.writerow(pfx_header_row)
 
             # download
             done = 0
@@ -520,7 +529,7 @@ def download_pfx(args, lm=None):
                     t40 = -df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - 40))
                     t40 /= df['ay']
                     x40 = df['x0'] + df['vx0'] * t40 + 0.5 * df['ax'] * t40 * t40
-                    vx40 = df['vx0'] + df['ax'] * t40
+                    vx41 = df['vx0'] + df['ax'] * t40
                     z40 = df['z0'] + df['vz0'] * t40 + 0.5 * df['az'] * t40 * t40
                     vz40 = df['vz0'] + df['az'] * t40
                     th = t - t40
@@ -541,27 +550,32 @@ def download_pfx(args, lm=None):
                     # dump to csv file
                     fp = open(game_id + '_pfx.csv', 'w', newline='\n')
                     cf = csv.writer(fp)
-                    cf.writerow(['x0', 'y0', 'z0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'plateX', 'plateZ', 'crossPlateX', 'crossPlateY', 'topSz', 'bottomSz', 'stuff', 'speed', 'pitcherName', 'batterName'])
+                    cf.writerow(pfx_header_row)
+
                     for x in dfjs:
-                        cf.writerow([x['x0'],
-                                     x['y0'],
-                                     x['z0'],
-                                     x['vx0'],
-                                     x['vy0'],
-                                     x['vz0'],
-                                     x['ax'],
-                                     x['ay'],
-                                     x['az'],
-                                     x['plateX'],
-                                     x['plateZ'],
-                                     x['crossPlateX'],
-                                     x['crossPlateY'],
-                                     x['topSz'],
-                                     x['bottomSz'],
-                                     x['stuff'],
-                                     x['speed'],
-                                     x['pitcherName'],
-                                     x['batterName']])
+                        row = [x['x0'],
+                               x['y0'],
+                               x['z0'],
+                               x['vx0'],
+                               x['vy0'],
+                               x['vz0'],
+                               x['ax'],
+                               x['ay'],
+                               x['az'],
+                               x['plateX'],
+                               x['plateZ'],
+                               x['crossPlateX'],
+                               x['crossPlateY'],
+                               x['topSz'],
+                               x['bottomSz'],
+                               x['stuff'],
+                               x['speed'],
+                               x['pitcherName'],
+                               x['batterName']]
+                        month_cf.writerow(row)
+                        year_cf.writerow(row)
+                        cf.writerow(row)
+
                     fp.close()
 
                     done += 1
@@ -578,14 +592,17 @@ def download_pfx(args, lm=None):
             print('        (Skipped {} files)'.format(skipped))
             end2 = time.time()
             print('            -- elapsed {:.3f} sec for month {}'.format(end2 - start2, month))
-
+            month_fp.close()
 
             os.chdir('..')
             # path: pbp_data/year
         end1 = time.time()
         print('   -- elapsed {:.3f} sec for year {}'.format(end1 - start1, year))
         # months done
+        year_fp.close()
+        
         os.chdir('..')
+
         # path: pbp_data/
     # years done
     os.chdir('..')

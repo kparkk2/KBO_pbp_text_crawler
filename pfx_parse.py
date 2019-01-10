@@ -162,7 +162,17 @@ class BallGame:
             {'pos': '', 'name': '', 'seqno': 0},
             {'pos': '', 'name': '', 'seqno': 0},
             {'pos': '', 'name': '', 'seqno': 0}
-        ]
+        ],
+
+        # raw data 추가
+        'y0': None,
+        'vx0': None,
+        'vy0': None,
+        'vz0': None,
+        'ax': None,
+        'ay': None,
+        'az': None,
+        'pitchId': None
     }
 
     # True 일 때 다음 타석/투구 전환->스코어, 아웃카운트, 이닝 초/말 등 변경.
@@ -337,6 +347,16 @@ class BallGame:
 
         row.append(str(self.game_status['pa_number']))
         row.append(str(self.game_status['pitch_number']))
+
+        # raw data 추가
+        row.append(str(self.game_status['y0']))
+        row.append(str(self.game_status['vx0']))
+        row.append(str(self.game_status['vy0']))
+        row.append(str(self.game_status['vz0']))
+        row.append(str(self.game_status['ax']))
+        row.append(str(self.game_status['ay']))
+        row.append(str(self.game_status['az']))
+        row.append(str(self.game_status['pitchId']))
         self.text_row.append(row)
 
     def print_row_debug(self):
@@ -1395,6 +1415,18 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
         ball_game.game_status['sz_top'] = pts_data['topSz']
         ball_game.game_status['sz_bot'] = pts_data['bottomSz']
 
+        # raw data 추가
+        ball_game.game_status['y0'] = pts_data['y0']
+        ball_game.game_status['vx0'] = pts_data['vx0']
+        ball_game.game_status['vy0'] = pts_data['vy0']
+        ball_game.game_status['vz0'] = pts_data['vz0']
+        ball_game.game_status['ax'] = pts_data['ax']
+        ball_game.game_status['ay'] = pts_data['ay']
+        ball_game.game_status['az'] = pts_data['az']
+
+        # ball id 추가
+        ball_game.game_status['pitchId'] = pts_data['pitchId']
+
         ax = pts_data['ax']
         ay = pts_data['ay']
         az = pts_data['az']
@@ -1808,7 +1840,8 @@ header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'stands', 'throws', 'on_1b', 'on_2b', 'on_3b', 'px', 'pz', 'pfx_x', 'pfx_z',
               'x0', 'z0', 'sz_top', 'sz_bot', 'pos_1', 'pos_2', 'pos_3', 'pos_4', 'pos_5',
               'pos_6', 'pos_7', 'pos_8', 'pos_9', 'game_date', 'home', 'away',
-              'stadium', 'referee', 'pa_number', 'pitch_number']
+              'stadium', 'referee', 'pa_number', 'pitch_number',
+              'y0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'pitchID'] # raw data 추가
 
 
 def parse_game(game, lm=None, month_file=None, year_file=None):
