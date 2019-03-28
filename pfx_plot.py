@@ -103,8 +103,8 @@ def preprocess_data(df):
     return df
 
 
-def plot_strike_calls(df, title=None, show_pitch_number=False, print_std=False):
-    return plot_by_call(df, title, calls=['스트라이크', '볼'], legends=True, show_pitch_number=show_pitch_number, print_std=print_std)
+def plot_strike_calls(df, title=None, show_pitch_number=False):
+    return plot_by_call(df, title, calls=['스트라이크', '볼'], legends=True, show_pitch_number=show_pitch_number)
 
 
 def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80, ax=None):
