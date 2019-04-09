@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy.random
 import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
+import matplotlib.cm as cm
 from matplotlib import font_manager as fm, rc
 from IPython.display import HTML
 from IPython.display import display
@@ -159,7 +160,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         
     for c in calls_:
         f = df.loc[df.pitch_result == c]
-        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*fig.dpi, label=c, cmap='set1', zorder=0)
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=c, cmap='set1', zorder=0)
 
         if show_pitch_number is True:
             for i in f.index:
@@ -185,7 +186,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     ax.axis( [lb, rb, bb, tb] )
 
     if title is not None:
-        plt.title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+        ax.set_title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
     
     plt.axis('off')
     ax.autoscale_view('tight')
