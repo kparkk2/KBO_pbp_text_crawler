@@ -28,6 +28,11 @@ Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
 Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c', '파울':'#edf72c', '타격':'#8348d1', '번트파울':'#edf72c', '번트헛스윙':'#1a1b1c' }
 
+
+def fmt(x, pos):
+    return r'{}%'.format(int(x*100))
+
+
 def set_fonts(name=None):
     if os.name == 'posix':
         fm.get_fontconfig_fonts()
@@ -143,7 +148,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         otl = otl * 30.48
     
     if ax is None:
-        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
+        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='#898f99')
     else:
         fig = None
     
@@ -329,7 +334,7 @@ def plot_match_calls(df, title=None):
     ############
     # 1/6 : 스트라이크+볼
     ############
-    ax = fig.add_subplot(231, facecolor='#313133')
+    ax = fig.add_subplot(231)
     ax.tick_params(axis='x', colors='white')
     
     plt.scatter(strikes.px, strikes.pz, color='#ef2926', alpha=.5, s=np.pi*50, label='스트라이크')
@@ -363,7 +368,7 @@ def plot_match_calls(df, title=None):
     ############
     # 2/6 : 스트라이크
     ############
-    ax = fig.add_subplot(232, facecolor='#313133')
+    ax = fig.add_subplot(232)
     ax.tick_params(axis='x', colors='white')
 
     plt.scatter(strikes.px, strikes.pz, color='#ef2926', alpha=.5, s=np.pi*50, label='스트라이크')
@@ -396,7 +401,7 @@ def plot_match_calls(df, title=None):
     ############
     # 3/6 : 볼
     ############
-    ax = fig.add_subplot(233, facecolor='#313133')
+    ax = fig.add_subplot(233)
     ax.tick_params(axis='x', colors='white')
 
     plt.scatter(balls.px, balls.pz, color='#3245ef', alpha=.5, s=np.pi*50, label='볼')
@@ -429,7 +434,7 @@ def plot_match_calls(df, title=None):
     ############
     # 4/6 : 헛스윙
     ############
-    ax = fig.add_subplot(2,3,4, facecolor='#313133')
+    ax = fig.add_subplot(234)
     ax.tick_params(axis='x', colors='white')
 
     plt.scatter(whiffs.px, whiffs.pz, color='#1a1b1c', alpha=.5, s=np.pi*50, label='헛스윙')
@@ -462,7 +467,7 @@ def plot_match_calls(df, title=None):
     ############
     # 5/6 : 파울
     ############
-    ax = fig.add_subplot(235, facecolor='#313133')
+    ax = fig.add_subplot(235)
     ax.tick_params(axis='x', colors='white')
 
     plt.scatter(fouls.px, fouls.pz, color='#edf72c', alpha=.5, s=np.pi*50, label='파울')
@@ -495,7 +500,7 @@ def plot_match_calls(df, title=None):
     ############
     # 6/6 : 인플레이(타격)
     ############
-    ax = fig.add_subplot(236, facecolor='#d19c49')
+    ax = fig.add_subplot(236)
     ax.tick_params(axis='x', colors='white')
 
     plt.scatter(inplays.px, inplays.pz, color='#8348d1', alpha=.5, s=np.pi*50, label='인플레이')
@@ -526,10 +531,6 @@ def plot_match_calls(df, title=None):
     ax.autoscale_view('tight')
     
     plt.show()
-
-
-def fmt(x, pos):
-    return r'{}%'.format(int(x*100))
 
 
 def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
