@@ -687,8 +687,7 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_
     
     if cmap is None:
         cmap='Reds'
-    
-    if cmap is not None:
+    else:
         from matplotlib.colors import LinearSegmentedColormap
         cmap = LinearSegmentedColormap.from_list('mycmap', [color]*6)
 
