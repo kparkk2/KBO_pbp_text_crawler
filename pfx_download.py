@@ -41,7 +41,7 @@ regular_start = {
     '2016': '0401',
     '2017': '0331',
     '2018': '0324',
-    '2019': '0324',
+    '2019': '0323',
 }
 
 playoff_start = {
@@ -239,6 +239,8 @@ def download_relay(args, lm=None):
                     txt['homeTeamLineUp'] = js['homeTeamLineUp']
                     txt['awayTeamLineUp'] = js['awayTeamLineUp']
 
+                    txt['stadium'] = js['schedule']['stadium']
+
                     response.close()
 
                     for inn in range(2, last_inning + 1):
@@ -298,12 +300,14 @@ def download_relay(args, lm=None):
                     else:
                         txt['referee'] = result[0].split('{')[-1].split('":"')[1].split(' ')[0]
 
+                    '''
                     p = regex.compile('stadiumName: \'\w+\'')
                     result = p.findall(response.text)
                     if len(result) == 0:
                         txt['stadium'] = ''
                     else:
                         txt['stadium'] = result[0].split('\'')[1]
+                    '''
 
                     response.close()
 
@@ -314,6 +318,8 @@ def download_relay(args, lm=None):
                     ##### 텍스트만 저장
                     text_list = []
                     pts_list = []
+                    text_list_header = 'textOrder,textType,text,ptsPitchId,stuff,speed'
+                    pts_list_header = 'textOrder,inn,ballcount,crossPlateX,topSz,crossPlateY,pitchId,vy0,vz0,vx0,z0,y0,ax,x0,ay,az,bottomSz,stance'
                     for k in sorted(txt['relayList'].keys()):
                         textset = txt['relayList'][k]
                         textOptionList = textset['textOptionList']
@@ -321,26 +327,33 @@ def download_relay(args, lm=None):
                             row = [k, to['type'], to['text']]
                             if 'ptsPitchId' in to.keys():
                                 row.append(to['ptsPitchId'])
+                            else:
+                                row.append('')
                             if 'stuff' in to.keys():
                                 row.append(to['stuff'])
+                            else:
+                                row.append('')
                             if 'speed' in to.keys():
                                 row.append(to['speed'])
+                            else:
+                                row.append('')
                             text_list.append(row)
-
                         if 'ptsOptionList' in textset.keys():
                             ptsOptionList = textset['ptsOptionList']
                             for po in ptsOptionList:
                                 row = [k] + list(po.values())
                                 pts_list.append(row)
 
-                    fp = open(game_id + '_textset.txt', 'w', newline='\n')
+                    fp = open(game_id + '_textset.csv', 'w', newline='\n')
                     cf = csv.writer(fp)
+                    cf.writerow(text_list_header)
                     for tl in text_list:
                         cf.writerow(tl)
                     fp.close()
 
-                    fp = open(game_id + '_ptsset.txt', 'w', newline='\n')
+                    fp = open(game_id + '_ptsset.csv', 'w', newline='\n')
                     cf = csv.writer(fp)
+                    cf.writerow(pts_list_header)
                     for pl in pts_list:
                         cf.writerow(pl)
                     fp.close()
