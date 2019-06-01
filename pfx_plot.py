@@ -113,7 +113,7 @@ def plot_strike_calls(df, title=None, show_pitch_number=False):
     return plot_by_call(df, title, calls=['스트라이크', '볼'], legends=True, show_pitch_number=show_pitch_number)
 
 
-def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80, ax=None):
+def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, dpi=80, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -132,20 +132,6 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     otl = tl+3/24
     bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
     tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
-    
-    if is_cm is True:
-        lb = lb * 30.48
-        rb = rb * 30.48
-        bb = bb * 30.48
-        tb = tb * 30.48
-        ll = ll * 30.48
-        rl = rl * 30.48
-        oll = oll * 30.48
-        orl = orl * 30.48
-        bl = bl * 30.48
-        tl = tl * 30.48
-        obl = obl * 30.48
-        otl = otl * 30.48
     
     if ax is None:
         fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='#898f99')
@@ -202,7 +188,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     return fig, ax
 
 
-def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80, ax=None):
+def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, dpi=80, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -221,20 +207,6 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
     otl = tl+3/24
     bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
     tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
-    
-    if is_cm is True:
-        lb = lb * 30.48
-        rb = rb * 30.48
-        bb = bb * 30.48
-        tb = tb * 30.48
-        ll = ll * 30.48
-        rl = rl * 30.48
-        oll = oll * 30.48
-        orl = orl * 30.48
-        bl = bl * 30.48
-        tl = tl * 30.48
-        obl = obl * 30.48
-        otl = otl * 30.48
     
     if ax is None:
         fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
@@ -533,7 +505,7 @@ def plot_match_calls(df, title=None):
     plt.show()
 
 
-def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
+def plot_contour_balls(df, title=None, dpi=144, cmap=None, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -552,32 +524,14 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None)
     bb = (bl+tl)/2 - (tl-bl)*15/16
     tb = (bl+tl)/2 + (tl-bl)*15/16
     
-    if is_cm is True:
-        lb = lb * 30.48
-        rb = rb * 30.48
-        bb = bb * 30.48
-        tb = tb * 30.48
-        ll = ll * 30.48
-        rl = rl * 30.48
-        oll = oll * 30.48
-        orl = orl * 30.48
-        bl = bl * 30.48
-        tl = tl * 30.48
-        obl = obl * 30.48
-        otl = otl * 30.48
-    
     if ax is None:
         fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
     else:
         fig = None
-    
-    if is_cm is False:
-        major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/10
-    else:
-        major_xtick_step = major_ytick_step = 20
-        minor_xtick_step = minor_ytick_step = 5
-    
+
+    major_xtick_step = major_ytick_step = 1/2
+    minor_xtick_step = minor_ytick_step = 1/10
+        
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
     
@@ -630,7 +584,7 @@ def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None)
     return fig, ax
 
 
-def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_full=False, color=None):
+def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, color=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -648,20 +602,6 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_
     otl = tl+3/24
     bb = (bl+tl)/2 - (tl-bl)*15/16
     tb = (bl+tl)/2 + (tl-bl)*15/16
-    
-    if is_cm is True:
-        lb = lb * 30.48
-        rb = rb * 30.48
-        bb = bb * 30.48
-        tb = tb * 30.48
-        ll = ll * 30.48
-        rl = rl * 30.48
-        oll = oll * 30.48
-        orl = orl * 30.48
-        bl = bl * 30.48
-        tl = tl * 30.48
-        obl = obl * 30.48
-        otl = otl * 30.48
     
     strikes = df.loc[df.pitch_result == '스트라이크']
     balls = df.loc[df.pitch_result == '볼']
@@ -703,12 +643,8 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_
     ax.set_facecolor('#cccccc')
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt), ax=ax)
     
-    if is_cm is False:
-        major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/12
-    else:
-        major_xtick_step = major_ytick_step = 20
-        minor_xtick_step = minor_ytick_step = 20/6
+    major_xtick_step = major_ytick_step = 1/2
+    minor_xtick_step = minor_ytick_step = 1/12
     
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
@@ -748,7 +684,7 @@ def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_
     return fig, ax
 
 
-def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False, ax=None):
+def plot_szone(df, title=None, dpi=144, show_area=False, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
@@ -766,20 +702,6 @@ def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False, ax=None):
     otl = tl+3/24
     bb = 1.0
     tb = 4.0
-    
-    if is_cm is True:
-        lb = lb * 30.48
-        rb = rb * 30.48
-        bb = bb * 30.48
-        tb = tb * 30.48
-        ll = ll * 30.48
-        rl = rl * 30.48
-        oll = oll * 30.48
-        orl = orl * 30.48
-        bl = bl * 30.48
-        tl = tl * 30.48
-        obl = obl * 30.48
-        otl = otl * 30.48
     
     strikes = df.loc[df.pitch_result == '스트라이크']
     balls = df.loc[df.pitch_result == '볼']
@@ -808,18 +730,11 @@ def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False, ax=None):
     cmap = matplotlib.colors.ListedColormap(['white', '#ccffcc'])
     plt.pcolor(x, y, rg, cmap=cmap)
     
-    if is_cm is False:
-        major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/10
-    else:
-        major_xtick_step = major_ytick_step = 20
-        minor_xtick_step = minor_ytick_step = 5
+    major_xticks = np.linspace(lb, rb, 7)
+    minor_xticks = np.linspace(lb, rb, 37)
     
-    major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
-    minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
-    
-    major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
-    minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
+    major_yticks = np.linspace(1, 4, 7)
+    minor_yticks = np.linspace(1, 4, 37)
 
     ax.set_xticks(major_xticks)
     ax.set_xticks(minor_xticks, minor=True)
@@ -1142,7 +1057,7 @@ RV = np.asarray([
     0.248, 0.294, 0.402, 0.689
 ])
 
-def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
+def plot_by_proba(df, title=None, dpi=144, cmap=None, ax=None):
     set_fonts()
     if 'proba' not in df.keys():
         print('Key "proba" not in dataframe')
@@ -1163,20 +1078,6 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     otl = tl+3/24
     bb = (bl+tl)/2 - (tl-bl)*15/16
     tb = (bl+tl)/2 + (tl-bl)*15/16
-    
-    if is_cm is True:
-        lb = lb * 30.48
-        rb = rb * 30.48
-        bb = bb * 30.48
-        tb = tb * 30.48
-        ll = ll * 30.48
-        rl = rl * 30.48
-        oll = oll * 30.48
-        orl = orl * 30.48
-        bl = bl * 30.48
-        tl = tl * 30.48
-        obl = obl * 30.48
-        otl = otl * 30.48
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
@@ -1189,13 +1090,9 @@ def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     cs = ax.scatter(df.px, df.pz, alpha=.5, s=np.pi/2*dpi, c=df.proba, cmap=cmap, zorder=0, vmin=0, vmax=1)
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt), spacing='proportional', ax=ax)
     
-    if is_cm is False:
-        major_xtick_step = major_ytick_step = 1/2
-        minor_xtick_step = minor_ytick_step = 1/12
-    else:
-        major_xtick_step = major_ytick_step = 20
-        minor_xtick_step = minor_ytick_step = 20/6
-    
+    major_xtick_step = major_ytick_step = 1/2
+    minor_xtick_step = minor_ytick_step = 1/12
+
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
     
@@ -1280,9 +1177,8 @@ def calc_framing_gam(df):
     return logs, tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
 
     
-def calc_framing_cell(df, is_cm=False):
+def calc_framing_cell(df):
     # 20-80% 구간 측정이 mean을 0에 가깝게 맞출 수 있음.
-    is_cm=False
     features = ['px', 'pz', 'pitch_result', 'stands', 'throws', 'pitcher', 'catcher',
                 'stadium', 'referee', 'balls', 'strikes']
 
@@ -1301,12 +1197,6 @@ def calc_framing_cell(df, is_cm=False):
     rb = +1.5
     bb = 1.0
     tb = 4.0
-
-    if is_cm is True:
-        lb = lb * 30.48
-        rb = rb * 30.48
-        bb = bb * 30.48
-        tb = tb * 30.48
 
     bins = 36
 
