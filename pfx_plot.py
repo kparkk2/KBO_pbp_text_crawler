@@ -209,7 +209,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
     tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
     
     if ax is None:
-        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='898f99')
+        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='#898f99')
     else:
         fig = None
     
