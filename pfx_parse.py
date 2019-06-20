@@ -101,6 +101,8 @@ class BallGame:
         'pz': None,
         'pfx_x': None,
         'pfx_z': None,
+        'pfx_x_raw': None,
+        'pfx_z_raw': None,
         'x0': None,
         'z0': None,
         'sz_top': None,
@@ -201,6 +203,8 @@ class BallGame:
         self.game_status['pz'] = None
         self.game_status['pfx_x'] = None
         self.game_status['pfx_z'] = None
+        self.game_status['pfx_x_raw'] = None
+        self.game_status['pfx_z_raw'] = None
         self.game_status['x0'] = None
         self.game_status['z0'] = None
         self.game_status['sz_top'] = None
@@ -313,6 +317,8 @@ class BallGame:
         row.append(str(self.game_status['pz']))
         row.append(str(self.game_status['pfx_x']))
         row.append(str(self.game_status['pfx_z']))
+        row.append(str(self.game_status['pfx_x_raw']))
+        row.append(str(self.game_status['pfx_z_raw']))
         row.append(str(self.game_status['x0']))
         row.append(str(self.game_status['z0']))
         row.append(str(self.game_status['sz_top']))
@@ -1452,8 +1458,12 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
         th = t - t40
         x_no_air = x40 + vx40 * th
         z_no_air = z40 + vz40 * th - 0.5 * 32.174 * th * th
+        z_no_induced = z0 + vz0 * t
+
         ball_game.game_status['pfx_x'] = round((px - x_no_air) * 12, 5)
         ball_game.game_status['pfx_z'] = round((pz - z_no_air) * 12, 5)
+        ball_game.game_status['pfx_x_raw'] = round(px * 12, 5)
+        ball_game.game_status['pfx_z_raw'] = round((pz - z_no_induced) * 12, 5)
 
     if result == '볼':
         ball_game.get_ball()
@@ -1837,7 +1847,7 @@ def parse_text(text, text_type, ball_game, game_over,
 header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'speed', 'pitch_result', 'pa_result', 'balls', 'strikes', 'outs',
               'inning', 'inning_topbot', 'score_away', 'score_home',
-              'stands', 'throws', 'on_1b', 'on_2b', 'on_3b', 'px', 'pz', 'pfx_x', 'pfx_z',
+              'stands', 'throws', 'on_1b', 'on_2b', 'on_3b', 'px', 'pz', 'pfx_x', 'pfx_z', 'pfx_x_raw', 'pfx_z_raw',
               'x0', 'z0', 'sz_top', 'sz_bot', 'pos_1', 'pos_2', 'pos_3', 'pos_4', 'pos_5',
               'pos_6', 'pos_7', 'pos_8', 'pos_9', 'game_date', 'home', 'away',
               'stadium', 'referee', 'pa_number', 'pitch_number',
