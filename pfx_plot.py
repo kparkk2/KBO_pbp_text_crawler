@@ -10,7 +10,7 @@ import matplotlib.dates as mdates
 import matplotlib.cm as cm
 from matplotlib import font_manager as fm, rc
 from IPython.display import HTML
-from IPython.display import display
+from IPython.display import display, Audio
 import pandas as pd
 import seaborn as sns
 from enum import Enum
@@ -82,6 +82,8 @@ def clean_data(df):
     df = df.assign(sz_bot = pd.to_numeric(df.sz_bot, errors='coerce'))
     df = df.assign(pfx_x = pd.to_numeric(df.pfx_x, errors='coerce'))
     df = df.assign(pfx_z = pd.to_numeric(df.pfx_z, errors='coerce'))
+    df = df.assign(pfx_x_raw = pd.to_numeric(df.pfx_x_raw, errors='coerce'))
+    df = df.assign(pfx_z_raw = pd.to_numeric(df.pfx_z_raw, errors='coerce'))
     df = df.assign(x0 = pd.to_numeric(df.x0, errors='coerce'))
     df = df.assign(z0 = pd.to_numeric(df.z0, errors='coerce'))
     
@@ -2417,3 +2419,12 @@ def interactive_pitcher_discipline_graph(df):
     display(pitcherSelect, termSelectSlider, statSelectButton, updateButton)
     display(interactive_pitcher_discipline_graph.fig)
     plt.close(interactive_pitcher_discipline_graph.fig)
+
+
+def soundAlert1():
+    display(Audio(url='https://sound.peal.io/ps/audios/000/000/537/original/woo_vu_luvub_dub_dub.wav', autoplay=True))
+
+
+def soundAlert2():
+    display(Audio(url='https://sound.peal.io/ps/audios/000/000/430/original/liljon_3.mp3', autoplay=True))
+
