@@ -424,7 +424,8 @@ class BallGame:
                 pos_num = position[away_bat['posName']]
                 if pos_num < 10:
                     pos_name = field_away[pos_num]
-                    self.game_status[pos_name] = away_bat['name']
+                    if (self.game_status[pos_name] is None) & (away_bat['seqno'] == 1):
+                        self.game_status[pos_name] = away_bat['name']
             else:
                 cur_seqno = self.game_status['away_lineup'][order]['seqno']
                 if away_bat['seqno'] < cur_seqno:
@@ -434,7 +435,8 @@ class BallGame:
                     pos_num = position[away_bat['posName']]
                     if pos_num < 10:
                         pos_name = field_away[pos_num]
-                        self.game_status[pos_name] = away_bat['name']
+                        if (self.game_status[pos_name] is None) & (away_bat['seqno'] == 1):
+                            self.game_status[pos_name] = away_bat['name']
 
         for home_bat in home_lineup['batter']:
             order = home_bat['batOrder'] - 1
@@ -445,7 +447,8 @@ class BallGame:
                 pos_num = position[home_bat['posName']]
                 if pos_num < 10:
                     pos_name = field_home[pos_num]
-                    self.game_status[pos_name] = home_bat['name']
+                    if (self.game_status[pos_name] is None) & (home_bat['seqno'] == 1):
+                        self.game_status[pos_name] = home_bat['name']
             else:
                 cur_seqno = self.game_status['home_lineup'][order]['seqno']
                 if home_bat['seqno'] < cur_seqno:
@@ -455,7 +458,8 @@ class BallGame:
                     pos_num = position[home_bat['posName']]
                     if pos_num < 10:
                         pos_name = field_home[pos_num]
-                        self.game_status[pos_name] = home_bat['name']
+                        if (self.game_status[pos_name] is None) & (home_bat['seqno'] == 1):
+                            self.game_status[pos_name] = home_bat['name']
 
         for away_pit in away_lineup['pitcher']:
             if not (away_pit['seqno'] == 1):
