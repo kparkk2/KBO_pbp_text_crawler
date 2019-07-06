@@ -318,8 +318,8 @@ def download_relay(args, lm=None):
                     ##### 텍스트만 저장
                     text_list = []
                     pts_list = []
-                    text_list_header = 'textOrder,textType,text,ptsPitchId,stuff,speed'
-                    pts_list_header = 'textOrder,inn,ballcount,crossPlateX,topSz,crossPlateY,pitchId,vy0,vz0,vx0,z0,y0,ax,x0,ay,az,bottomSz,stance'
+                    text_list_header = ["textOrder","textType","text","ptsPitchId","stuff","speed"]
+                    pts_list_header = ["textOrder","inn","ballcount","crossPlateX","topSz","crossPlateY","pitchId","vy0","vz0","vx0","z0","y0","ax","x0","ay","az","bottomSz","stance"]
                     for k in sorted(txt['relayList'].keys()):
                         textset = txt['relayList'][k]
                         textOptionList = textset['textOptionList']
