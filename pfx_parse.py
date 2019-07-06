@@ -1457,6 +1457,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
             ball_game.game_status['pa_result'] = '투구 외 득점'
             ball_game.reset_pfx()
             ball_game.print_row()
+            ball_game.game_status['pa_result'] = 'None'
         if ball_game.game_status['inning_top_bot'] is 0:
             ball_game.game_status['score_away'] += ball_game.runs_how_many
         else:
