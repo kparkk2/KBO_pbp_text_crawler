@@ -722,11 +722,16 @@ def get_framing_run(df):
     
     logs = adjust_framing(logs, rv)
     
-    tab = logs.pivot_table(['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'exrv_adj', 'px'],
+    logs = logs.assign(exrv_prob_plus_adj = (1-logs.proba)*logs.exrv_adj,
+                       exrv_prob_minus_adj = logs.proba*logs.exrv_adj)
+    logs = logs.assign(exrv_prob_adj = np.where(logs.excall==1, logs.exrv_prob_plus_adj,
+                                       np.where(logs.excall==-1, logs.exrv_prob_minus_adj, 0)))
+
+    tab = logs.pivot_table(['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'exrv_adj', 'exrv_prob_adj', 'px'],
                            'catcher',
                            None, # no column
                            {'exstr': 'sum', 'exball': 'sum', 'excall': 'sum',
-                            'exrv': 'sum', 'exrv_prob': 'sum', 'exrv_adj': 'sum',
+                            'exrv': 'sum', 'exrv_prob': 'sum', 'exrv_adj': 'sum', 'exrv_prob_adj': 'sum',
                             'px': 'count'}, 0)
     
     tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('excall', ascending=False)
