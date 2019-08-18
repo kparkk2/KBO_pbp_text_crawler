@@ -7,6 +7,7 @@ from scipy.ndimage.filters import gaussian_filter
 import matplotlib.pyplot as plt
 from IPython.display import display, Audio
 from pfx_plot import clean_data
+from matplotlib.colors import ListedColormap
 
 import importlib
 if importlib.util.find_spec('pygam') is not None:
@@ -737,6 +738,47 @@ def get_framing_run(df):
     tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('excall', ascending=False)
     
     return logs, tab
+
+
+def plot_table_color_scale(df, columns=None):
+    N = 128
+    top = np.ones((N, 4))
+    bottom = np.ones((N, 4))
+    top[:, 0] = np.linspace(1, 68/256, N)
+    top[:, 1] = np.linspace(1, 189/256, N)
+    top[:, 2] = np.linspace(1, 90/256, N)
+
+    bottom[:, 0] = np.linspace(235/256, 1, N)
+    bottom[:, 1] = np.linspace(91/256, 1, N)
+    bottom[:, 2] = np.linspace(91/256, 1, N)
+
+    newcolors = np.vstack([bottom, top])
+
+    newcmp = ListedColormap(newcolors)
+    
+    return df.style.background_gradient(newcmp, subset=columns)
+
+
+def frun_style(frun_df, threshold=500):
+    t = frun_df.loc[frun_df.num > threshold][['num', 'exrv_adj']]
+    t = t.assign(이름 = t.index.to_series())
+    t = t.assign(fRun2000 = t.exrv_adj / t.num * 2000)
+    t = t.sort_values('exrv_adj', ascending=False)
+    t = t.rename(columns={'num': '판정 횟수', 'exrv_adj': 'fRun', 'fRun2000': 'fRun/2000'})
+    t = t[['이름', '판정 횟수', 'fRun', 'fRun/2000']]
+
+    styles = [
+        dict(selector="th", props=[("font-size", "12pt"),
+                                   ("text-align", "center"),
+                                   ("background-color", "#616161"),
+                                   ("color", "white")]),
+        dict(selector="td", props=[("font-size", "10pt"),
+                                   ("text-align", "center")])
+    ]
+    s = plot_table_color_scale(t, ['fRun', 'fRun/2000'])
+
+    s = s.hide_index().format({'fRun': "{:.1f}", 'fRun/2000': "{:.1f}"}).set_table_styles(styles)
+    return s
 
 
 def soundAlert1():
