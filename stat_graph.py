@@ -869,7 +869,7 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
 
 
 def interactive_batting_graph(df):
-    batters = df.batter.drop_duplicates().get_values().tolist()
+    batters = df.batter.drop_duplicates().values().tolist()
     batters.sort()
     batter = batters[0]
     term= df.game_date.drop_duplicates().shape[0]
@@ -927,7 +927,7 @@ def interactive_batting_graph(df):
 
     
 def interactive_batter_discipline_graph(df):
-    batters = df.batter.drop_duplicates().get_values().tolist()
+    batters = df.batter.drop_duplicates().values().tolist()
     batters.sort()
     batter = batters[0]
     term= df.game_date.drop_duplicates().shape[0]
@@ -988,7 +988,7 @@ def interactive_batter_discipline_graph(df):
 
 
 def interactive_pitching_graph(df):
-    pitchers = df.pitcher.drop_duplicates().get_values().tolist()
+    pitchers = df.pitcher.drop_duplicates().values().tolist()
     pitchers.sort()
     pitcher = pitchers[0]
     term= df.game_date.drop_duplicates().shape[0]
@@ -1048,7 +1048,7 @@ def interactive_pitching_graph(df):
 
 
 def interactive_pitcher_discipline_graph(df):
-    pitchers = df.pitcher.drop_duplicates().get_values().tolist()
+    pitchers = df.pitcher.drop_duplicates().values().tolist()
     pitchers.sort()
     pitcher = pitchers[0]
     term= df.game_date.drop_duplicates().shape[0]

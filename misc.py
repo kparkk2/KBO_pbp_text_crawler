@@ -137,7 +137,7 @@ def get_rv_event(df):
     # RE24 table
     re24 = base_out_run_sum / base_out_counts
     
-    base_out_re = re24.sort_index(axis=1, ascending=False).get_values().reshape(-1,1)
+    base_out_re = re24.sort_index(axis=1, ascending=False).values().reshape(-1,1)
     
     ######################################
     # BASE-OUT 조합에 따른 각 타격 이벤트의 개수 #
@@ -264,7 +264,7 @@ def get_rv_event_simple(df):
     # RE24 table
     re24 = base_out_run_sum / base_out_counts
     
-    base_out_re = re24.sort_index(axis=1, ascending=False).get_values().reshape(-1,1)
+    base_out_re = re24.sort_index(axis=1, ascending=False).values().reshape(-1,1)
     
     ######################################
     # BASE-OUT 조합에 따른 각 타격 이벤트의 개수 #
@@ -467,7 +467,7 @@ def calc_framing_cell(df, rv_by_count=False):
         logs = logs.assign(exrv_prob = np.where(logs.excall==1, (1-logs.proba)*rv,
                                                 np.where(logs.excall==-1, -logs.proba*rv, 0)))
     else:
-        logs = logs.assign(exrv = rv[logs.strikes*4 + logs.balls].get_values())
+        logs = logs.assign(exrv = rv[logs.strikes*4 + logs.balls].values())
         logs = logs.assign(exrv = logs.excall * logs.exrv)
         logs = logs.assign(exrv_prob_plus = (1-logs.proba)*logs.exrv,
                            exrv_prob_minus = logs.proba*logs.exrv)
@@ -580,7 +580,7 @@ def calc_framing_gam(df, rv_by_count=False):
         logs = logs.assign(exrv_prob = np.where(logs.excall==1, (1-logs.proba)*rv,
                                                 np.where(logs.excall==-1, -logs.proba*rv, 0)))
     else:
-        logs = logs.assign(exrv = rv[logs.strikes*4 + logs.balls].get_values())
+        logs = logs.assign(exrv = rv[logs.strikes*4 + logs.balls].values())
         logs = logs.assign(exrv = logs.excall * logs.exrv)
         logs = logs.assign(exrv_prob_plus = (1-logs.proba)*logs.exrv,
                            exrv_prob_minus = logs.proba*logs.exrv)
