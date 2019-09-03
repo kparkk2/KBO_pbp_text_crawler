@@ -41,9 +41,9 @@ def set_fonts(name=None):
         if name is not None:
             rc('font', family=name)
             if fm.FontProperties().get_name() == 'DejaVu Sans':
-                rc('font', family='NanumSquare')
+                rc('font', family='NanumSquareRound')
         else:
-            rc('font', family='NanumSquare')
+            rc('font', family='NanumSquareRound')
         
 
 def clean_debug(df):
@@ -80,10 +80,14 @@ def clean_data(df):
     df = df.assign(sz_bot = pd.to_numeric(df.sz_bot, errors='coerce'))
     df = df.assign(pfx_x = pd.to_numeric(df.pfx_x, errors='coerce'))
     df = df.assign(pfx_z = pd.to_numeric(df.pfx_z, errors='coerce'))
-    df = df.assign(pfx_x_raw = pd.to_numeric(df.pfx_x_raw, errors='coerce'))
-    df = df.assign(pfx_z_raw = pd.to_numeric(df.pfx_z_raw, errors='coerce'))
-    df = df.assign(x0 = pd.to_numeric(df.x0, errors='coerce'))
-    df = df.assign(z0 = pd.to_numeric(df.z0, errors='coerce'))
+    if ('pfx_x_raw' in df.keys()) is True:
+        df = df.assign(pfx_x_raw = pd.to_numeric(df.pfx_x_raw, errors='coerce'))
+    if ('pfx_z_raw' in df.keys()) is True:
+        df = df.assign(pfx_z_raw = pd.to_numeric(df.pfx_z_raw, errors='coerce'))
+    if ('x0' in df.keys()) is True:
+        df = df.assign(x0 = pd.to_numeric(df.x0, errors='coerce'))
+    if ('z0' in df.keys()) is True:
+        df = df.assign(z0 = pd.to_numeric(df.z0, errors='coerce'))
     
     df = df.drop(df.loc[df.px.isnull()].index)
     df = df.drop(df.loc[df.pz.isnull()].index)
