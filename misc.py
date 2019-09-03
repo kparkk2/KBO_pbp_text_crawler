@@ -554,7 +554,7 @@ def calc_framing_gam(df, rv_by_count=False):
     proba = gam.predict_proba(x)
 
     logs = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium',
-                                      'home', 'away', 'inning_topbot']]
+                                      'home', 'away', 'inning_topbot', 'game_date']]
     logs = logs.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
 
     logs = logs.assign(prediction = predictions)
