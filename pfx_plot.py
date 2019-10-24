@@ -18,6 +18,8 @@ from scipy.ndimage.filters import gaussian_filter
 import ipywidgets as widgets
 from IPython.display import clear_output
 from scipy import stats
+from matplotlib.colors import LinearSegmentedColormap
+import colorsys
 
 if importlib.util.find_spec('pygam') is not None:
     from pygam import LogisticGAM
@@ -588,6 +590,12 @@ def plot_contour_balls(df, title=None, dpi=144, cmap=None, ax=None):
     return fig, ax
 
 
+def hex_to_rgb(hex):
+     hex = hex.lstrip('#')
+     hlen = len(hex)
+     return tuple(int(hex[i:i+int(hlen/3)], 16) for i in range(0, hlen, int(hlen/3)))
+
+
 def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, color=None):
     set_fonts()
     if df.px.dtypes == np.object:
@@ -632,12 +640,30 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     if cmap is None:
         cmap='Reds'
     else:
-        from matplotlib.colors import LinearSegmentedColormap
-        cmap = LinearSegmentedColormap.from_list('mycmap', [color]*6)
+        if color is not None:
+            c = hex_to_rgb(color)
+        else:
+            c = (255, 0, 0)
+        h, s, v = colorsys.rgb_to_hsv(c[0], c[1], c[2])
+        colors = []
+        for i in range(5, 11):
+            r, g, b = colorsys.hsv_to_rgb(h, s*i/10, v)
+            colors.append( '#%02x%02x%02x' % (int(r), int(g), int(b)) )
+        cmap = LinearSegmentedColormap.from_list('mycmap', colors)
 
     if show_full is True:
-        levels = np.asarray([.1, .2, .3, .4, .5, .6, .7, .8, .9, 1.])
-        cmap = LinearSegmentedColormap.from_list('mycmap', [color]*10)
+        levels = np.asarray([0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.])
+        if color is not None:
+            c = hex_to_rgb(color)
+        else:
+            c = (255, 0, 0)
+        h, s, v = colorsys.rgb_to_hsv(c[0], c[1], c[2])
+        colors = []
+        for i in range(11):
+            r, g, b = colorsys.hsv_to_rgb(h, s*i/10, v)
+            colors.append( '#%02x%02x%02x' % (int(r), int(g), int(b)) )
+        
+        cmap = LinearSegmentedColormap.from_list('mycmap', colors)
     else:
         levels = np.asarray([.5, .6, .7, .8, .9, 1.])
 
