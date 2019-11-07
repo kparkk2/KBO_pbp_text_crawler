@@ -232,7 +232,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
         
     for p in pitch_types_:
         f = df.loc[df.pitch_type == p]
-        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*fig.dpi, label=p, cmap='set1', zorder=0)
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, cmap='set1', zorder=0)
 
         if show_pitch_number is True:
             for i in f.index:
