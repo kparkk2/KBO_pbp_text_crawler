@@ -583,6 +583,17 @@ class BallGame:
         #   자동 고의4구를 새로운 결과로 추가(기존: 고의4구만 존재)
         #   타석 종료된 경우 (5) 자동 고의4구 추가
         if self.made_errors is True:
+            # BUGBUG : 실책 이후 자동 고의4구 처리시, 고의4구 텍스트 출력 처리 안됨
+            # - 시작일 : 20191107
+            # - 종료일 : 20191107
+            #
+            # CASE :
+            # 20190602OBKT0 8회초 김재환 타석, 자동고의4구
+            # 실책 이후 나오는 고의4구는 출력이 안되고 있었음
+            #
+            # CAUSE :
+            # 실책때 self.made_errors를 False로 바꾸지 않아서 에러.
+            self.made_errors = False
             # BUGBUG : 실책 출루인데 포스 아웃으로 기록되는 사례
             # - 시작일 : 20180812
             # - 종료일 : 20180812
@@ -912,7 +923,7 @@ class BallGame:
         self.set_hitter_to_base = True
         self.ball_and_not_hbp = False
         # ball_and_not_hbp가 True일 때:
-        #       '볼넷이 아니면서' & '연속 볼로 인한 진루'일 때만
+        #       '볼넷이 아니면서' & '연속 볼'일 때만
         # 여기에 '자동 고의4구가 아닐때'도 추가.
         # True면 False로 바꿔준다.
         # (고의4구로 타석 바뀌면 리셋되니까, False로 한다)
@@ -1048,10 +1059,14 @@ class BallGame:
                         # 새 1루 주자가 진루한 경우
                         if self.set_hitter_to_base is True:
                             # 타자 주자 이름이 바로 나오는 경우
-                            # (타자 이병규, 1루주자 이병규)
-                            # -> 같은 주자로 보지 않는다
-                            # 기존(새로 들어온) 1루 주자는 내버려둔다.
-                            self.set_hitter_to_base = False
+                            # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                            # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                            #    이름이 같으면 타인으로 본다.
+                            #    타자주자라면 None 또는 다른 이름일 것이다.
+                            if self.game_status['on_1b'] == src_name:
+                                self.set_hitter_to_base = False
+                            else:
+                                self.next_1b = None
                         else:
                             # 1루를 비운다
                             self.next_1b = None
@@ -1059,8 +1074,30 @@ class BallGame:
                     # 기존 1루 주자 진루.
                     self.next_1b = None
                     self.change_1b = True
-            self.next_2b = src_name
-            self.change_2b = True
+            # BUGBUG : 실책시 주자 주루 처리 오류
+            # 
+            # - 시작일 : 20191107
+            #  - 종료일 : 20191107
+            # 
+            # CASE :
+            # 20190713OBLT0 9회말 배성근 타석, 주자 1-2루
+            # 땅볼-실책으로
+            # 타자주자->실책->2루로
+            # 1루주자->3루로
+            # 2루주자->3루->홈인
+            # 여기서 2루주자가 3루 거쳐가는게 늦게 나오는데
+            # 이 텍스트 파싱 과정에서 홈인한 2루주자가 3루에 있는 것처럼
+            # (self.next_3b=3루주자) 처리되는 버그
+            #
+            # OBJECT :
+            # 선행주자(2루->3루->홈)의 중계 문구 처리가 뒤따라올 떄
+            # 앞에서 이동해온 후발주자(1루->3루)가
+            # 정상적으로 베이스에 남아있도록 처리
+            # 베이스 change된 기록이 있으면(change_Xb == True)
+            # 그냥 넘어가고, 아닐 때만 next_Xb를 바꾼다
+            if self.change_2b == False:
+                self.next_2b = src_name
+                self.change_2b = True
         else:
             if src_base == 1:
                 if self.change_1b is True:
@@ -1069,10 +1106,14 @@ class BallGame:
                         # 새 1루 주자가 진루한 경우
                         if self.set_hitter_to_base is True:
                             # 타자 주자 이름이 바로 나오는 경우
-                            # (타자 이병규, 1루주자 이병규)
-                            # -> 같은 주자로 보지 않는다
-                            # 기존(새로 들어온) 1루 주자는 내버려둔다.
-                            self.set_hitter_to_base = False
+                            # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                            # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                            #    이름이 같으면 타인으로 본다.
+                            #    타자주자라면 None 또는 다른 이름일 것이다.
+                            if self.game_status['on_1b'] == src_name:
+                                self.set_hitter_to_base = False
+                            else:
+                                self.next_1b = None
                         else:
                             # 1루를 비운다
                             self.next_1b = None
@@ -1090,10 +1131,14 @@ class BallGame:
                         # 새 2루 주자가 진루한 경우
                         if self.set_hitter_to_base is True:
                             # 타자 주자 이름이 바로 나오는 경우
-                            # (타자 이병규, 2루주자 이병규)
-                            # -> 같은 주자로 보지 않는다
-                            # 기존(새로 들어온) 2루 주자는 내버려둔다.
-                            self.set_hitter_to_base = False
+                            # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                            # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                            #    이름이 같으면 타인으로 본다.
+                            #    타자주자라면 None 또는 다른 이름일 것이다.
+                            if self.game_status['on_2b'] == src_name:
+                                self.set_hitter_to_base = False
+                            else:
+                                self.next_2b = None
                         else:
                             # 2루를 비운다
                             self.next_2b = None
@@ -1104,8 +1149,30 @@ class BallGame:
                     # 기존 2루 주자 진루.
                     self.next_2b = None
                     self.change_2b = True
-            self.next_3b = src_name
-            self.change_3b = True
+            # BUGBUG : 실책시 주자 주루 처리 오류
+            # 
+            # - 시작일 : 20191107
+            #  - 종료일 : 20191107
+            # 
+            # CASE :
+            # 20190713OBLT0 9회말 배성근 타석, 주자 1-2루
+            # 땅볼-실책으로
+            # 타자주자->실책->2루로
+            # 1루주자->3루로
+            # 2루주자->3루->홈인
+            # 여기서 2루주자가 3루 거쳐가는게 늦게 나오는데
+            # 이 텍스트 파싱 과정에서 홈인한 2루주자가 3루에 있는 것처럼
+            # (self.next_3b=3루주자) 처리되는 버그
+            #
+            # OBJECT :
+            # 선행주자(2루->3루->홈)의 중계 문구 처리가 뒤따라올 떄
+            # 앞에서 이동해온 후발주자(1루->3루)가
+            # 정상적으로 베이스에 남아있도록 처리
+            # 베이스 change된 기록이 있으면(change_Xb == True)
+            # 그냥 넘어가고, 아닐 때만 next_Xb를 바꾼다
+            if self.change_3b == False:
+                self.next_3b = src_name
+                self.change_3b = True
 
         self.runner_change = True
 
@@ -1118,10 +1185,14 @@ class BallGame:
                     # 타자가 다시 진루, 홈인하는 경우
                     if self.set_hitter_to_base is True:
                         # 타자 주자 이름이 바로 나오는 경우
-                        # (타자 이병규, 1루주자 이병규)
-                        # -> 같은 주자로 보지 않는다
-                        # 기존(새로 들어온) 1루 주자는 내버려둔다.
-                        self.set_hitter_to_base = False
+                        # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                        # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                        #    이름이 같으면 타인으로 본다.
+                        #    타자주자라면 None 또는 다른 이름일 것이다.
+                        if self.game_status['on_1b'] == src_name:
+                            self.set_hitter_to_base = False
+                        else:
+                            self.next_1b = None
                     else:
                         # 기존(새로 들어온) 1루 주자를 홈인시킨다.
                         self.next_1b = None
@@ -1139,10 +1210,14 @@ class BallGame:
                     # 2루 들어온 새 주자가 진루, 홈인하는 경우
                     if self.set_hitter_to_base is True:
                         # 타자 주자 이름이 바로 나오는 경우
-                        # (타자 이병규, 2루주자 이병규)
-                        # -> 같은 주자로 보지 않는다
-                        # 기존(새로 들어온) 2루 주자는 내버려둔다.
-                        self.set_hitter_to_base = False
+                        # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                        # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                        #    이름이 같으면 타인으로 본다.
+                        #    타자주자라면 None 또는 다른 이름일 것이다.
+                        if self.game_status['on_2b'] == src_name:
+                            self.set_hitter_to_base = False
+                        else:
+                            self.next_2b = None
                     else:
                         # 기존(새로 들어온) 2루 주자를 홈인시킨다.
                         self.next_2b = None
@@ -1160,10 +1235,14 @@ class BallGame:
                     # 3루 들어온 새 주자가 진루, 홈인하는 경우
                     if self.set_hitter_to_base is True:
                         # 타자 주자 이름이 바로 나오는 경우
-                        # (타자 이병규, 3루주자 이병규)
-                        # -> 같은 주자로 보지 않는다
-                        # 기존(새로 들어온) 3루 주자는 내버려둔다.
-                        self.set_hitter_to_base = False
+                        # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                        # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                        #    이름이 같으면 타인으로 본다.
+                        #    타자주자라면 None 또는 다른 이름일 것이다.
+                        if self.game_status['on_3b'] == src_name:
+                            self.set_hitter_to_base = False
+                        else:
+                            self.next_3b = None
                     else:
                         # 기존(새로 들어온) 3루 주자를 홈인시킨다.
                         self.next_3b = None
@@ -1186,10 +1265,14 @@ class BallGame:
                     # 새로 들어온 1루 주자가 아웃
                     if self.set_hitter_to_base is True:
                         # 타자 주자 이름이 바로 나오는 경우
-                        # (타자 이병규, 1루주자 이병규)
-                        # -> 같은 주자로 보지 않는다
-                        # 기존(새로 들어온) 1루 주자는 내버려둔다.
-                        self.set_hitter_to_base = False
+                        # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                        # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                        #    이름이 같으면 타인으로 본다.
+                        #    타자주자라면 None 또는 다른 이름일 것이다.
+                        if self.game_status['on_1b'] == src_name:
+                            self.set_hitter_to_base = False
+                        else:
+                            self.next_1b = None
                     else:
                         # 기존(새로 들어온) 1루 주자가 아웃.
                         self.next_1b = None
@@ -1207,10 +1290,14 @@ class BallGame:
                     # 새로 들어온 2루 주자가 아웃
                     if self.set_hitter_to_base is True:
                         # 타자 주자 이름이 바로 나오는 경우
-                        # (타자 이병규, 2루주자 이병규)
-                        # -> 같은 주자로 보지 않는다
-                        # 기존(새로 들어온) 2루 주자는 내버려둔다.
-                        self.set_hitter_to_base = False
+                        # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                        # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                        #    이름이 같으면 타인으로 본다.
+                        #    타자주자라면 None 또는 다른 이름일 것이다.
+                        if self.game_status['on_2b'] == src_name:
+                            self.set_hitter_to_base = False
+                        else:
+                            self.next_2b = None
                     else:
                         # 기존(새로 들어온) 2루 주자가 아웃.
                         self.next_2b = None
@@ -1228,10 +1315,14 @@ class BallGame:
                     # 새로 들어온 3루 주자가 아웃
                     if self.set_hitter_to_base is True:
                         # 타자 주자 이름이 바로 나오는 경우
-                        # (타자 이병규, 3루주자 이병규)
-                        # -> 같은 주자로 보지 않는다
-                        # 기존(새로 들어온) 3루 주자는 내버려둔다.
-                        self.set_hitter_to_base = False
+                        # (타자 이병규 ~~~, 1루주자 이병규 ~~~)
+                        # -> 현재 루상에 있는(game_status['on_1b'] 체크) 주자가
+                        #    이름이 같으면 타인으로 본다.
+                        #    타자주자라면 None 또는 다른 이름일 것이다.
+                        if self.game_status['on_3b'] == src_name:
+                            self.set_hitter_to_base = False
+                        else:
+                            self.next_3b = None
                     else:
                         # 기존(새로 들어온) 3루 주자가 아웃.
                         self.next_3b = None
@@ -1869,12 +1960,6 @@ def parse_batter(text, home_batters, away_batters, bid, ball_game):
         rc = ball_game.go_to_next_pa()
         if type(rc) is str:
             return rc
-    '''
-    # substitution - > @parse_change
-    rc = ball_game.go_to_next_pa()
-    if type(rc) is str:
-        return rc
-    '''
 
     # 초/말에 따라 타자 검색, 치는손 기록
     ball_game.game_status['batter'] = result
