@@ -11,3 +11,4 @@ pfx_plot.ipynb
 *.json
 *.csv
 _notebooks/
+.vscode/
