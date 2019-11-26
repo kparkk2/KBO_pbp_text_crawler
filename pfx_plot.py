@@ -1171,7 +1171,7 @@ def plot_by_proba(df, title=None, dpi=144, cmap=None, ax=None):
     return fig, ax
 
 
-def break_plot(df, player, mode=0, ax=None, span=.5, show_dots=False):
+def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
     # Mode :
     #   0 for yearly
     #   1 for monthly
@@ -1187,7 +1187,6 @@ def break_plot(df, player, mode=0, ax=None, span=.5, show_dots=False):
         
         target = target.assign(month = target.game_date.apply(lambda x: datetime.datetime.strptime(str(x), '%Y%m%d').month))
         
-        
         dpi = ax.figure.dpi if ax is not None else 100
         if ax is None:
             _, ax = plt.subplots(figsize=(5,5), dpi=100)
@@ -1196,8 +1195,13 @@ def break_plot(df, player, mode=0, ax=None, span=.5, show_dots=False):
         labels = []
                 
         if mode == 0:
+            maxfreq = target.groupby('pitch_type').size().max() / len(target)
+            
             for p in BallColors.keys():
                 t = target.loc[target.pitch_type == p]
+                freq = len(t) / len(target)
+                alpha = freq / maxfreq * .8
+                alpha2 = min(1, freq*2+.25)
                 s = t.shape[0]
                 if s == 0:
                     continue
@@ -1209,23 +1213,18 @@ def break_plot(df, player, mode=0, ax=None, span=.5, show_dots=False):
 
                 ellipse1 = Ellipse((c1, c2), width, height,
                                    ec=color, fc=color, lw=1,
-                                   alpha=.5, zorder=2)
+                                   alpha=alpha, zorder=2)
                 ellipse2 = Ellipse((c1, c2), width, height,
-                                   ec=color, fc='white', lw=1,
-                                   alpha=.7, zorder=1)
-                ellipse3 = Ellipse((c1, c2), width, height,
-                                   ec=color, fc='white', lw=1,
-                                   zorder=0)
-                
+                                   ec=color, fc='#f0f0f0', lw=1,
+                                   alpha=.5, zorder=1)
                 if show_dots:
                     ax.scatter(t.pfx_x, t.pfx_z, alpha=0.25, c=color, s=dpi*.5, zorder=2)
 
                 ax.add_patch(ellipse1)
                 ax.add_patch(ellipse2)
-                ax.add_patch(ellipse3)
 
-                ax.scatter(c1, c2, alpha=.95, s=dpi*.5, zorder=2, c=color)
-                dots_by_type.append(ax.scatter(c1, c2,
+                ax.scatter(c1, c2, alpha=alpha2, s=dpi*.5, zorder=2, c=color)
+                dots_by_type.append(ax.scatter(-100, -100,
                                                s=dpi*2, zorder=-1, c=color))
 
                 labels.append(p)
