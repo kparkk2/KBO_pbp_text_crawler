@@ -1171,10 +1171,13 @@ def plot_by_proba(df, title=None, dpi=144, cmap=None, ax=None):
     return fig, ax
 
 
-def break_plot(df, player, mode=0, ax=None):
+def break_plot(df, player, mode=0, ax=None, span=.5, show_dots=False):
     # Mode :
-    # 0 for yearly
-    # 1 for monthly
+    #   0 for yearly
+    #   1 for monthly
+    # show_dots :
+    #   True for show every dot
+    #   False for only ellipse
     plt.style.use('fivethirtyeight')
     target = df.loc[df.pitcher == player]
     if target.shape[0] == 0:
@@ -1199,20 +1202,23 @@ def break_plot(df, player, mode=0, ax=None):
                 if s == 0:
                     continue
 
-                width = t.pfx_x.quantile(.75) - t.pfx_x.quantile(.25)
-                height = t.pfx_z.quantile(.75) - t.pfx_z.quantile(.25)
+                width = t.pfx_x.quantile(.5+span/2) - t.pfx_x.quantile(.5-span/2)
+                height = t.pfx_z.quantile(.5+span/2) - t.pfx_z.quantile(.5-span/2)
                 c1, c2 = t.pfx_x.median(), t.pfx_z.median()
                 color = BallColors[p]
 
                 ellipse1 = Ellipse((c1, c2), width, height,
-                                   ec=color, fc=color, lw=5,
+                                   ec=color, fc=color, lw=1,
                                    alpha=.5, zorder=2)
                 ellipse2 = Ellipse((c1, c2), width, height,
-                                   ec=color, fc='white', lw=5,
+                                   ec=color, fc='white', lw=1,
                                    alpha=.7, zorder=1)
                 ellipse3 = Ellipse((c1, c2), width, height,
-                                   ec=color, fc='white', lw=5,
+                                   ec=color, fc='white', lw=1,
                                    zorder=0)
+                
+                if show_dots:
+                    ax.scatter(t.pfx_x, t.pfx_z, alpha=0.25, c=color, s=dpi*.5, zorder=2)
 
                 ax.add_patch(ellipse1)
                 ax.add_patch(ellipse2)
