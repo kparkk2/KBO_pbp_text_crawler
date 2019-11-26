@@ -1224,7 +1224,7 @@ def break_plot(df, player, mode=0, ax=None):
 
                 labels.append(p)
         
-            ax.set_title(f'{player} Yearly Break Plot', fontsize='xx-large')
+            ax.set_title(f'{player} Yearly Break Plot')
         else:
             color_added = {p: False for p in pitch_types}
             for m in target.month.drop_duplicates():
@@ -1247,12 +1247,12 @@ def break_plot(df, player, mode=0, ax=None):
                         ax.scatter(x, y, s=dpi*2, c=BallColors[p])
                     
                 plt.gca().set_prop_cycle(None)
-            ax.set_title(f'{player} Monthly Break Plot', fontsize='xx-large')
+            ax.set_title(f'{player} Monthly Break Plot')
         
         ax.set_xlim(-14,14)
         ax.set_ylim(-18,18)
         
-        ax.legend(tuple(dots_by_type), tuple(labels), ncol=3)
+        ax.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', fontsize='small')
         
         return ax
 
