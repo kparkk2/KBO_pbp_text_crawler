@@ -225,7 +225,6 @@ def download_relay(args, lm=None):
                     js = response.json()
                     if isinstance(js, str):
                         js = json.loads(js)
-                        #js = ast.literal_eval(js)
                     last_inning = js['currentInning']
 
                     if last_inning is None:
