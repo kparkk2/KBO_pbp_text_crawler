@@ -6,7 +6,7 @@ import scipy as sp
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.pyplot as plt
 from IPython.display import display, Audio
-from pfx_plot import clean_data
+from pbp_plot import clean_data
 from matplotlib.colors import ListedColormap
 
 import importlib

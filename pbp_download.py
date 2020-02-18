@@ -1,4 +1,4 @@
-# pfx_download.py
+# pbp_download.py
 #
 # 'N' gameday crawler
 #
@@ -386,10 +386,10 @@ def download_relay(args, lm=None):
     return True
 
 
-def download_pfx(args, lm=None):
+def download_pitch_data_only(args, lm=None):
     # return True or False
-    pfx_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/pitches.nhn'
-    pfx_header_row = ['x0', 'y0', 'z0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'plateX', 'plateZ', 'crossPlateX', 'crossPlateY', 'topSz', 'bottomSz', 'stuff', 'speed', 'pitcherName', 'batterName']
+    pdata_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/pitches.nhn'
+    pdata_header_row = ['x0', 'y0', 'z0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'plateX', 'plateZ', 'crossPlateX', 'crossPlateY', 'topSz', 'bottomSz', 'stuff', 'speed', 'pitcherName', 'batterName']
 
     game_ids = get_game_ids(args)
     if (game_ids is None) or (len(game_ids) == 0):
@@ -403,7 +403,7 @@ def download_pfx(args, lm=None):
     if lm is not None:
         lm.resetLogHandler()
         lm.setLogPath(os.getcwd())
-        lm.setLogFileName('relaypfx_download_log.txt')
+        lm.setLogFileName('pitch_data_download_log.txt')
         lm.cleanLog()
         lm.createLogHandler()
         lm.log('---- Pitch Data Download Log ----')
@@ -414,7 +414,7 @@ def download_pfx(args, lm=None):
     # path: pbp_data
 
     print("##################################################")
-    print("######          DOWNLOAD PFX DATA          #######")
+    print("######         DOWNLOAD PITCH DATA         #######")
     print("##################################################")
 
     for year in game_ids.keys():
@@ -433,9 +433,9 @@ def download_pfx(args, lm=None):
         os.chdir(str(year))
         # path: pbp_data/year
         
-        year_fp = open(f'{year}_pfx.csv', 'w', newline='\n')
+        year_fp = open(f'{year}_pdata.csv', 'w', newline='\n')
         year_cf = csv.writer(year_fp)
-        year_cf.writerow(pfx_header_row)
+        year_cf.writerow(pdata_header_row)
 
         for month in game_ids[year].keys():
             start2 = time.time()
@@ -453,9 +453,9 @@ def download_pfx(args, lm=None):
             os.chdir(str(month))
             # path: pbp_data/year/month
 
-            month_fp = open(f'{year}_{month}_pfx.csv', 'w', newline='\n')
+            month_fp = open(f'{year}_{month}_pdata.csv', 'w', newline='\n')
             month_cf = csv.writer(month_fp)
-            month_cf.writerow(pfx_header_row)
+            month_cf.writerow(pdata_header_row)
 
             # download
             done = 0
@@ -477,10 +477,10 @@ def download_pfx(args, lm=None):
                     skipped += 1
                     continue
 
-                if not check_url(pfx_url):
+                if not check_url(pdata_url):
                     skipped += 1
                     if lm is not None:
-                        lm.log('URL error : {}'.format(pfx_url))
+                        lm.log('URL error : {}'.format(pdata_url))
                     continue
 
                 if (int(game_id[:4]) == datetime.datetime.now().year) &\
@@ -488,8 +488,8 @@ def download_pfx(args, lm=None):
                    (int(game_id[6:8]) == datetime.datetime.now().day):
                         # do nothing
                        done = done
-                elif (os.path.isfile(game_id + '_pfx.json')) and \
-                        (os.path.getsize(game_id + '_pfx.json') > 0):
+                elif (os.path.isfile(game_id + '_pdata.json')) and \
+                        (os.path.getsize(game_id + '_pdata.json') > 0):
                     done += 1
                     if lm is not None:
                         lm.log('File Duplicate : {}'.format(game_id))
@@ -509,7 +509,7 @@ def download_pfx(args, lm=None):
                                + '&tab=relay'
                 }
 
-                response = requests.get(pfx_url, params=params, headers=headers)
+                response = requests.get(pdata_url, params=params, headers=headers)
 
                 if response is not None:
                     # load json structure
@@ -519,11 +519,11 @@ def download_pfx(args, lm=None):
                         #js = ast.literal_eval(js)
 
                     if js is None:
-                        lm.log('PFX data missing : {}'.format(game_id))
+                        lm.log('Pitch data missing : {}'.format(game_id))
                         skipped += 1
                         continue
                     elif len(js) == 0:
-                        lm.log('PFX data missing : {}'.format(game_id))
+                        lm.log('Pitch data missing : {}'.format(game_id))
                         skipped += 1
                         continue
 
@@ -557,14 +557,14 @@ def download_pfx(args, lm=None):
                     dfjs = json.loads(dfjsstr)
 
                     # dump to json file
-                    fp = open(game_id + '_pfx.json', 'w', newline='\n')
+                    fp = open(game_id + '_pdata.json', 'w', newline='\n')
                     json.dump(dfjs, fp, ensure_ascii=False, sort_keys=False, indent=4)
                     fp.close()
 
                     # dump to csv file
-                    fp = open(game_id + '_pfx.csv', 'w', newline='\n')
+                    fp = open(game_id + '_pdata.csv', 'w', newline='\n')
                     cf = csv.writer(fp)
-                    cf.writerow(pfx_header_row)
+                    cf.writerow(pdata_header_row)
 
                     for x in dfjs:
                         row = [x['x0'],
@@ -638,9 +638,9 @@ if __name__ == '__main__':
         relaylm.killLogManager()
 
     if options[2] is True:
-        pfxlm = logManager.LogManager()
-        rc = download_pfx(args, pfxlm)
+        pbplm = logManager.LogManager()
+        rc = download_pitch_data_only(args, pbplm)
         if rc is False:
             print('Error')
             exit(1)
-        pfxlm.killLogManager()
+        pbplm.killLogManager()
