@@ -4,12 +4,12 @@
 
 from utils import get_args
 from pbp_parse import parse_main
-from pbp_download import download_relay, download_pitch_data_only
+from pbp_download import *
 import logManager
 
 
 def run_pbp_download(args, lm=None):
-    download_relay(args, lm)
+    download_relay2(args, lm)
 
 
 def run_pbp_parser(args, lm=None):

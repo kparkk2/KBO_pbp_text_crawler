@@ -6,6 +6,7 @@ import http.client
 from urllib.parse import urlparse
 from urllib.request import urlopen
 import time
+import requests
 
 
 def get_args(output, options):
@@ -168,6 +169,13 @@ def check_url(url):
     conn.request('HEAD', p.path)
     resp = conn.getresponse()
     return resp.status < 400
+
+
+def check_url2(url):
+    resp = requests.get(url)
+    status = resp.status_code < 400
+    resp.close()
+    return status
 
 
 def retry_urlopen(url, num_of_retries=10, time_interval=2):
