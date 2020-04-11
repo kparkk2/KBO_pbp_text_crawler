@@ -681,7 +681,9 @@ def download_relay2(args, lm=None):
                     else:
                         merge_df = ts_df.sort_values(['textOrder', 'seqno'])
 
+                    #######################
                     ### 라인업 다운로드 ###
+                    #######################
                     lineup_url = 'https://sports.news.naver.com/gameCenter/gameRecord.nhn?category=kbo&gameId='
                     lurl = lineup_url + game_id
                     lreq = requests.get(lurl)
@@ -689,6 +691,9 @@ def download_relay2(args, lm=None):
                     lreq.close()
 
                     scripts = lsoup.find_all('script')
+                    team_names = lsoup.find_all('span', attrs={'class': 't_name_txt'})
+                    away_team_name = team_names[0].contents[0].split(' ')[0]
+                    home_team_name = team_names[1].contents[0].split(' ')[0]
                     contents = None
 
                     for tag in scripts:
@@ -772,6 +777,10 @@ def download_relay2(args, lm=None):
                     hbats['homeaway'] = 'h'
                     apits['homeaway'] = 'a'
                     hpits['homeaway'] = 'h'
+                    abats['team_name'] = away_team_name
+                    hbats['team_name'] = home_team_name
+                    apits['team_name'] = away_team_name
+                    hpits['team_name'] = home_team_name
 
                     bats = pd.concat([abats, hbats])
                     pits = pd.concat([apits, hpits])
