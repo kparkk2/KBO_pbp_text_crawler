@@ -650,8 +650,6 @@ def download_relay2(args, lm=None):
                             ts_dict['referee'] = referee
                             ts_dict['stadium'] = stadium
                             ts_set.append(ts_dict)
-                    if 'playerChange' in tl_keys:
-                        tl_keys_copy.remove('playerChange')
                     ts_df = pd.DataFrame(ts_set)
                     ts_df = ts_df.rename(index=str, columns={'ptsPitchId': 'pitchId'})
 
