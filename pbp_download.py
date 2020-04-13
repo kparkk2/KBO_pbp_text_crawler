@@ -700,21 +700,13 @@ def download_relay2(args, lm=None):
                                 contents = tag.contents[0]
                                 start = contents.find('DataClass = ') + 36
                                 end = contents.find('_homeTeam')
-                                try:
-                                    oldjs = contents[start:end].strip()
-                                    while oldjs[-1] != '}':
-                                        oldjs = oldjs[:-1]
-                                    while oldjs[0] != '{':
-                                        oldjs = oldjs[1:]
-                                    cont = json.loads(oldjs)
-                                    break
-                                except Exception as e:
-                                    os.chdir('../../..')
-                                    print()
-                                    print(game_id)
-                                    print(oldjs)
-                                    print(e)
-                                    return
+                                oldjs = contents[start:end].strip()
+                                while oldjs[-1] != '}':
+                                    oldjs = oldjs[:-1]
+                                while oldjs[0] != '{':
+                                    oldjs = oldjs[1:]
+                                cont = json.loads(oldjs)
+                                break
 
                     bbs = cont.get('battersBoxscore')
                     al = bbs.get('away')
@@ -731,13 +723,15 @@ def download_relay2(args, lm=None):
                         player = hl[i]
                         name = player.get('name')
                         pos = player.get('pos')[0]
-                        homes.append({'name': name, 'pos': pos})
+                        pCode = player.get('playerCode')
+                        homes.append({'name': name, 'pos': pos, 'pCode': pCode})
 
                     for i in range(len(al)):
                         player = al[i]
                         name = player.get('name')
                         pos = player.get('pos')[0]
-                        aways.append({'name': name, 'pos': pos})
+                        pCode = player.get('playerCode')
+                        aways.append({'name': name, 'pos': pos, 'pCode': pCode})
 
                     ### 라인업 가져다와서 더하기 ###
                     hit_columns = ['name', 'pCode', 'posName', 'pos',
@@ -763,14 +757,14 @@ def download_relay2(args, lm=None):
                     for a in aways:
                         if a.get('pos') == '교':
                             continue
-                        abats.loc[abats.name == a.get('name'), 'posName'] = pos_dict.get(a.get('pos'))
-                        abats.loc[abats.name == a.get('name'), 'pos'] = posnum_dict.get(a.get('pos'))
+                        abats.loc[(abats.name == a.get('name')) & (abats.pCode == a.get('pCode')), 'posName'] = pos_dict.get(a.get('pos'))
+                        abats.loc[(abats.name == a.get('name')) & (abats.pCode == a.get('pCode')), 'pos'] = posnum_dict.get(a.get('pos'))
 
                     for h in homes:
                         if h.get('pos') == '교':
                             continue
-                        hbats.loc[hbats.name == h.get('name'), 'posName'] = pos_dict.get(h.get('pos'))
-                        hbats.loc[hbats.name == h.get('name'), 'pos'] = posnum_dict.get(h.get('pos'))
+                        hbats.loc[(hbats.name == h.get('name')) & (hbats.pCode == h.get('pCode')), 'posName'] = pos_dict.get(h.get('pos'))
+                        hbats.loc[(hbats.name == h.get('name')) & (hbats.pCode == h.get('pCode')), 'pos'] = posnum_dict.get(h.get('pos'))
                     abats['homeaway'] = 'a'
                     hbats['homeaway'] = 'h'
                     apits['homeaway'] = 'a'

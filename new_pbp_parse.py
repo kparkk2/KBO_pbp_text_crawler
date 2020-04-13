@@ -44,9 +44,9 @@ batter_result = [
     ['낫 아웃', '삼진', '낫아웃 삼진'],
     ['낫아웃 다른주자 수비 실책', '낫아웃 출루', '낫아웃 다른 주자 수비 실책'],
     ['낫아웃 다른주자 수비', '낫아웃 출루', '낫아웃 다른 주자 포스 아웃'],
-    ['땅볼로 출루', '포스 아웃', '포스 아웃'],
-    ['땅볼 아웃', '포스 아웃', '포스 아웃'],
-    ['플라이 아웃', '필드 아웃', '필드 아웃'],
+    ['땅볼로 출루', '포스 아웃', '땅볼 아웃'],
+    ['땅볼 아웃', '포스 아웃', '땅볼 아웃'],
+    ['플라이 아웃', '필드 아웃', '플라이 아웃'],
     ['인필드', '필드 아웃', '인필드 플라이'],
     ['파울플라이', '필드 아웃', '파울 플라이 아웃'],
     ['라인드라이브 아웃', '필드 아웃', '라인드라이브 아웃'],
@@ -82,7 +82,9 @@ def parse_batter_as_runner(text):
     
     before_base = 0
     after_base = None
-    if any([s in text for s in ['안타', '1루타', '4구', '볼넷', '출루', '낫아웃 포일', '낫아웃 폭투', '몸에 맞는', '낫아웃 다른주자']]):
+    if any([s in text for s in ['안타', '1루타', '4구', '볼넷', '출루',
+                                '낫아웃 포일', '낫아웃 폭투', '낫아웃 다른주자',
+                                '몸에 맞는', '실책', '타격방해', '야수선택']]):
         after_base = 1
     elif '2루타' in text:
         after_base = 2
@@ -179,9 +181,12 @@ class game_status:
         # lineup(order), fielding position, base
         self.lineups = [[], []] # 초 공격 / 말 공격
         self.fields = [{}, {}] # 초 수비 / 말 수비
+        '''
         self.bases = [None, None, None]
         self.after_bases = [None, None, None]
         self.base_change = [False, False, False]
+        '''
+        self.runner_bases = []
         
         # status change at pa, inning
         self.pa_number = 0
@@ -311,12 +316,18 @@ class game_status:
         save_row['stadium'] = self.stadium
         save_row['referee'] = self.referee
 
+        ########### TESTTEST ###########
+        for runner in self.runner_bases:
+            if runner[2] > 0:
+                save_row[f'on_{runner[2]}b'] = runner[0]
+        '''
         if self.bases[0] is not None:
             save_row['on_1b'] = bdf.loc[bdf.pCode == self.bases[0]].name.values[0]
         if self.bases[1] is not None:
             save_row['on_2b'] = bdf.loc[bdf.pCode == self.bases[1]].name.values[0]
         if self.bases[2] is not None:
             save_row['on_3b'] = bdf.loc[bdf.pCode == self.bases[2]].name.values[0]
+        '''
 
         save_row['pos_1'] = self.fields[self.top_bot]['투수'].get('name')
         save_row['pos_2'] = self.fields[self.top_bot]['포수'].get('name')
@@ -364,6 +375,52 @@ class game_status:
         return save_row
  
     def handle_runner_stack(self, runner_stack):
+        ######## TESTTEST ########
+        cur_runner = self.runner_bases[0]
+        cur_runner_ind = 0
+        
+        batter_runner = False
+        for row in runner_stack[::-1]:
+            if (row.type == 13) | (row.type == 23):
+                runner_name, run_result, runner_before_base, runner_after_base = parse_batter_as_runner(row.text)
+                batter_runner = True
+            else:
+                runner_name, run_result, runner_before_base, runner_after_base = parse_runner_result(row.text)
+
+            while not ((cur_runner[0] == runner_name) & (cur_runner[2] <= runner_before_base) &\
+                        (cur_runner[3][-1] >= runner_before_base)):
+                cur_runner_ind = cur_runner_ind + 1
+                if cur_runner_ind >= len(self.runner_bases):
+                    cur_runner_ind = 0
+                cur_runner = self.runner_bases[cur_runner_ind]
+
+            if cur_runner[3][-1] == 5:
+                if runner_after_base is not None:
+                    cur_runner[3] = [runner_after_base, runner_before_base]
+                elif runner_before_base != 0:
+                    cur_runner[3] = [runner_after_base, runner_before_base]
+            else:
+                cur_runner[3].append(runner_before_base)
+
+            if run_result == 'h':
+                self.score[self.top_bot] += 1
+            elif run_result == 'o':
+                self.outs += 1
+
+        after_runner_bases = []
+
+        for runner in self.runner_bases:
+            # name, code, src, route
+            if (batter_runner is True) & (runner[2] == 0) & (runner[3][0] == 5):
+                continue
+            elif runner[3][0] == 5:
+                after_runner_bases.append(runner[:])
+            elif (runner[3][0] is not None) & (runner[3][0] != 4):
+                after_runner_bases.append([runner[0], runner[1], runner[3][0], [5]])
+        self.runner_bases = after_runner_bases[:]
+
+        '''
+        self.after_bases = self.bases[:]
         for i in range(len(runner_stack)):
             rrow = runner_stack[i]
             if (rrow.type == 13) | (rrow.type == 23):
@@ -400,9 +457,10 @@ class game_status:
 
                 if self.DEBUG_MODE: print(f'\t\t{rrow.text}')
 
-        self.bases = self.after_bases
-        self.after_bases = [None, None, None]
+        self.bases = self.after_bases[:]
+        # self.after_bases = [None, None, None]
         self.base_change = [False, False, False]
+        '''
 
  
     def handle_change(self, text_stack):
@@ -429,6 +487,18 @@ class game_status:
                     self.DH_exist_after[self.top_bot] = False
                 if after_pos == '투수':
                     self.DH_exist_after[self.top_bot] = False
+
+                ########################################################################
+                ##### 대타 출장 후 같은 이닝에 타순 1바퀴 돌면서 포지션 변경하는 경우
+                ########################################################################
+                if (before_pos == '대타') & (order == None):
+                    for i in range(9):
+                        if (self.lineups[self.top_bot][i].get('name') == shift_name) &\
+                           (self.lineups[self.top_bot][i].get('pos') == before_pos):
+                            self.lineups[self.top_bot][i]['pos'] = after_pos
+                            break
+                    continue
+
                 change = [before_pos, after_pos, order, shift_name, shift_code]
                 change_stack.append(change)
             else:
@@ -476,7 +546,13 @@ class game_status:
                                 break
                 elif before_pos.find('루주자') > 0:
                     before_base = int(before_pos[0])
-                    before_code = self.bases[before_base - 1]
+                    ######## TESTTEST ########
+                    for runner in self.runner_bases:
+                        if (runner[0] == before_name) & (runner[2] == before_base):
+                            before_code = runner[1]
+                            break
+                    # before_code = self.bases[before_base - 1]
+                    
                     order = int(bdf.loc[bdf.pCode == before_code].batOrder)
                     seqno = int(bdf.loc[bdf.pCode == before_code].seqno)
                     after_code = int(bdf.loc[(bdf.homeaway == homeaway) &
@@ -489,13 +565,7 @@ class game_status:
                             before_code = self.lineups[1 - self.top_bot][i].get('code')
                             order = i + 1
                             break
-                    try:
-                        seqno = int(bdf.loc[bdf.pCode == before_code].seqno.values[0])
-                    except IndexError:
-                        print(before_code)
-                        print(text)
-                        print(bdf.loc[bdf.pCode == before_code].seqno)
-                        return False
+                    seqno = int(bdf.loc[bdf.pCode == before_code].seqno.values[0])
                     homeaway = 'h' if self.top_bot == 0 else 'a'
                     after_code = int(bdf.loc[(bdf.homeaway == homeaway) &
                                              (bdf.batOrder == order) &
@@ -524,13 +594,27 @@ class game_status:
                 self.pitcher_code = after_code
                 self.pitcher_name = after_name
             elif after_pos == '대주자':
+                '''
                 after_base = int(before_pos[0])
                 self.bases[after_base - 1] = after_code
+                '''
+                ######## TESTTEST ########
+                before_base = int(before_pos[0])
+                for i in range(len(self.runner_bases)):
+                    if self.runner_bases[i][2] == before_base:
+                        self.runner_bases[i][0] = after_name
+                        self.runner_bases[i][1] = after_code        
+                        break
+            ######## TESTTEST ########
+            elif after_pos == '대타':
+                self.runner_bases[-1][0] = after_name
+                self.runner_bases[-1][1] = after_code
         self.DH_exist[self.top_bot] = self.DH_exist_after[self.top_bot]
    
 
     def parse_game(self):
         rdf = self.relay_df
+        bdf = self.batting_df
         inns = range(1, rdf.inn.max()+1)
         for inn in inns:
             self.inn = inn
@@ -538,9 +622,14 @@ class game_status:
                 Inn = rdf.loc[(rdf.inn == inn) & (rdf.topbot == tb)]
                 if Inn.size == 0:
                     break
+
+                ######## TESTTEST ########
+                self.runner_bases = []
+                '''
                 self.bases = [None, None, None]
                 self.after_bases = [None, None, None]
                 self.base_change = [False, False, False]
+                '''
                 self.balls, self.outs, self.strikes = 0, 0, 0
                 self.DH_exist_after = self.DH_exist
                 self.last_pitch = None
@@ -597,6 +686,19 @@ class game_status:
                                 self.pitch_number = 0
                                 self.pa_number += 1
                                 self.balls, self.strikes = 0, 0
+                                
+                                # 버그 : 대타 교체 텍스트가 누락된 경우. 20170902HTWO02017
+                                # 임시조치에 불과함~
+                                if self.batter_name != row.text.split(' ')[1]:
+                                    self.batter_name = row.text.split(' ')[1]
+                                    self.lineups[self.top_bot][self.cur_order - 1]['name'] = self.batter_name
+                                    self.batter_code = bdf.loc[(bdf.name == self.batter_name) &\
+                                                               (bdf.batOrder == self.cur_order)].pCode.values[0]
+                                    self.lineups[self.top_bot][self.cur_order - 1]['code'] = self.batter_code
+
+                                
+                                ######## TESTTEST ########
+                                self.runner_bases.append([self.batter_name, self.batter_code, 0, [5]])
                             else:
                                 self.batter_name, self.batter_code, _pos = self.lineups[self.top_bot][self.cur_order - 1].values()
                             if self.DEBUG_MODE: print(f'\t{row.text}')
@@ -633,7 +735,6 @@ class game_status:
                         elif ((row.type == 14) | (row.type == 24)):
                             # 주자(비득점/득점)
                             runner_stack = []
-                            cur_runner = None
                             cur_ind = ind
                             cur_row = PA.iloc[cur_ind]
                             self.description = ''
@@ -645,6 +746,7 @@ class game_status:
                                     break
                                 cur_row = PA.iloc[cur_ind]
                             self.description = self.description.strip()
+                            
                             save_row = self.convert_row_to_save_format(None,
                                                                        [self.description, None, None])
                             self.print_rows.append(save_row)
