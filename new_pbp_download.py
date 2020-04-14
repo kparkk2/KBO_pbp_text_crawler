@@ -216,9 +216,6 @@ def get_game_data(game_id):
                 '유': '유격수', '포': '포수', '지': '지명타자',
                 '一': '1루수', '二': '2루수', '三': '3루수'}
 
-    posnum_dict = {'지': 0, '포': 2,
-                   '一': 3, '二': 4, '三': 5, '유': 6, 
-                   '좌': 7, '중': 8, '우': 9}
     home_players = []
     away_players = []
 
@@ -240,13 +237,9 @@ def get_game_data(game_id):
     ##############################
     # 4. 기존 라인업 정보와 취합 #
     ##############################
-    hit_columns = ['name', 'pCode', 'posName', 'pos',
-                   'hitType', 'seqno', 'batOrder',
-                   'ab', 'hit', 'run', 'rbi',
-                   'hr', 'bb', 'so']
-    pit_columns = ['name', 'pCode', 'hitType', 'seqno',
-                   'inn', 'run', 'er', 'hit', 'hr',
-                   'bb', 'kk', 'hbp', 'wp', 'ballCount']
+    hit_columns = ['name', 'pCode', 'posName',
+                   'hitType', 'seqno', 'batOrder']
+    pit_columns = ['name', 'pCode', 'hitType', 'seqno']
 
     atl = game_data_set.get('awayTeamLineUp')
     abat = atl.get('batter')
@@ -268,8 +261,6 @@ def get_game_data(game_id):
             continue
         abats.loc[(abats.name == player.get('name')) &
                   (abats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
-        abats.loc[(abats.name == player.get('name')) &
-                  (abats.pCode == player.get('pCode')), 'pos'] = posnum_dict.get(player.get('pos'))
 
     for player in home_players:
         # '교'로 적혀있는 교체 선수는 넘어간다
@@ -277,8 +268,6 @@ def get_game_data(game_id):
             continue
         hbats.loc[(hbats.name == player.get('name')) &
                   (hbats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
-        hbats.loc[(hbats.name == player.get('name')) &
-                  (hbats.pCode == player.get('pCode')), 'pos'] = posnum_dict.get(player.get('pos'))
 
     abats['homeaway'] = 'a'
     hbats['homeaway'] = 'h'

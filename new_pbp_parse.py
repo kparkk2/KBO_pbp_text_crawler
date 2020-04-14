@@ -157,6 +157,11 @@ class game_status:
         self.batting_df = None
         self.relay_df = None
         
+        self.home_batter_list = None
+        self.home_pitcher_list = None
+        self.away_batter_list = None
+        self.away_pitcher_list = None
+        
         # game meta data
         self.game_date = None
         self.away = None
@@ -181,11 +186,6 @@ class game_status:
         # lineup(order), fielding position, base
         self.lineups = [[], []] # 초 공격 / 말 공격
         self.fields = [{}, {}] # 초 수비 / 말 수비
-        '''
-        self.bases = [None, None, None]
-        self.after_bases = [None, None, None]
-        self.base_change = [False, False, False]
-        '''
         self.runner_bases = []
         
         # status change at pa, inning
@@ -196,7 +196,6 @@ class game_status:
         
         # status by pitch, etc.
         self.pitch_number = 0
-        self.bases = [None, None, None]
         self.score = [0, 0] # 초공(어웨이), 말공(홈)
         self.balls, self.outs, self.strikes = 0, 0, 0
         self.last_pitch = None
@@ -248,23 +247,42 @@ class game_status:
                                     (bats[1].seqno == hbat_seqno_min[i])].pCode.values[0]
             home_name = bats[1].loc[(bats[1].batOrder == i+1) &
                                     (bats[1].seqno == hbat_seqno_min[i])].name.values[0]
-            away_player = {'name': away_name, 'code': away_code}
-            home_player = {'name': home_name, 'code': home_code}
+            away_hittype = bats[0].loc[bats[0].pCode == away_code].hitType.values[0]
+            home_hittype = bats[1].loc[bats[1].pCode == home_code].hitType.values[0]
+            away_player = {'name': away_name, 'code': away_code, 'hitType': away_hittype}
+            home_player = {'name': home_name, 'code': home_code, 'hitType': home_hittype}
 
             away_pos = bats[0].loc[bats[0].pCode == away_code].posName.values[0]
             home_pos = bats[1].loc[bats[1].pCode == home_code].posName.values[0]
             self.fields[1][away_pos] = away_player
             self.fields[0][home_pos] = home_player
 
-            away_lineup = {'name': away_name, 'code': int(away_code), 'pos': away_pos}
-            home_lineup = {'name': home_name, 'code': int(home_code), 'pos': home_pos}
+            away_lineup = {'name': away_name, 'code': int(away_code), 'pos': away_pos, 'hitType': away_hittype}
+            home_lineup = {'name': home_name, 'code': int(home_code), 'pos': home_pos, 'hitType': home_hittype}
             self.lineups[0].append(away_lineup)
             self.lineups[1].append(home_lineup)
 
-        away_pitcher = {'name': pits[0].iloc[0]['name'], 'code': int(pits[0].iloc[0].pCode)}
-        home_pitcher = {'name': pits[1].iloc[0]['name'], 'code': int(pits[1].iloc[0].pCode)}
+        away_pitcher = {'name': pits[0].iloc[0]['name'],
+                        'code': int(pits[0].iloc[0].pCode),
+                        'hitType': pits[0].iloc[0].hitType}
+        home_pitcher = {'name': pits[1].iloc[0]['name'],
+                        'code': int(pits[1].iloc[0].pCode),
+                        'hitType': pits[1].iloc[0].hitType}
         self.fields[1]['투수'] = away_pitcher
         self.fields[0]['투수'] = home_pitcher
+        
+        home_bdf = bdf.loc[bdf.homeaway == 'h']
+        away_bdf = bdf.loc[bdf.homeaway == 'a']
+        home_pdf = pdf.loc[pdf.homeaway == 'h']
+        away_pdf = pdf.loc[pdf.homeaway == 'a']
+
+        batter_list_cols = ['name', 'pCode', 'posName', 'hitType', 'batOrder', 'seqno']
+        pitcher_list_cols = ['name', 'pCode', 'hitType', 'seqno']
+        
+        self.home_batter_list = home_bdf[batter_list_cols].values.tolist()
+        self.home_pitcher_list = home_pdf[pitcher_list_cols].values.tolist()
+        self.away_batter_list = away_bdf[batter_list_cols].values.tolist()
+        self.away_pitcher_list = away_pdf[pitcher_list_cols].values.tolist()
 
         inn = 0
         topbot = 'b'
@@ -304,8 +322,12 @@ class game_status:
         save_row['inning_topbot'] = '초' if self.top_bot == 0 else '말'
         save_row['score_away'] = self.score[0]
         save_row['score_home'] = self.score[1]
+        save_row['stands'] = self.stands[2]
+        save_row['throws'] = self.stands[0]
+        '''
         save_row['stands'] = bdf.loc[bdf.pCode == self.batter_code].hitType.values[0][2]
         save_row['throws'] = pdf.loc[pdf.pCode == self.pitcher_code].hitType.values[0][0]
+        '''
         save_row['pa_number'] = self.pa_number
 
         save_row['game_date'] = self.game_date
@@ -316,18 +338,9 @@ class game_status:
         save_row['stadium'] = self.stadium
         save_row['referee'] = self.referee
 
-        ########### TESTTEST ###########
         for runner in self.runner_bases:
             if runner[2] > 0:
                 save_row[f'on_{runner[2]}b'] = runner[0]
-        '''
-        if self.bases[0] is not None:
-            save_row['on_1b'] = bdf.loc[bdf.pCode == self.bases[0]].name.values[0]
-        if self.bases[1] is not None:
-            save_row['on_2b'] = bdf.loc[bdf.pCode == self.bases[1]].name.values[0]
-        if self.bases[2] is not None:
-            save_row['on_3b'] = bdf.loc[bdf.pCode == self.bases[2]].name.values[0]
-        '''
 
         save_row['pos_1'] = self.fields[self.top_bot]['투수'].get('name')
         save_row['pos_2'] = self.fields[self.top_bot]['포수'].get('name')
@@ -375,7 +388,6 @@ class game_status:
         return save_row
  
     def handle_runner_stack(self, runner_stack):
-        ######## TESTTEST ########
         cur_runner = self.runner_bases[0]
         cur_runner_ind = 0
         
@@ -419,49 +431,6 @@ class game_status:
                 after_runner_bases.append([runner[0], runner[1], runner[3][0], [5]])
         self.runner_bases = after_runner_bases[:]
 
-        '''
-        self.after_bases = self.bases[:]
-        for i in range(len(runner_stack)):
-            rrow = runner_stack[i]
-            if (rrow.type == 13) | (rrow.type == 23):
-                res = parse_batter_as_runner(rrow.text) # runner, result, before_base, after_base
-                if res[1] == 'h':
-                    self.score[self.top_bot] += 1
-                elif res[1] == 'o':
-                    self.outs += 1
-                else:
-                    self.after_bases[res[3]-1] = self.batter_code
-                    self.base_change[res[3]-1] = True
-                if self.DEBUG_MODE: print(f'\t\t{rrow.text}')
-            else:
-                res = parse_runner_result(rrow.text) # runner, result, before_base, after_base
-                runner_code = self.bases[res[2]-1] if self.base_change[res[2]-1] is False else self.after_bases[res[2]-1]
-                if ((self.base_change[res[2]-1] is True) & (self.after_bases[res[2]-1] == self.batter_code)) &\
-                   ((self.bases[res[2]-1] is not None) & (self.bases[res[2]-1] != self.batter_code)):
-                    runner_code = self.bases[res[2]-1]
-
-                if res[1] == 'h':
-                    self.score[self.top_bot] += 1
-                elif res[1] == 'o':
-                    self.outs += 1
-                else:
-                    self.after_bases[res[3]-1] = runner_code
-                    self.base_change[res[3]-1] = True
-
-                if self.base_change[res[2]-1] is False:
-                    self.after_bases[res[2]-1] = None
-                    self.base_change[res[2]-1] = True
-                else:
-                    if self.after_bases[res[2]-1] == runner_code:
-                        self.after_bases[res[2]-1] = None
-
-                if self.DEBUG_MODE: print(f'\t\t{rrow.text}')
-
-        self.bases = self.after_bases[:]
-        # self.after_bases = [None, None, None]
-        self.base_change = [False, False, False]
-        '''
-
  
     def handle_change(self, text_stack):
         change_stack = []
@@ -481,6 +450,7 @@ class game_status:
                     if (self.lineups[1 - self.top_bot][i].get('name') == shift_name) &\
                        (self.lineups[1 - self.top_bot][i].get('pos') == before_pos):
                         shift_code = self.lineups[1 - self.top_bot][i].get('code')
+                        shift_hittype = self.lineups[1 - self.top_bot][i].get('hitType')
                         order = i + 1
                         break
                 if before_pos == '지명타자':
@@ -499,13 +469,15 @@ class game_status:
                             break
                     continue
 
-                change = [before_pos, after_pos, order, shift_name, shift_code]
+                change = [before_pos, after_pos, order, shift_name, shift_code, shift_hittype]
                 change_stack.append(change)
             else:
                 after_pos = text.split('(')[0].strip().split(' ')[3]
                 after_name = text.split('(')[0].strip().split(' ')[-1]
                 before_name = text.split(' ')[1].strip()
                 before_code = None
+                after_code = None
+                after_hittype = None
                 homeaway = 'a' if self.top_bot == 0 else 'h'
                 order = None
 
@@ -519,25 +491,51 @@ class game_status:
                 if before_pos.find('번타자') > 0:
                     order = int(before_pos[0])
                     before_code = self.lineups[self.top_bot][order - 1].get('code')
-                    seqno = int(bdf.loc[bdf.pCode == before_code].seqno)
-                    after_code = int(bdf.loc[(bdf.homeaway == homeaway) &
-                                             (bdf.batOrder == order) &
-                                             (bdf.seqno > seqno)].head(1).pCode)
+                    
+                    if self.top_bot == 0:
+                        for i in range(len(self.away_batter_list)):
+                            if self.away_batter_list[i][1] == before_code:
+                                after_code = self.away_batter_list[i+1][1]
+                                after_hittype = self.away_batter_list[i+1][3]
+                                break
+                    else:
+                        for i in range(len(self.home_batter_list)):
+                            if self.home_batter_list[i][1] == before_code:
+                                after_code = self.home_batter_list[i+1][1]
+                                after_hittype = self.home_batter_list[i+1][3]
+                                break
                 elif after_pos == '투수':
-                    homeaway = 'h' if self.top_bot == 0 else 'a'
-
                     # 예외처리
                     if (after_name == self.pitcher_name) & (before_pos != '투수'):
                         after_code = self.pitcher_code
+                        after_hittype = self.throws
                     elif (after_name != self.pitcher_name) & (before_pos != '투수'):
-                        seqno = int(pdf.loc[pdf.pCode == self.pitcher_code].seqno)
-                        after_code = int(pdf.loc[(pdf.homeaway == homeaway) &
-                                                 (pdf.seqno > seqno)].head(1).pCode)
+                        if self.top_bot == 0:
+                            for i in range(len(self.home_pitcher_list)):
+                                if self.home_pitcher_list[i][0] == self.pitcher_code:
+                                    after_code = self.home_pitcher_list[i+1][1]
+                                    after_hittype = self.home_pitcher_list[i+1][2]
+                                    break
+                        else:
+                            for i in range(len(self.away_pitcher_list)):
+                                if self.away_pitcher_list[i][1] == self.pitcher_code:
+                                    after_code = self.away_pitcher_list[i+1][1]
+                                    after_hittype = self.away_pitcher_list[i+1][2]
+                                    break
                     else:
                         before_code = self.fields[self.top_bot][before_pos].get('code')
-                        seqno = int(pdf.loc[pdf.pCode == before_code].seqno)
-                        after_code = int(pdf.loc[(pdf.homeaway == homeaway) &
-                                                 (pdf.seqno > seqno)].head(1).pCode)
+                        if self.top_bot == 0:
+                            for i in range(len(self.home_pitcher_list)):
+                                if self.home_pitcher_list[i][0] == before_code:
+                                    after_code = self.home_pitcher_list[i+1][1]
+                                    after_hittype = self.home_pitcher_list[i+1][2]
+                                    break
+                        else:
+                            for i in range(len(self.away_pitcher_list)):
+                                if self.away_pitcher_list[i][1] == before_code:
+                                    after_code = self.away_pitcher_list[i+1][1]
+                                    after_hittype = self.away_pitcher_list[i+1][2]
+                                    break
                     if (self.DH_exist[self.top_bot] is False) or (self.DH_exist_after[self.top_bot] != self.DH_exist[self.top_bot]):
                         for i in range(9):
                             if (self.lineups[1 - self.top_bot][i].get('name') == before_name) &\
@@ -546,18 +544,22 @@ class game_status:
                                 break
                 elif before_pos.find('루주자') > 0:
                     before_base = int(before_pos[0])
-                    ######## TESTTEST ########
                     for runner in self.runner_bases:
                         if (runner[0] == before_name) & (runner[2] == before_base):
                             before_code = runner[1]
                             break
-                    # before_code = self.bases[before_base - 1]
-                    
-                    order = int(bdf.loc[bdf.pCode == before_code].batOrder)
-                    seqno = int(bdf.loc[bdf.pCode == before_code].seqno)
-                    after_code = int(bdf.loc[(bdf.homeaway == homeaway) &
-                                             (bdf.batOrder == order) &
-                                             (bdf.seqno > seqno)].head(1).pCode)
+                    if self.top_bot == 0:
+                        for i in range(len(self.away_batter_list)):
+                            if self.away_batter_list[i][0] == before_code:
+                                after_code = self.away_batter_list[i+1][1]
+                                after_hittype = self.away_batter_list[i+1][3]
+                                break
+                    else:
+                        for i in range(len(self.home_batter_list)):
+                            if self.home_batter_list[i][1] == before_code:
+                                after_code = self.home_batter_list[i+1][1]
+                                after_hittype = self.home_batter_list[i+1][3]
+                                break
                 else:
                     for i in range(9):
                         if (self.lineups[1 - self.top_bot][i].get('name') == before_name) &\
@@ -565,20 +567,28 @@ class game_status:
                             before_code = self.lineups[1 - self.top_bot][i].get('code')
                             order = i + 1
                             break
-                    seqno = int(bdf.loc[bdf.pCode == before_code].seqno.values[0])
-                    homeaway = 'h' if self.top_bot == 0 else 'a'
-                    after_code = int(bdf.loc[(bdf.homeaway == homeaway) &
-                                             (bdf.batOrder == order) &
-                                             (bdf.seqno > seqno)].head(1).pCode)
-                change = [before_pos, after_pos, order, after_name, after_code]
+                    if self.top_bot == 0:
+                        for i in range(len(self.home_batter_list)):
+                            if self.home_batter_list[i][0] == before_code:
+                                after_code = self.home_batter_list[i+1][1]
+                                after_hittype = self.home_batter_list[i+1][3]
+                                break
+                    else:
+                        for i in range(len(self.away_batter_list)):
+                            if self.away_batter_list[i][1] == before_code:
+                                after_code = self.away_batter_list[i+1][1]
+                                after_hittype = self.away_batter_list[i+1][3]
+                                break
+                change = [before_pos, after_pos, order, after_name, after_code, after_hittype]
                 change_stack.append(change)
 
         for i in range(len(change_stack)):
             change = change_stack[i]
-            before_pos, after_pos, order, after_name, after_code = change
+            before_pos, after_pos, order, after_name, after_code, after_hittype = change
             if (after_pos != '대타') & (after_pos != '대주자'):
                 self.fields[self.top_bot][after_pos]['code'] = after_code
                 self.fields[self.top_bot][after_pos]['name'] = after_name
+                self.fields[self.top_bot][after_pos]['hitType'] = after_hittype
 
             if order is not None:
                 if (after_pos != '대타') & (after_pos != '대주자'):
@@ -589,26 +599,23 @@ class game_status:
                 self.lineups[tb][order - 1]['code'] = after_code
                 self.lineups[tb][order - 1]['name'] = after_name
                 self.lineups[tb][order - 1]['pos'] = after_pos
+                self.lineups[tb][order - 1]['hitType'] = after_hittype
 
             if after_pos == '투수':
                 self.pitcher_code = after_code
                 self.pitcher_name = after_name
+                self.throws = after_hittype
             elif after_pos == '대주자':
-                '''
-                after_base = int(before_pos[0])
-                self.bases[after_base - 1] = after_code
-                '''
-                ######## TESTTEST ########
                 before_base = int(before_pos[0])
                 for i in range(len(self.runner_bases)):
                     if self.runner_bases[i][2] == before_base:
                         self.runner_bases[i][0] = after_name
                         self.runner_bases[i][1] = after_code        
                         break
-            ######## TESTTEST ########
             elif after_pos == '대타':
                 self.runner_bases[-1][0] = after_name
                 self.runner_bases[-1][1] = after_code
+                self.stands = after_hittype
         self.DH_exist[self.top_bot] = self.DH_exist_after[self.top_bot]
    
 
@@ -623,13 +630,7 @@ class game_status:
                 if Inn.size == 0:
                     break
 
-                ######## TESTTEST ########
                 self.runner_bases = []
-                '''
-                self.bases = [None, None, None]
-                self.after_bases = [None, None, None]
-                self.base_change = [False, False, False]
-                '''
                 self.balls, self.outs, self.strikes = 0, 0, 0
                 self.DH_exist_after = self.DH_exist
                 self.last_pitch = None
@@ -682,7 +683,7 @@ class game_status:
                             self.description = ''
                             if len(position) > 2:
                                 self.cur_order = int(position[0])
-                                self.batter_name, self.batter_code, _pos = self.lineups[self.top_bot][self.cur_order - 1].values()
+                                self.batter_name, self.batter_code, _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
                                 self.pitch_number = 0
                                 self.pa_number += 1
                                 self.balls, self.strikes = 0, 0
@@ -692,15 +693,25 @@ class game_status:
                                 if self.batter_name != row.text.split(' ')[1]:
                                     self.batter_name = row.text.split(' ')[1]
                                     self.lineups[self.top_bot][self.cur_order - 1]['name'] = self.batter_name
-                                    self.batter_code = bdf.loc[(bdf.name == self.batter_name) &\
-                                                               (bdf.batOrder == self.cur_order)].pCode.values[0]
+                                    
+                                    if self.top_bot == 0:
+                                        for p in self.away_batter_list:
+                                            if (p[0] == self.batter_name) & (p[-2] == self.cur_order):
+                                                self.batter_code = p[1]
+                                                self.stands = p[3]
+                                                break
+                                    else:
+                                        for p in self.home_batter_list:
+                                            if (p[0] == self.batter_name) & (p[-2] == self.cur_order):
+                                                self.batter_code = p[1]
+                                                self.stands = p[3]
+                                                break
                                     self.lineups[self.top_bot][self.cur_order - 1]['code'] = self.batter_code
+                                    self.lineups[self.top_bot][self.cur_order - 1]['stands'] = self.stands
 
-                                
-                                ######## TESTTEST ########
                                 self.runner_bases.append([self.batter_name, self.batter_code, 0, [5]])
                             else:
-                                self.batter_name, self.batter_code, _pos = self.lineups[self.top_bot][self.cur_order - 1].values()
+                                self.batter_name, self.batter_code, _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
                             if self.DEBUG_MODE: print(f'\t{row.text}')
                             ind = ind + 1
                         elif ((row.type == 13) | (row.type == 23)):
@@ -757,7 +768,7 @@ class game_status:
                             if self.DEBUG_MODE: print(f'\t{row.text}')
                             ind = ind + 1
                             self.top_bot = (1 - self.top_bot)
-                            self.pitcher_name, self.pitcher_code = self.fields[self.top_bot].get('투수').values()
+                            self.pitcher_name, self.pitcher_code, self.throws = self.fields[self.top_bot].get('투수').values()
                             self.pitch_number = 0
                         elif (row.type == 2):
                              # 교체/변경

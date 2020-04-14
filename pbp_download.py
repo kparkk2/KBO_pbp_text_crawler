@@ -715,8 +715,6 @@ def download_relay2(args, lm=None):
                     pos_dict = {'중': '중견수', '좌': '좌익수', '우': '우익수', '유': '유격수', '포': '포수', '지': '지명타자',
                                 '一': '1루수', '二': '2루수', '三': '3루수'}
 
-                    posnum_dict = {'중': 8, '좌': 7, '우': 9, '유': 6, '포': 2, '지': 0,
-                                '一': 3, '二': 4, '三': 5}
                     homes = []
                     aways = []
                     for i in range(len(hl)):
@@ -734,13 +732,9 @@ def download_relay2(args, lm=None):
                         aways.append({'name': name, 'pos': pos, 'pCode': pCode})
 
                     ### 라인업 가져다와서 더하기 ###
-                    hit_columns = ['name', 'pCode', 'posName', 'pos',
-                                'hitType', 'seqno', 'batOrder',
-                                'ab', 'hit', 'run', 'rbi',
-                                'hr', 'bb', 'so']
-                    pit_columns = ['name', 'pCode', 'hitType', 'seqno',
-                                'inn', 'run', 'er', 'hit', 'hr',
-                                'bb', 'kk', 'hbp', 'wp', 'ballCount']
+                    hit_columns = ['name', 'pCode', 'posName',
+                                'hitType', 'seqno', 'batOrder']
+                    pit_columns = ['name', 'pCode', 'hitType', 'seqno']
 
                     atl = txt.get('awayTeamLineUp')
                     abat = atl.get('batter')
@@ -757,14 +751,14 @@ def download_relay2(args, lm=None):
                     for a in aways:
                         if a.get('pos') == '교':
                             continue
-                        abats.loc[(abats.name == a.get('name')) & (abats.pCode == a.get('pCode')), 'posName'] = pos_dict.get(a.get('pos'))
-                        abats.loc[(abats.name == a.get('name')) & (abats.pCode == a.get('pCode')), 'pos'] = posnum_dict.get(a.get('pos'))
+                        abats.loc[(abats.name == a.get('name')) &
+                                  (abats.pCode == a.get('pCode')), 'posName'] = pos_dict.get(a.get('pos'))
 
                     for h in homes:
                         if h.get('pos') == '교':
                             continue
-                        hbats.loc[(hbats.name == h.get('name')) & (hbats.pCode == h.get('pCode')), 'posName'] = pos_dict.get(h.get('pos'))
-                        hbats.loc[(hbats.name == h.get('name')) & (hbats.pCode == h.get('pCode')), 'pos'] = posnum_dict.get(h.get('pos'))
+                        hbats.loc[(hbats.name == h.get('name')) &
+                                  (hbats.pCode == h.get('pCode')), 'posName'] = pos_dict.get(h.get('pos'))
                     abats['homeaway'] = 'a'
                     hbats['homeaway'] = 'h'
                     apits['homeaway'] = 'a'
