@@ -6,7 +6,46 @@ from bs4 import BeautifulSoup
 
 from new_pbp_parse import game_status
 
-def get_game_ids(start_date, end_date):
+regular_start = {
+    '3333': '0101', # playoff
+    '4444': '0101', # playoff
+    '5555': '0101', # playoff
+    '7777': '0101', # playoff
+    '2008': '0329',
+    '2009': '0404',
+    '2010': '0327',
+    '2011': '0402',
+    '2012': '0407',
+    '2013': '0330',
+    '2014': '0329',
+    '2015': '0328',
+    '2016': '0401',
+    '2017': '0331',
+    '2018': '0324',
+    '2019': '0323',
+}
+
+playoff_start = {
+    '3333': '1231', # playoff
+    '4444': '1231', # playoff
+    '5555': '1231', # playoff
+    '7777': '1231', # playoff
+    '2008': '1008',
+    '2009': '0920',
+    '2010': '1005',
+    '2011': '1008',
+    '2012': '1008',
+    '2013': '1008',
+    '2014': '1019',
+    '2015': '1010',
+    '2016': '1021',
+    '2017': '1010',
+    '2018': '1015',
+    '2019': '1003',
+}
+
+
+def get_game_ids(start_date, end_date, playoff=False):
     timetable_url = 'https://sports.news.naver.com/'\
                     'kbaseball/schedule/index.nhn?month='
     
@@ -22,6 +61,15 @@ def get_game_ids(start_date, end_date):
         month = d.month
         year = d.year
         
+        year_regular_start = regular_start[str(year)]
+        year_playoff_start = playoff_start[str(year)]
+        year_regular_start_date = datetime.date(year,
+                                                int(year_regular_start[:2]),
+                                                int(year_regular_start[2:]))
+        year_playoff_start_date = datetime.date(year,
+                                                int(year_playoff_start[:2]),
+                                                int(year_playoff_start[2:]))
+        year_last_date = datetime.date(year, 12, 31)
         sch_url = timetable_url + f'{month}&year={year}'
 
         response = requests.get(sch_url)
@@ -32,12 +80,17 @@ def get_game_ids(start_date, end_date):
                                attrs={'class': 'td_btn'})
 
         for btn in buttons:
-            gid = btn.a['href'].split('gameId=')[1]
+            gid = btn.a['href'].split('gameId=')[1]            
             gid_date = datetime.date(int(gid[:4]),
                                      int(gid[4:6]),
                                      int(gid[6:8]))
             if start_date <= gid_date <= end_date:
-                game_ids.append(gid)
+                if playoff is False:
+                    if year_regular_start_date <= gid_date < year_playoff_start_date:
+                        game_ids.append(gid)
+                else:
+                    if year_regular_start_date <= gid_date < year_last_date:
+                        game_ids.append(gid)
     return game_ids
 
 
@@ -261,6 +314,13 @@ def get_game_data(game_id):
             continue
         abats.loc[(abats.name == player.get('name')) &
                   (abats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
+        if len(player.get('name')) > 3:
+            pname = player.get('name')
+            for i in range(len(abats)):
+                if abats.iloc[i].values[0].find(pname) > -1:
+                    pCode = abats.iloc[i].pCode
+                    abats.loc[(abats.pCode == pCode), 'posName'] = pos_dict.get(player.get('pos'))
+                    break
 
     for player in home_players:
         # '교'로 적혀있는 교체 선수는 넘어간다
@@ -268,6 +328,13 @@ def get_game_data(game_id):
             continue
         hbats.loc[(hbats.name == player.get('name')) &
                   (hbats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
+        if len(player.get('name')) > 3:
+            pname = player.get('name')
+            for i in range(len(hbats)):
+                if hbats.iloc[i].values[0].find(pname) > -1:
+                    pCode = hbats.iloc[i].pCode
+                    hbats.loc[(hbats.pCode == pCode), 'posName'] = pos_dict.get(player.get('pos'))
+                    break
 
     abats['homeaway'] = 'a'
     hbats['homeaway'] = 'h'
@@ -286,18 +353,17 @@ def get_game_data(game_id):
     return pitching_df, batting_df, relay_df
 
 
-def download_pbp_files(start_date, end_date, save_path=None, debug_mode=False):
+def download_pbp_files(start_date, end_date, playoff=False, save_path=None, debug_mode=False):
     start_time = time.time()
-    game_ids = get_game_ids(start_date, end_date)
+    game_ids = get_game_ids(start_date, end_date, playoff)
     end_time = time.time()
-    if debug_mode is True:
-        print(f'{len(game_ids)} game, elapsed {(end_time - start_time):.2f} sec in get_game_ids')
+    get_game_id_time = end_time - start_time
     
     skipped = 0
     done = 0
     start_time = time.time()
     get_data_time = 0
-    for gid in game_ids:
+    for gid in tqdm(game_ids):
         now = datetime.datetime.now().date()
         gid_to_date = datetime.date(int(gid[:4]),
                             int(gid[4:6]),
@@ -307,12 +373,12 @@ def download_pbp_files(start_date, end_date, save_path=None, debug_mode=False):
             continue
         
         ptime = time.time()
-        game_data_dfs = get_game_data(gid) 
+        game_data_dfs = get_game_data(gid)
         get_data_time += time.time() - ptime
         if game_data_dfs is not None:
             gs = game_status()
             gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2])
-            gs.parse_game()
+            gs.parse_game(debug_mode)
             gs.save_game(save_path)
             done += 1
         else:
@@ -322,5 +388,6 @@ def download_pbp_files(start_date, end_date, save_path=None, debug_mode=False):
     end_time = time.time()
     parse_time = end_time - start_time - get_data_time
     if debug_mode is True:
+        print(f'{len(game_ids)} game, elapsed {get_game_id_time:.2f} sec in get_game_ids')
         print(f'{len(game_ids)} game, elapsed {(get_data_time):.2f} sec in get_game_data')
         print(f'{len(game_ids)} game, elapsed {(parse_time):.2f} sec in parse_game')

@@ -203,14 +203,6 @@ class game_status:
         # print rows
         self.print_rows = []
         
-        # debug mode
-        self.DEBUG_MODE = False
-    
-
-    def toggle_debug(self, mode):
-        if type(mode) == bool:
-            self.DEBUG_MODE = mode
-        
     def load(self, game_id, pdf, bdf, rdf):
         self.pitching_df = pdf
         self.batting_df = bdf
@@ -224,12 +216,16 @@ class game_status:
         self.away_alias = pdf.loc[pdf.homeaway == 'a'].team_name.unique()[0]
         self.home_alias = pdf.loc[pdf.homeaway == 'h'].team_name.unique()[0]
         
+        ########################
+        # 라인업 & 필드 채우기 #
+        ########################
+        
         bats = [bdf.loc[bdf.homeaway == 'a'],
                 bdf.loc[bdf.homeaway == 'h']]
         pits = [pdf.loc[pdf.homeaway == 'a'],
                 pdf.loc[pdf.homeaway == 'h']]
-        abat_seqno_min = bats[0].groupby('batOrder').seqno.min().tolist()
-        hbat_seqno_min = bats[1].groupby('batOrder').seqno.min().tolist()
+        abat_seqno_min = bats[0].loc[bats[0].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
+        hbat_seqno_min = bats[1].loc[bats[1].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
 
         for i in range(9):
             away_code = bats[0].loc[(bats[0].batOrder == i+1) &
@@ -287,7 +283,7 @@ class game_status:
             if col in rdf.columns:
                 rdf_cols.append(col)
 
-        self.relay_array = rdf[rdf_cols].sort_values('seqno').values
+        self.relay_array = rdf[rdf_cols].sort_values(['textOrder', 'seqno']).values
 
 
     def convert_row_to_save_format(self, row,
@@ -305,8 +301,10 @@ class game_status:
         save_row['inning_topbot'] = '초' if self.top_bot == 0 else '말'
         save_row['score_away'] = self.score[0]
         save_row['score_home'] = self.score[1]
-        save_row['stands'] = self.stands[2]
-        save_row['throws'] = self.stands[0]
+        if self.stands is not None:
+            save_row['stands'] = self.stands[2]
+        if self.throws is not None:
+            save_row['throws'] = self.throws[0]
         save_row['pa_number'] = self.pa_number
 
         save_row['game_date'] = self.game_date
@@ -368,7 +366,11 @@ class game_status:
 
         return save_row
  
-    def handle_runner_stack(self, runner_stack):
+    def handle_runner_stack(self, runner_stack, debug_mode=False):
+        if len(self.runner_bases) == 0:
+            if debug_mode is True:
+                print('base error')
+            assert False
         cur_runner = self.runner_bases[0]
         cur_runner_ind = 0
         
@@ -380,12 +382,19 @@ class game_status:
             else:
                 runner_name, run_result, runner_before_base, runner_after_base = parse_runner_result(row[2])
 
-            while not ((cur_runner[0] == runner_name) & (cur_runner[2] <= runner_before_base) &\
+            base_loop_num = 0
+            while not ((cur_runner[0] == runner_name) &\
+                        (cur_runner[2] <= runner_before_base) &\
                         (cur_runner[3][-1] >= runner_before_base)):
                 cur_runner_ind = cur_runner_ind + 1
                 if cur_runner_ind >= len(self.runner_bases):
                     cur_runner_ind = 0
                 cur_runner = self.runner_bases[cur_runner_ind]
+                base_loop_num += 1
+                if base_loop_num > 4:
+                    if debug_mode is True:
+                        print('base error')
+                    assert False
 
             if cur_runner[3][-1] == 5:
                 if runner_after_base is not None:
@@ -413,11 +422,9 @@ class game_status:
         self.runner_bases = after_runner_bases[:]
 
  
-    def handle_change(self, text_stack):
+    def handle_change(self, text_stack, debug_mode=False):
         change_stack = []
-        for i in range(len(text_stack)):
-            text = text_stack[i]
-            if self.DEBUG_MODE: print(f'\t{text}')
+        for text in text_stack:
             order = None
             before_pos = text.split(' ')[0]
 
@@ -459,7 +466,6 @@ class game_status:
                 before_code = None
                 after_code = None
                 after_hittype = None
-                homeaway = 'a' if self.top_bot == 0 else 'h'
                 order = None
 
                 if (before_pos == '지명타자') & (after_pos !='지명타자') & (after_pos !='대타'):
@@ -530,6 +536,10 @@ class game_status:
                         if (runner[0] == before_name) & (runner[2] == before_base):
                             before_code = runner[1]
                             break
+                    for i in range(9):
+                        if self.lineups[self.top_bot][i].get('code') == before_code:
+                            order = i + 1
+                            break
                     if self.top_bot == 0:
                         for i in range(len(self.away_batter_list)):
                             if self.away_batter_list[i][1] == before_code:
@@ -549,18 +559,50 @@ class game_status:
                             before_code = self.lineups[1 - self.top_bot][i].get('code')
                             order = i + 1
                             break
+                    if order is None:
+                        for i in range(9):
+                            if (self.lineups[self.top_bot][i].get('name') == before_name) &\
+                               (self.lineups[self.top_bot][i].get('pos') == before_pos):
+                                before_code = self.lineups[self.top_bot][i].get('code')
+                                order = i + 1
+                                break
+                    if order is None:
+                        if debug_mode is True:
+                            print('cant find player name/position in lineup')
+                        assert False
                     if self.top_bot == 0:
                         for i in range(len(self.home_batter_list)):
                             if self.home_batter_list[i][1] == before_code:
                                 after_code = self.home_batter_list[i+1][1]
                                 after_hittype = self.home_batter_list[i+1][3]
                                 break
+                        if after_code is None:
+                            for i in range(len(self.away_batter_list)):
+                                if self.away_batter_list[i][1] == before_code:
+                                    after_code = self.away_batter_list[i+1][1]
+                                    after_hittype = self.away_batter_list[i+1][3]
+                                    break
                     else:
                         for i in range(len(self.away_batter_list)):
                             if self.away_batter_list[i][1] == before_code:
                                 after_code = self.away_batter_list[i+1][1]
                                 after_hittype = self.away_batter_list[i+1][3]
                                 break
+                        if after_code is None:
+                            for i in range(len(self.home_batter_list)):
+                                if self.home_batter_list[i][1] == before_code:
+                                    after_code = self.home_batter_list[i+1][1]
+                                    after_hittype = self.home_batter_list[i+1][3]
+                                    break
+                    if after_code is None:
+                        if debug_mode is True:
+                            print('cant find player code in lineup')
+                        assert False
+                    for i in range(len(self.runner_bases)):
+                        if self.runner_bases[i][1] == before_code:
+                            self.runner_bases[i][0] = after_name
+                            self.runner_bases[i][1] = after_code
+                            break
                 change = [before_pos, after_pos, order, after_name, after_code, after_hittype]
                 change_stack.append(change)
 
@@ -589,10 +631,10 @@ class game_status:
                 self.throws = after_hittype
             elif after_pos == '대주자':
                 before_base = int(before_pos[0])
-                for i in range(len(self.runner_bases)):
-                    if self.runner_bases[i][2] == before_base:
-                        self.runner_bases[i][0] = after_name
-                        self.runner_bases[i][1] = after_code        
+                for j in range(len(self.runner_bases)):
+                    if self.runner_bases[j][2] == before_base:
+                        self.runner_bases[j][0] = after_name
+                        self.runner_bases[j][1] = after_code        
                         break
             elif after_pos == '대타':
                 self.runner_bases[-1][0] = after_name
@@ -601,9 +643,11 @@ class game_status:
         self.DH_exist[self.top_bot] = self.DH_exist_after[self.top_bot]
    
 
-    def parse_game(self):
+    def parse_game(self, debug_mode=False):
         try:
             ind = 0
+            self.inn = 0
+            self.top_bot = 1
             while ind < self.relay_array.shape[0]:
                 row = self.relay_array[ind]
                 cur_type = row[3]
@@ -629,11 +673,14 @@ class game_status:
                         self.balls += 1
                     elif res == '스트라이크':
                         self.strikes += 1
-                    elif res == '헛스윙':
+                    elif res.find('헛스윙') > -1:
                         self.strikes += 1
-                    elif res == '파울':
+                    elif res.find('파울') > -1:
                         self.strikes = self.strikes+1 if self.strikes < 2 else 2
-                    if self.DEBUG_MODE: print(f'\t{row.text}')
+                    if (self.strikes > 3) or (self.strikes > 4) or (self.strikes > 3):
+                        if debug_mode is True:
+                            print('3S/4B/3O')
+                        assert False
                     ind = ind + 1
 
                 elif cur_type == 8:
@@ -660,13 +707,13 @@ class game_status:
 
                             if self.top_bot == 0:
                                 for p in self.away_batter_list:
-                                    if (p[0] == self.batter_name) & (p[-2] == self.cur_order):
+                                    if (p[0] == self.batter_name) & (p[4] == self.cur_order):
                                         self.batter_code = p[1]
                                         self.stands = p[3]
                                         break
                             else:
                                 for p in self.home_batter_list:
-                                    if (p[0] == self.batter_name) & (p[-2] == self.cur_order):
+                                    if (p[0] == self.batter_name) & (p[4] == self.cur_order):
                                         self.batter_code = p[1]
                                         self.stands = p[3]
                                         break
@@ -677,7 +724,30 @@ class game_status:
                     else:
                         self.batter_name, self.batter_code,\
                         _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
-                    if self.DEBUG_MODE: print(f'\t{cur_text}')
+                        if self.batter_name != cur_text.split(' ')[1]:
+                            if len(cur_text.strip().split(' ')) > 1:
+                                self.batter_name = cur_text.strip().split(' ')[1]
+                                self.lineups[self.top_bot][self.cur_order - 1]['name'] =self. batter_name
+                                if self.top_bot == 0:
+                                    for p in self.away_batter_list:
+                                        if (p[0] == self.batter_name) & (p[4] == self.cur_order):
+                                            self.batter_code = p[1]
+                                            self.stands = p[3]
+                                            break
+                                else:
+                                    for p in self.home_batter_list:
+                                        if (p[0] == self.batter_name) & (p[4] == self.cur_order):
+                                            self.batter_code = p[1]
+                                            self.stands = p[3]
+                                            break
+                                self.lineups[self.top_bot][self.cur_order - 1]['code'] = self.batter_code
+                                self.lineups[self.top_bot][self.cur_order - 1]['hitType'] = self.stands
+
+                                for runner in self.runner_bases:
+                                    if (runner[2] == 0) & (runner[0] != self.batter_name):
+                                        runner[0] = self.batter_name
+                                        runner[1] = self.batter_code
+                                        break
                     ind = ind + 1
                 elif (cur_type == 13) or (cur_type == 23):
                     # 타자주자(비득점/득점)
@@ -685,11 +755,13 @@ class game_status:
                     cur_ind = ind
                     cur_row = self.relay_array[cur_ind]
                     self.description = ''
+
                     while ((cur_type == 13) or (cur_type == 23) or\
                            (cur_type == 14) or (cur_type == 24)):
                         runner_stack.append(cur_row)
                         self.description += cur_row[2].strip() + '; '
-                        cur_ind = cur_ind + 1
+                        cur_ind += 1
+
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
                         cur_row = self.relay_array[cur_ind]
@@ -699,6 +771,7 @@ class game_status:
                     result = parse_batter_result(cur_text)
                     self.pa_result = result[0]
                     self.pa_result_detail = result[1]
+
                     if self.pitch_result != '타격':
                         self.print_rows[-1]['description'] = self.description
                         self.print_rows[-1]['pa_result'] = self.pa_result
@@ -709,7 +782,7 @@ class game_status:
                         self.print_rows.append(save_row)
 
                     ind = cur_ind
-                    self.handle_runner_stack(runner_stack)
+                    self.handle_runner_stack(runner_stack, debug_mode)
                 elif (cur_type == 14) or (cur_type == 24):
                     # 주자(비득점/득점)
                     runner_stack = []
@@ -730,10 +803,10 @@ class game_status:
                                                                [self.description, None, None])
                     self.print_rows.append(save_row)
                     ind = cur_ind
-                    self.handle_runner_stack(runner_stack)
+
+                    self.handle_runner_stack(runner_stack, debug_mode)
                 elif cur_type == 0:
                     # 이닝 시작
-                    if self.DEBUG_MODE: print(f'\t{cur_text}')
                     ind = ind + 1
                     if self.top_bot == 1:
                         self.inn += 1
@@ -752,14 +825,14 @@ class game_status:
                     cur_ind = ind
                     cur_row = self.relay_array[cur_ind]
                     self.description = ''
-                    while cur_type == 2:
+
+                    while cur_row[3] == 2:
                         text_stack.append(cur_row[2])
                         self.description += cur_row[2].strip() + '; '
                         cur_ind = cur_ind + 1
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
                         cur_row = self.relay_array[cur_ind]
-                        cur_type = cur_row[3]
                     self.description = self.description.strip()
                     ind = cur_ind
 
@@ -767,16 +840,24 @@ class game_status:
                                                                [self.description, None, None])
                     self.print_rows.append(save_row)
 
-                    self.handle_change(text_stack)
+                    self.handle_change(text_stack, debug_mode)
                 elif cur_type == 7:
-                    if self.DEBUG_MODE: print(f'\t{cur_text}')
                     ind = ind + 1
                 else:
                     ind = ind + 1
         except:
-            print("-"*60)
-            traceback.print_exc(file=sys.stdout, )
-            print("-"*60)
+            ind = len(self.print_rows)-1
+            while ind >= 0:
+                if self.print_rows[ind]['pa_number'] == self.pa_number:
+                    self.print_rows = self.print_rows[:-1]
+                    ind -= 1
+                else:
+                    break
+            if debug_mode is True:
+                print("-"*60)
+                print(f"=== gameid : {self.game_id}")
+                traceback.print_exc(file=sys.stdout)
+                print("-"*60)
 
     def save_game(self, path=None):
         row_df = pd.DataFrame(self.print_rows)
