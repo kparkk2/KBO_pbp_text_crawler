@@ -1,13 +1,7 @@
-import os
-import json
-from collections import OrderedDict
-import regex
-import csv
+import os, json, regex, csv, sys, traceback, pathlib
 
 import pandas as pd
 import numpy as np
-import sys
-import pathlib
 
 # custom library
 from utils import print_progress
@@ -112,18 +106,18 @@ def parse_runner_result(text):
 
 
 def get_pitch_location_break(row):
-    if 'x0' not in row.index:
+    if not np.isnan(row[17]):
         return [None]*6
     else:
-        ax = row.ax
-        ay = row.ay
-        az = row.ax
-        vx0 = row.vx0
-        vy0 = row.vy0
-        vz0 = row.vz0
-        x0 = row.x0
+        ax = row[16]
+        ay = row[18]
+        az = row[19]
+        vx0 = row[14]
+        vy0 = row[12]
+        vz0 = row[13]
+        x0 = row[17]
         y0 = 50
-        z0 = row.z0
+        z0 = row[15]
         cpy = 1.4167
 
         # do math
@@ -155,7 +149,7 @@ class game_status:
         # game data frame
         self.pitching_df = None
         self.batting_df = None
-        self.relay_df = None
+        self.relay_array = None
         
         self.home_batter_list = None
         self.home_pitcher_list = None
@@ -220,7 +214,6 @@ class game_status:
     def load(self, game_id, pdf, bdf, rdf):
         self.pitching_df = pdf
         self.batting_df = bdf
-        self.relay_df = rdf.sort_values('seqno')
         self.game_id = game_id
         
         self.game_date = game_id[:8]
@@ -283,33 +276,23 @@ class game_status:
         self.home_pitcher_list = home_pdf[pitcher_list_cols].values.tolist()
         self.away_batter_list = away_bdf[batter_list_cols].values.tolist()
         self.away_pitcher_list = away_pdf[pitcher_list_cols].values.tolist()
-
-        inn = 0
-        topbot = 'b'
-
-        inns = []
-        topbots = []
-
-        for ind in self.relay_df.index:
-            row = self.relay_df.loc[ind]
-            if row.type == 0:
-                inns.append(inn+1) if topbot == 'b' else inns.append(inn)
-                topbots.append('t') if topbot == 'b' else topbots.append('b')
-                inn = inn+1 if topbot == 'b' else inn
-                topbot = 't' if topbot == 'b' else 'b'
-            else:
-                inns.append(inn)
-                topbots.append(topbot)
-
-        self.relay_df['inn'] = inns
-        self.relay_df['topbot'] = topbots
         
-        
+        rdf_cols = ['textOrder', 'seqno', 'text', 'type',
+                    'stuff', 'pitchId', 'speed', 'referee', 'stadium']
+        if 'x0' in rdf.columns:
+            rdf_cols += ['crossPlateX', 'topSz', 'bottomSz',
+                         'vy0', 'vz0', 'vx0', 'z0', 'ax', 'x0', 'ay', 'az']
+
+        for col in ['outPlayer', 'inPlayer', 'shiftPlayer']:
+            if col in rdf.columns:
+                rdf_cols.append(col)
+
+        self.relay_array = rdf[rdf_cols].sort_values('seqno').values
+
+
     def convert_row_to_save_format(self, row,
                                    pa_result_details=None):
         # row: pandas Series
-        bdf = self.batting_df
-        pdf = self.pitching_df
         save_row = {k: None for k in header_row}
         save_row['pitcher'] = self.pitcher_name
         save_row['batter'] = self.batter_name
@@ -324,10 +307,6 @@ class game_status:
         save_row['score_home'] = self.score[1]
         save_row['stands'] = self.stands[2]
         save_row['throws'] = self.stands[0]
-        '''
-        save_row['stands'] = bdf.loc[bdf.pCode == self.batter_code].hitType.values[0][2]
-        save_row['throws'] = pdf.loc[pdf.pCode == self.pitcher_code].hitType.values[0][0]
-        '''
         save_row['pa_number'] = self.pa_number
 
         save_row['game_date'] = self.game_date
@@ -353,32 +332,34 @@ class game_status:
         save_row['pos_9'] = self.fields[self.top_bot]['우익수'].get('name')
 
         if row is not None:
-            save_row['pitch_type'] = row.stuff
-            save_row['speed'] = row.speed
-            save_row['pitch_result'] = row.text.split(' ')[-1]
+            save_row['pitch_type'] = row[4]
+            save_row['speed'] = row[6]
+            save_row['pitch_result'] = row[2].split(' ')[-1]
             save_row['pitch_number'] = self.pitch_number
-            save_row['pitchID'] = row.pitchId
-            if 'x0' in row.index:
-                save_row['x0'] = row.x0
-                save_row['z0'] = row.z0
-                save_row['sz_top'] = row.topSz
-                save_row['sz_bot'] = row.bottomSz
-                px, pz, pfx_x, pfx_z, pfx_x_raw, pfx_z_raw = get_pitch_location_break(row)
+            save_row['pitchID'] = row[5]
+            
+            if len(row) > 13:
+                if not np.isnan(row[17]):
+                    save_row['x0'] = row[17]
+                    save_row['z0'] = row[15]
+                    save_row['sz_top'] = row[10]
+                    save_row['sz_bot'] = row[11]
+                    px, pz, pfx_x, pfx_z, pfx_x_raw, pfx_z_raw = get_pitch_location_break(row)
 
-                save_row['px'] = px
-                save_row['pz'] = pz
-                save_row['pfx_x'] = pfx_x
-                save_row['pfx_z'] = pfx_z
-                save_row['pfx_x_raw'] = pfx_x_raw
-                save_row['pfx_z_raw'] = pfx_z_raw
+                    save_row['px'] = px
+                    save_row['pz'] = pz
+                    save_row['pfx_x'] = pfx_x
+                    save_row['pfx_z'] = pfx_z
+                    save_row['pfx_x_raw'] = pfx_x_raw
+                    save_row['pfx_z_raw'] = pfx_z_raw
 
-                save_row['y0'] = 50
-                save_row['vx0'] = row.vx0
-                save_row['vy0'] = row.vy0
-                save_row['vz0'] = row.vz0
-                save_row['ax'] = row.ax
-                save_row['ay'] = row.ay
-                save_row['az'] = row.az
+                    save_row['y0'] = 50
+                    save_row['vx0'] = row[14]
+                    save_row['vy0'] = row[12]
+                    save_row['vz0'] = row[13]
+                    save_row['ax'] = row[16]
+                    save_row['ay'] = row[18]
+                    save_row['az'] = row[19]
 
         if pa_result_details is not None:
             save_row['description'] = pa_result_details[0]
@@ -393,11 +374,11 @@ class game_status:
         
         batter_runner = False
         for row in runner_stack[::-1]:
-            if (row.type == 13) | (row.type == 23):
-                runner_name, run_result, runner_before_base, runner_after_base = parse_batter_as_runner(row.text)
+            if (row[3] == 13) or (row[3] == 23):
+                runner_name, run_result, runner_before_base, runner_after_base = parse_batter_as_runner(row[2])
                 batter_runner = True
             else:
-                runner_name, run_result, runner_before_base, runner_after_base = parse_runner_result(row.text)
+                runner_name, run_result, runner_before_base, runner_after_base = parse_runner_result(row[2])
 
             while not ((cur_runner[0] == runner_name) & (cur_runner[2] <= runner_before_base) &\
                         (cur_runner[3][-1] >= runner_before_base)):
@@ -434,8 +415,6 @@ class game_status:
  
     def handle_change(self, text_stack):
         change_stack = []
-        bdf = self.batting_df
-        pdf = self.pitching_df
         for i in range(len(text_stack)):
             text = text_stack[i]
             if self.DEBUG_MODE: print(f'\t{text}')
@@ -445,6 +424,8 @@ class game_status:
             if text.find('변경') > 0:
                 after_pos = text.split('(')[0].strip().split(' ')[-1]
                 shift_name = text.split(' ')[1].strip()
+                shift_code = None
+                shift_hittype = None
 
                 for i in range(9):
                     if (self.lineups[1 - self.top_bot][i].get('name') == shift_name) &\
@@ -512,7 +493,7 @@ class game_status:
                     elif (after_name != self.pitcher_name) & (before_pos != '투수'):
                         if self.top_bot == 0:
                             for i in range(len(self.home_pitcher_list)):
-                                if self.home_pitcher_list[i][0] == self.pitcher_code:
+                                if self.home_pitcher_list[i][1] == self.pitcher_code:
                                     after_code = self.home_pitcher_list[i+1][1]
                                     after_hittype = self.home_pitcher_list[i+1][2]
                                     break
@@ -526,7 +507,7 @@ class game_status:
                         before_code = self.fields[self.top_bot][before_pos].get('code')
                         if self.top_bot == 0:
                             for i in range(len(self.home_pitcher_list)):
-                                if self.home_pitcher_list[i][0] == before_code:
+                                if self.home_pitcher_list[i][1] == before_code:
                                     after_code = self.home_pitcher_list[i+1][1]
                                     after_hittype = self.home_pitcher_list[i+1][2]
                                     break
@@ -536,7 +517,8 @@ class game_status:
                                     after_code = self.away_pitcher_list[i+1][1]
                                     after_hittype = self.away_pitcher_list[i+1][2]
                                     break
-                    if (self.DH_exist[self.top_bot] is False) or (self.DH_exist_after[self.top_bot] != self.DH_exist[self.top_bot]):
+                    if ((self.DH_exist[self.top_bot] is False) or\
+                        (self.DH_exist_after[self.top_bot] != self.DH_exist[self.top_bot])):
                         for i in range(9):
                             if (self.lineups[1 - self.top_bot][i].get('name') == before_name) &\
                                (self.lineups[1 - self.top_bot][i].get('pos') == before_pos):
@@ -550,7 +532,7 @@ class game_status:
                             break
                     if self.top_bot == 0:
                         for i in range(len(self.away_batter_list)):
-                            if self.away_batter_list[i][0] == before_code:
+                            if self.away_batter_list[i][1] == before_code:
                                 after_code = self.away_batter_list[i+1][1]
                                 after_hittype = self.away_batter_list[i+1][3]
                                 break
@@ -569,7 +551,7 @@ class game_status:
                             break
                     if self.top_bot == 0:
                         for i in range(len(self.home_batter_list)):
-                            if self.home_batter_list[i][0] == before_code:
+                            if self.home_batter_list[i][1] == before_code:
                                 after_code = self.home_batter_list[i+1][1]
                                 after_hittype = self.home_batter_list[i+1][3]
                                 break
@@ -620,183 +602,181 @@ class game_status:
    
 
     def parse_game(self):
-        rdf = self.relay_df
-        bdf = self.batting_df
-        inns = range(1, rdf.inn.max()+1)
-        for inn in inns:
-            self.inn = inn
-            for tb in ['t', 'b']:
-                Inn = rdf.loc[(rdf.inn == inn) & (rdf.topbot == tb)]
-                if Inn.size == 0:
-                    break
+        try:
+            ind = 0
+            while ind < self.relay_array.shape[0]:
+                row = self.relay_array[ind]
+                cur_type = row[3]
+                cur_text = row[2]
+                cur_to = row[0]
 
-                self.runner_bases = []
-                self.balls, self.outs, self.strikes = 0, 0, 0
-                self.DH_exist_after = self.DH_exist
-                self.last_pitch = None
+                ##############################
+                ###### type에 따라 파싱 ######
+                ##############################
 
-                tos = list(Inn.textOrder.unique())
+                if cur_type == 1:
+                    self.last_pitch = row
+                    self.pitch_number += 1
+                    res = cur_text.split(' ')[-1]
+                    self.pitch_result = res
+                    # 인플레이/삼진/볼넷 이외에는 여기서 row print
+                    # 몸에맞는공은 타석 결과에서 수정
+                    if res != '타격':
+                        save_row = self.convert_row_to_save_format(row)
+                        self.print_rows.append(save_row)
 
-                for to in tos:
-                    PA = rdf.loc[rdf.textOrder == to]
-                    if self.DEBUG_MODE: print(f'TO {to}')
-                    lenPA = PA.shape[0]
+                    if res == '볼':
+                        self.balls += 1
+                    elif res == '스트라이크':
+                        self.strikes += 1
+                    elif res == '헛스윙':
+                        self.strikes += 1
+                    elif res == '파울':
+                        self.strikes = self.strikes+1 if self.strikes < 2 else 2
+                    if self.DEBUG_MODE: print(f'\t{row.text}')
+                    ind = ind + 1
 
-                    ind = 0
+                elif cur_type == 8:
+                    # 타석 시작(x번타자 / 대타)
+                    position = cur_text.split(' ')[0]
+                    self.last_pitch = None
+                    self.pa_result = None
+                    self.pitch_result = None
+                    self.pa_result_detail = None
+                    self.description = ''
+                    if len(position) > 2:
+                        self.cur_order = int(position[0])
+                        self.batter_name, self.batter_code,\
+                        _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
+                        self.pitch_number = 0
+                        self.pa_number += 1
+                        self.balls, self.strikes = 0, 0
 
-                    while ind < lenPA:
-                        row = PA.iloc[ind]
+                        # 버그 : 대타 교체 텍스트가 누락된 경우. 20170902HTWO02017
+                        # 임시조치에 불과함~
+                        if self.batter_name != cur_text.split(' ')[1]:
+                            self.batter_name = cur_text.split(' ')[1]
+                            self.lineups[self.top_bot][self.cur_order - 1]['name'] = self.batter_name
 
-                        ##############################
-                        ###### type에 따라 파싱 ######
-                        ##############################
-
-                        if (row.type == 1):
-                            self.last_pitch = row
-                            self.pitch_number += 1
-                            res = row.text.split(' ')[-1]
-                            self.pitch_result = res
-                            # 인플레이/삼진/볼넷 이외에는 여기서 row print
-                            # 몸에맞는공은 타석 결과에서 수정
-                            if res != '타격':
-                                save_row = self.convert_row_to_save_format(row)
-                                self.print_rows.append(save_row)
-
-                            if res == '볼':
-                                self.balls += 1
-                            elif res == '스트라이크':
-                                self.strikes += 1
-                            elif res == '헛스윙':
-                                self.strikes += 1
-                            elif res == '파울':
-                                self.strikes = self.strikes+1 if self.strikes < 2 else 2
-                            if self.DEBUG_MODE: print(f'\t{row.text}')
-                            ind = ind + 1
-
-                        elif (row.type == 8):
-                            # 타석 시작(x번타자 / 대타)
-                            position = row.text.split(' ')[0]
-                            self.last_pitch = None
-                            self.pa_result = None
-                            self.pitch_result = None
-                            self.pa_result_detail = None
-                            self.description = ''
-                            if len(position) > 2:
-                                self.cur_order = int(position[0])
-                                self.batter_name, self.batter_code, _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
-                                self.pitch_number = 0
-                                self.pa_number += 1
-                                self.balls, self.strikes = 0, 0
-                                
-                                # 버그 : 대타 교체 텍스트가 누락된 경우. 20170902HTWO02017
-                                # 임시조치에 불과함~
-                                if self.batter_name != row.text.split(' ')[1]:
-                                    self.batter_name = row.text.split(' ')[1]
-                                    self.lineups[self.top_bot][self.cur_order - 1]['name'] = self.batter_name
-                                    
-                                    if self.top_bot == 0:
-                                        for p in self.away_batter_list:
-                                            if (p[0] == self.batter_name) & (p[-2] == self.cur_order):
-                                                self.batter_code = p[1]
-                                                self.stands = p[3]
-                                                break
-                                    else:
-                                        for p in self.home_batter_list:
-                                            if (p[0] == self.batter_name) & (p[-2] == self.cur_order):
-                                                self.batter_code = p[1]
-                                                self.stands = p[3]
-                                                break
-                                    self.lineups[self.top_bot][self.cur_order - 1]['code'] = self.batter_code
-                                    self.lineups[self.top_bot][self.cur_order - 1]['stands'] = self.stands
-
-                                self.runner_bases.append([self.batter_name, self.batter_code, 0, [5]])
+                            if self.top_bot == 0:
+                                for p in self.away_batter_list:
+                                    if (p[0] == self.batter_name) & (p[-2] == self.cur_order):
+                                        self.batter_code = p[1]
+                                        self.stands = p[3]
+                                        break
                             else:
-                                self.batter_name, self.batter_code, _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
-                            if self.DEBUG_MODE: print(f'\t{row.text}')
-                            ind = ind + 1
-                        elif ((row.type == 13) | (row.type == 23)):
-                            # 타자주자(비득점/득점)
-                            runner_stack = []
-                            cur_ind = ind
-                            cur_row = PA.iloc[cur_ind]
-                            self.description = ''
-                            while ((cur_row.type == 13) | (cur_row.type == 23) | (cur_row.type == 14) | (cur_row.type == 24)):
-                                runner_stack.append(cur_row)
-                                self.description += cur_row.text.strip() + '; '
-                                cur_ind = cur_ind + 1
-                                if cur_ind >= lenPA:
-                                    break
-                                cur_row = PA.iloc[cur_ind]
-                            self.description = self.description.strip()
+                                for p in self.home_batter_list:
+                                    if (p[0] == self.batter_name) & (p[-2] == self.cur_order):
+                                        self.batter_code = p[1]
+                                        self.stands = p[3]
+                                        break
+                            self.lineups[self.top_bot][self.cur_order - 1]['code'] = self.batter_code
+                            self.lineups[self.top_bot][self.cur_order - 1]['hitType'] = self.stands
 
-                            result = parse_batter_result(row.text)
-                            self.pa_result = result[0]
-                            self.pa_result_detail = result[1]
-                            if self.pitch_result != '타격':
-                                self.print_rows[-1]['description'] = self.description
-                                self.print_rows[-1]['pa_result'] = self.pa_result
-                                self.print_rows[-1]['pa_result_detail'] = self.pa_result_detail
-                            else:
-                                save_row = self.convert_row_to_save_format(self.last_pitch,
-                                                                           [self.description, self.pa_result, self.pa_result_detail])
-                                self.print_rows.append(save_row)
+                        self.runner_bases.append([self.batter_name, self.batter_code, 0, [5]])
+                    else:
+                        self.batter_name, self.batter_code,\
+                        _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
+                    if self.DEBUG_MODE: print(f'\t{cur_text}')
+                    ind = ind + 1
+                elif (cur_type == 13) or (cur_type == 23):
+                    # 타자주자(비득점/득점)
+                    runner_stack = []
+                    cur_ind = ind
+                    cur_row = self.relay_array[cur_ind]
+                    self.description = ''
+                    while ((cur_type == 13) or (cur_type == 23) or\
+                           (cur_type == 14) or (cur_type == 24)):
+                        runner_stack.append(cur_row)
+                        self.description += cur_row[2].strip() + '; '
+                        cur_ind = cur_ind + 1
+                        if self.relay_array[cur_ind][0] != cur_to:
+                            break
+                        cur_row = self.relay_array[cur_ind]
+                        cur_type = cur_row[3]
+                    self.description = self.description.strip()
 
-                            ind = cur_ind
-                            self.handle_runner_stack(runner_stack)
-                        elif ((row.type == 14) | (row.type == 24)):
-                            # 주자(비득점/득점)
-                            runner_stack = []
-                            cur_ind = ind
-                            cur_row = PA.iloc[cur_ind]
-                            self.description = ''
-                            while ((cur_row.type == 14) | (cur_row.type == 24)):
-                                runner_stack.append(cur_row)
-                                self.description += cur_row.text.strip() + '; '
-                                cur_ind = cur_ind + 1
-                                if cur_ind >= lenPA:
-                                    break
-                                cur_row = PA.iloc[cur_ind]
-                            self.description = self.description.strip()
-                            
-                            save_row = self.convert_row_to_save_format(None,
-                                                                       [self.description, None, None])
-                            self.print_rows.append(save_row)
-                            ind = cur_ind
-                            self.handle_runner_stack(runner_stack)
-                        elif (row.type == 0):
-                            # 이닝 시작
-                            if self.DEBUG_MODE: print(f'\t{row.text}')
-                            ind = ind + 1
-                            self.top_bot = (1 - self.top_bot)
-                            self.pitcher_name, self.pitcher_code, self.throws = self.fields[self.top_bot].get('투수').values()
-                            self.pitch_number = 0
-                        elif (row.type == 2):
-                             # 교체/변경
-                            text_stack = []
-                            cur_ind = ind
-                            cur_row = PA.iloc[cur_ind]
-                            self.description = ''
-                            while cur_row.type == 2:
-                                text_stack.append(cur_row.text)
-                                self.description += cur_row.text.strip() + '; '
-                                cur_ind = cur_ind + 1
-                                if cur_ind >= lenPA:
-                                    break
-                                cur_row = PA.iloc[cur_ind]
-                            self.description = self.description.strip()
-                            ind = cur_ind
+                    result = parse_batter_result(cur_text)
+                    self.pa_result = result[0]
+                    self.pa_result_detail = result[1]
+                    if self.pitch_result != '타격':
+                        self.print_rows[-1]['description'] = self.description
+                        self.print_rows[-1]['pa_result'] = self.pa_result
+                        self.print_rows[-1]['pa_result_detail'] = self.pa_result_detail
+                    else:
+                        save_row = self.convert_row_to_save_format(self.last_pitch,
+                                                                   [self.description, self.pa_result, self.pa_result_detail])
+                        self.print_rows.append(save_row)
 
-                            save_row = self.convert_row_to_save_format(None,
-                                                                       [self.description, None, None])
-                            self.print_rows.append(save_row)
+                    ind = cur_ind
+                    self.handle_runner_stack(runner_stack)
+                elif (cur_type == 14) or (cur_type == 24):
+                    # 주자(비득점/득점)
+                    runner_stack = []
+                    cur_ind = ind
+                    cur_row = self.relay_array[cur_ind]
+                    self.description = ''
+                    while (cur_type == 14) or (cur_type == 24):
+                        runner_stack.append(cur_row)
+                        self.description += cur_row[2].strip() + '; '
+                        cur_ind = cur_ind + 1
+                        if self.relay_array[cur_ind][0] != cur_to:
+                            break
+                        cur_row = self.relay_array[cur_ind]
+                        cur_type = cur_row[3]
+                    self.description = self.description.strip()
 
-                            self.handle_change(text_stack)
-                        elif (row.type == 7):
-                            if self.DEBUG_MODE: print(f'\t{row.text}')
-                            ind = ind + 1
-                        else:
-                            ind = ind + 1
+                    save_row = self.convert_row_to_save_format(None,
+                                                               [self.description, None, None])
+                    self.print_rows.append(save_row)
+                    ind = cur_ind
+                    self.handle_runner_stack(runner_stack)
+                elif cur_type == 0:
+                    # 이닝 시작
+                    if self.DEBUG_MODE: print(f'\t{cur_text}')
+                    ind = ind + 1
+                    if self.top_bot == 1:
+                        self.inn += 1
+                    self.top_bot = (1 - self.top_bot)
+                    self.pitcher_name, self.pitcher_code, self.throws = self.fields[self.top_bot].get('투수').values()
+                    
+                    self.runner_bases = []
+                    self.balls, self.outs, self.strikes = 0, 0, 0
+                    self.DH_exist_after = self.DH_exist[:]
+                    self.last_pitch = None
+                    
+                    self.pitch_number = 0
+                elif cur_type == 2:
+                     # 교체/변경
+                    text_stack = []
+                    cur_ind = ind
+                    cur_row = self.relay_array[cur_ind]
+                    self.description = ''
+                    while cur_type == 2:
+                        text_stack.append(cur_row[2])
+                        self.description += cur_row[2].strip() + '; '
+                        cur_ind = cur_ind + 1
+                        if self.relay_array[cur_ind][0] != cur_to:
+                            break
+                        cur_row = self.relay_array[cur_ind]
+                        cur_type = cur_row[3]
+                    self.description = self.description.strip()
+                    ind = cur_ind
 
+                    save_row = self.convert_row_to_save_format(None,
+                                                               [self.description, None, None])
+                    self.print_rows.append(save_row)
+
+                    self.handle_change(text_stack)
+                elif cur_type == 7:
+                    if self.DEBUG_MODE: print(f'\t{cur_text}')
+                    ind = ind + 1
+                else:
+                    ind = ind + 1
+        except:
+            print("-"*60)
+            traceback.print_exc(file=sys.stdout, )
+            print("-"*60)
 
     def save_game(self, path=None):
         row_df = pd.DataFrame(self.print_rows)

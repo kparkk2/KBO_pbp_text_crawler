@@ -770,6 +770,8 @@ def download_relay2(args, lm=None):
 
                     bats = pd.concat([abats, hbats])
                     pits = pd.concat([apits, hpits])
+                    bats.pCode = pd.to_numeric(bats.pCode)
+                    pits.pCode = pd.to_numeric(pits.pCode)
 
                     ### 저장
                     if sys.platform == 'win32':

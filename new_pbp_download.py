@@ -296,54 +296,31 @@ def download_pbp_files(start_date, end_date, save_path=None, debug_mode=False):
     skipped = 0
     done = 0
     start_time = time.time()
+    get_data_time = 0
+    for gid in game_ids:
+        now = datetime.datetime.now().date()
+        gid_to_date = datetime.date(int(gid[:4]),
+                            int(gid[4:6]),
+                            int(gid[6:8]))
+        if gid_to_date > now:
+            skipped += 1
+            continue
+        
+        ptime = time.time()
+        game_data_dfs = get_game_data(gid) 
+        get_data_time += time.time() - ptime
+        if game_data_dfs is not None:
+            gs = game_status()
+            gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2])
+            gs.parse_game()
+            gs.save_game(save_path)
+            done += 1
+        else:
+            skipped += 1
+            continue
     
-    if debug_mode is False:
-        for gid in game_ids:
-            now = datetime.datetime.now().date()
-            gid_to_date = datetime.date(int(gid[:4]),
-                                int(gid[4:6]),
-                                int(gid[6:8]))
-            if gid_to_date > now:
-                skipped += 1
-                continue
-
-            game_data_dfs = get_game_data(gid)
-            if game_data_dfs is not None:
-                gs = game_status()
-                gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2])
-                gs.parse_game()
-                gs.save_game(save_path)
-                done += 1
-            else:
-                skipped += 1
-                continue
-    else:
-        for gid in tqdm(game_ids):
-            now = datetime.datetime.now().date()
-            gid_to_date = datetime.date(int(gid[:4]),
-                                int(gid[4:6]),
-                                int(gid[6:8]))
-            if gid_to_date > now:
-                skipped += 1
-                continue
-
-            ptime = time.time()
-            game_data_dfs = get_game_data(gid)
-            get_data_time += time.time() - ptime
-            if game_data_dfs is not None:
-                gs = game_status()
-                gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2])
-                gs.parse_game()
-                gs.save_game(save_path)
-                done += 1
-            else:
-                skipped += 1
-                continue
-
-
     end_time = time.time()
     parse_time = end_time - start_time - get_data_time
     if debug_mode is True:
         print(f'{len(game_ids)} game, elapsed {(get_data_time):.2f} sec in get_game_data')
         print(f'{len(game_ids)} game, elapsed {(parse_time):.2f} sec in parse_game')
-        
