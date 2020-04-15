@@ -1,5 +1,5 @@
 import pandas as pd
-import time, requests, json, datetime
+import sys, time, requests, json, datetime
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm, trange
 from bs4 import BeautifulSoup
@@ -46,6 +46,24 @@ playoff_start = {
 
 
 def get_game_ids(start_date, end_date, playoff=False):
+    """
+    Get KBO game ID.
+    KBO 경기 ID를 가져온다.
+    
+    Parameters
+    -----------
+    
+    start_date, end_date : datetime.date
+        get game IDs between start_date, end_date.
+        ID를 가져올 경기 기간의 시작일과 종료일.
+        
+        start_date <= Game Date of Games <= end_date
+    
+    playoff : bool, default False
+        if True, get playoff(postseason) game IDs.
+        True일 경우 플레이오프(포스트시즌) 경기 ID도 받는다.
+    """
+    
     timetable_url = 'https://sports.news.naver.com/'\
                     'kbaseball/schedule/index.nhn?month='
     
@@ -95,6 +113,18 @@ def get_game_ids(start_date, end_date, playoff=False):
 
 
 def get_game_data(game_id):
+    """
+    Get KBO game PBP data.
+    KBO 경기 PBP 데이터를 가져온다.
+    
+    Parameters
+    -----------
+    
+    game_id : str
+        game ID of interest.
+        가져올 게임 ID.
+    """
+    
     relay_url = 'http://m.sports.naver.com/ajax/baseball/'\
             'gamecenter/kbo/relayText.nhn'
     record_url = 'http://m.sports.naver.com/ajax/baseball/'\
@@ -119,21 +149,26 @@ def get_game_data(game_id):
     relay_response = requests.get(relay_url,
                                   params=params,
                                   headers=headers)
-    if relay_response is None:
+    if relay_response.status_code > 200:
         relay_response.close()
-        return None
+        return [None, None, 'response error']
     
-    js = relay_response.json()
-    if isinstance(js, str):
-        js = json.loads(js)
-    else:
+    relay_json = relay_response.json()
+    js = None
+    try:
+        js = json.loads(relay_json)
         relay_response.close()
-        return None
-    relay_response.close()
+    except JSONDecodeError:
+        relay_response.close()
+        return [None, None, 'got no valid data']
+        
+    if js.get('gameId') is None:
+        return [None, None, 'invalid game ID']
+    
     last_inning = js['currentInning']
 
     if last_inning is None:
-        return None
+        return [None, None, 'invalid game ID']
 
     game_data_set = {}
     game_data_set['relayList'] = []
@@ -153,20 +188,20 @@ def get_game_data(game_id):
         }
 
         relay_inn_response = requests.get(relay_url, params=params, headers=headers)
-        if relay_inn_response is not None:
-            js = relay_inn_response.json()
-            if isinstance(js, str):
-                js = json.loads(js)
-            else:
-                relay_inn_response.close()
-                return None
+        if relay_inn_response.status_code > 200:
             relay_inn_response.close()
+            return [None, None, 'response error']
 
-            for x in js['relayList']:
-                game_data_set['relayList'].append(x)
-        else:
+        relay_json = relay_inn_response.json()
+        try:
+            js = json.loads(relay_json)
+            relay_response.close()
+        except JSONDecodeError:
             relay_inn_response.close()
-            return None
+            return [None, None, 'got no valid data']
+
+        for x in js['relayList']:
+            game_data_set['relayList'].append(x)
 
     #########################
     # 2. 가져온 정보 다듬기 #
@@ -230,14 +265,18 @@ def get_game_data(game_id):
     lineup_url = 'https://sports.news.naver.com/gameCenter'\
                  '/gameRecord.nhn?category=kbo&gameId='
     lineup_response = requests.get(lineup_url + game_id)
-    if lineup_response is None:
+    
+    if lineup_response.status_code > 200:
         lineup_response.close()
-        return None
+        return [None, None, 'response error']
 
     lineup_soup = BeautifulSoup(lineup_response.text, 'lxml')
     lineup_response.close()
 
     scripts = lineup_soup.find_all('script')
+    if scripts[10].contents[0].find('잘못된') > 0:
+        return [None, None, 'invalid game ID']
+    
     team_names = lineup_soup.find_all('span', attrs={'class': 't_name_txt'})
     away_team_name = team_names[0].contents[0].split(' ')[0]
     home_team_name = team_names[1].contents[0].split(' ')[0]
@@ -253,7 +292,10 @@ def get_game_data(game_id):
                     oldjs = oldjs[:-1]
                 while oldjs[0] != '{':
                     oldjs = oldjs[1:]
-                cont = json.loads(oldjs)
+                try:
+                    cont = json.loads(oldjs)
+                except JSONDecodeError:
+                    return [None, None, f'JSONDecodeError - gameID {game_id}']
                 break
 
     # 구심 정보 가져와서 취합
@@ -353,41 +395,100 @@ def get_game_data(game_id):
     return pitching_df, batting_df, relay_df
 
 
-def download_pbp_files(start_date, end_date, playoff=False, save_path=None, debug_mode=False):
+def download_pbp_files(start_date, end_date, playoff=False,
+                       save_path=None, debug_mode=False):
+    """
+    Download KBO pitch by pitch(PBP) files.
+    KBO 피치 바이 피치(PBP) 파일을 다운로드.
+    
+    Parameters
+    -----------
+    
+    start_date, end_date : datetime.date
+        download PBP files between start_date, end_date.
+        PBP 파일을 받을 경기 기간의 시작일과 종료일.
+        
+        start_date <= Game Date of Downloaded Files <= end_date
+    
+    playoff : bool, default False
+        if True, download playoff(postseason) game files.
+        True일 경우 플레이오프(포스트시즌) 경기 파일도 받는다.
+        
+    save_path : pathlib.Path, default None
+        path to save PBP files.
+        PBP 파일을 저장할 경로.
+        if None, files will be saved in current path.
+        값이 없을 경우(None) 현재 경로에 저장.
+    
+    debug_mode : bool, default False
+        if True, debug messages and elapsed time will be printed thru sys.stdout.
+        True일 경우 sys.stdout을 통해 디버그 메시지와 수행 시간이 출력됨.
+    """
     start_time = time.time()
     game_ids = get_game_ids(start_date, end_date, playoff)
     end_time = time.time()
     get_game_id_time = end_time - start_time
     
+    enc = 'cp949' if sys.platform is 'win32' else 'utf-8'
+    
+    logfile = open('./log.txt', 'w', encoding=enc)
+    
     skipped = 0
+    broken = 0
     done = 0
     start_time = time.time()
     get_data_time = 0
+    
     for gid in tqdm(game_ids):
         now = datetime.datetime.now().date()
         gid_to_date = datetime.date(int(gid[:4]),
-                            int(gid[4:6]),
-                            int(gid[6:8]))
+                                    int(gid[4:6]),
+                                    int(gid[6:8]))
         if gid_to_date > now:
+            continue
+            
+        if (save_path / f'{gid}.csv').exists():
             skipped += 1
             continue
         
         ptime = time.time()
         game_data_dfs = get_game_data(gid)
+        if game_data_dfs[0] is None:
+            logfile.write(game_data_dfs[-1])
+            logfile.close()
+            if debug_mode is True:
+                print(game_data_dfs[-1])
+            exit(1)
         get_data_time += time.time() - ptime
         if game_data_dfs is not None:
             gs = game_status()
-            gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2])
-            gs.parse_game(debug_mode)
+            gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2], log_file=logfile)
+            parse = gs.parse_game(debug_mode)
             gs.save_game(save_path)
-            done += 1
+            if parse is True:
+                done += 1
+            else:
+                broken += 1
         else:
-            skipped += 1
+            broken += 1
             continue
     
     end_time = time.time()
     parse_time = end_time - start_time - get_data_time
+    logfile.write('====================================\n')
+    logfile.write(f'Start date : {start_date.strftime("%Y%m%d")}\n')
+    logfile.write(f'End date : {end_date.strftime("%Y%m%d")}\n')
+    logfile.write(f'Successfully downloaded games : {done}\n')
+    logfile.write(f'Skipped games(already exists) : {skipped}\n')
+    logfile.write(f'Broken games(bad data) : {broken}\n')
+    logfile.write('====================================\n')
     if debug_mode is True:
-        print(f'{len(game_ids)} game, elapsed {get_game_id_time:.2f} sec in get_game_ids')
-        print(f'{len(game_ids)} game, elapsed {(get_data_time):.2f} sec in get_game_data')
-        print(f'{len(game_ids)} game, elapsed {(parse_time):.2f} sec in parse_game')
+        logfile.write(f'Elapsed {get_game_id_time:.2f} sec in get_game_ids\n')
+        logfile.write(f'Elapsed {(get_data_time):.2f} sec in get_game_data\n')
+        logfile.write(f'Elapsed {(parse_time):.2f} sec in parse_game\n')
+    logfile.write(f'Total {(parse_time+get_game_id_time+get_data_time):.2f} sec elapsed with {len(game_ids)} games\n')
+
+    if logfile.closed is not True:
+        logfile.close()
+    
+    

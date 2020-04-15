@@ -203,10 +203,15 @@ class game_status:
         # print rows
         self.print_rows = []
         
-    def load(self, game_id, pdf, bdf, rdf):
+        # log text
+        self.log_file = None
+        self.log_text = []
+        
+    def load(self, game_id, pdf, bdf, rdf, log_file=None):
         self.pitching_df = pdf
         self.batting_df = bdf
         self.game_id = game_id
+        self.log_file = log_file
         
         self.game_date = game_id[:8]
         self.away = game_id[8:10]
@@ -369,7 +374,7 @@ class game_status:
     def handle_runner_stack(self, runner_stack, debug_mode=False):
         if len(self.runner_bases) == 0:
             if debug_mode is True:
-                print('base error')
+                self.log_text.append('base error')
             assert False
         cur_runner = self.runner_bases[0]
         cur_runner_ind = 0
@@ -393,7 +398,7 @@ class game_status:
                 base_loop_num += 1
                 if base_loop_num > 4:
                     if debug_mode is True:
-                        print('base error')
+                        self.log_text.append('base error')
                     assert False
 
             if cur_runner[3][-1] == 5:
@@ -568,7 +573,7 @@ class game_status:
                                 break
                     if order is None:
                         if debug_mode is True:
-                            print('cant find player name/position in lineup')
+                            self.log_text.append('cant find player name/position in lineup')
                         assert False
                     if self.top_bot == 0:
                         for i in range(len(self.home_batter_list)):
@@ -596,7 +601,7 @@ class game_status:
                                     break
                     if after_code is None:
                         if debug_mode is True:
-                            print('cant find player code in lineup')
+                            self.log_text.append('cant find player code in lineup')
                         assert False
                     for i in range(len(self.runner_bases)):
                         if self.runner_bases[i][1] == before_code:
@@ -679,7 +684,7 @@ class game_status:
                         self.strikes = self.strikes+1 if self.strikes < 2 else 2
                     if (self.strikes > 3) or (self.strikes > 4) or (self.strikes > 3):
                         if debug_mode is True:
-                            print('3S/4B/3O')
+                            self.log_text.append('3S/4B/3O')
                         assert False
                     ind = ind + 1
 
@@ -845,6 +850,7 @@ class game_status:
                     ind = ind + 1
                 else:
                     ind = ind + 1
+            return True
         except:
             ind = len(self.print_rows)-1
             while ind >= 0:
@@ -854,20 +860,28 @@ class game_status:
                 else:
                     break
             if debug_mode is True:
-                print("-"*60)
-                print(f"=== gameid : {self.game_id}")
-                traceback.print_exc(file=sys.stdout)
-                print("-"*60)
+                self.log_text.append("-"*60)
+                self.log_text.append(f"=== gameid : {self.game_id}")
+                self.log_text.append("-"*60)
+                lines = traceback.format_exc().strip().split('\n')
+                rl = [lines[-1]]
+                lines = lines[1:-1]
+                lines.reverse()
+                for i in range(0, len(lines), 2):
+                    rl.append(f'\t{lines[i].strip()} at {lines[i+1].strip()}')
+                self.log_text += rl
+                if not self.log_file.closed:
+                    for row in self.log_text:
+                        self.log_file.write(row + '\n')
+            return False
 
     def save_game(self, path=None):
         row_df = pd.DataFrame(self.print_rows)
         enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
 
         if path is None:
-            year = int(self.game_date[:4])
-            month = int(self.game_date[4:6])
-            path = f'pbp_data/{year}/{month}'
-        save_path = str(pathlib.Path(path) / f'{self.game_id}.csv')
+            path = pathlib.Path('.')
+        save_path = str(path / f'{self.game_id}.csv')
 
         row_df.to_csv(save_path,
                       encoding=enc,
