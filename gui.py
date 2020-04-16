@@ -9,8 +9,8 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import traceback, sys, pathlib, datetime, time
-from new_pbp_download import get_game_ids, get_game_data
-from new_pbp_parse import game_status
+from download import get_game_ids, get_game_data
+from game_parse import game_status
 
 def getTracebackStr():
     lines = traceback.format_exc().strip().split('\n')
