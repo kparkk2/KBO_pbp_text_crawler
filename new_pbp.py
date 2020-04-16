@@ -5,6 +5,45 @@ import time, tqdm
 
 from new_pbp_download import download_pbp_files
 
+def getTracebackStr():
+    lines = traceback.format_exc().strip().split('\n')
+    rl = [lines[-1]]
+    lines = lines[1:-1]
+    lines.reverse()
+    for i in range(0, len(lines), 2):
+        rl.append(f'    {lines[i].strip()} at {lines[i+1].strip()}')
+    return '\n'.join(rl)
+
+
+def join_csvs(path):
+    csvs = list(path.glob('*/*csv'))
+    if len(csvs) < 1:
+        print('no csv file found')
+    else:
+        years = list(set([str(filename.stem)[:4] for filename in csvs]))
+        
+        enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
+        for y in years:
+            yfilepath = str(path / f'{y}.csv')
+            yfile = open(yfilepath, 'w', encoding=enc)
+            
+            yearfiles = [x for x in csvs if (x.stem.find(str(y)) > -1) & (len(x.stem) > 4)]
+            fp = yearfiles[0].open()
+            header = fp.readline()
+            fp.close()
+            
+            yfile.write(header)
+            
+            for file in yearfiles:
+                fp = file.open()
+                lines = fp.readlines()
+                for line in lines[1:]:
+                    yfile.write(line)
+                fp.close()
+                
+            yfile.close()            
+
+
 parser = argparse.ArgumentParser()
 
 now = datetime.datetime.now().date()
@@ -44,6 +83,10 @@ parser.add_argument('-g', '--debug',
                     dest='debug_mode',
                     help='print debug log')
 
+parser.add_argument('-j', '--join',
+                    action='store_true',
+                    dest='join_csv',
+                    help='join output files with same year')
 
 
 if __name__ == '__main__':
@@ -112,5 +155,16 @@ if __name__ == '__main__':
         download_pbp_files(start_date, end_date, playoff=args.playoff,
                            save_path=sp, debug_mode=args.debug_mode)
     except:
-        print('ERROR')
+        print('Closed during download')
+        log = open('log.txt', 'a')
+        log.write(getTracebackStr())
+        print(getTracebackStr())
+        log.close()
         exit(1)
+        
+    if args.join_csv is True:
+        try:
+            join_csvs(sp)
+        except:
+            print('ERROR: -j')
+            exit(1)

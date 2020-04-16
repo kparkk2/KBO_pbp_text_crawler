@@ -1,5 +1,5 @@
 import pandas as pd
-import sys, time, requests, json, datetime
+import sys, time, requests, json, datetime, pathlib
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm, trange
 from bs4 import BeautifulSoup
@@ -23,6 +23,7 @@ regular_start = {
     '2017': '0331',
     '2018': '0324',
     '2019': '0323',
+    '2020': '0101',
 }
 
 playoff_start = {
@@ -42,6 +43,7 @@ playoff_start = {
     '2017': '1010',
     '2018': '1015',
     '2019': '1003',
+    '2020': '0101',
 }
 
 
@@ -439,6 +441,21 @@ def download_pbp_files(start_date, end_date, playoff=False,
     start_time = time.time()
     get_data_time = 0
     
+    years = list(set([x[:4] for x in game_ids]))
+    
+    for y in years:
+        y_path = save_path / y
+        
+        if not y_path.is_dir():
+            try:
+                y_path.mkdir()
+            except FileExistsError:
+                logfile.write(f'ERROR : path {y_path} exists, but not a directory')
+                logfile.write(f'\tclean path and try again')
+                print(f'ERROR : path {y_path} exists, but not a directory')
+                print(f'\tclean path and try again')
+                exit(1)
+    
     for gid in tqdm(game_ids):
         now = datetime.datetime.now().date()
         gid_to_date = datetime.date(int(gid[:4]),
@@ -447,7 +464,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
         if gid_to_date > now:
             continue
             
-        if (save_path / f'{gid}.csv').exists():
+        if (save_path / gid[:4] / f'{gid}.csv').exists():
             skipped += 1
             continue
         
@@ -464,7 +481,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
             gs = game_status()
             gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2], log_file=logfile)
             parse = gs.parse_game(debug_mode)
-            gs.save_game(save_path)
+            gs.save_game(save_path / gid[:4])
             if parse is True:
                 done += 1
             else:
