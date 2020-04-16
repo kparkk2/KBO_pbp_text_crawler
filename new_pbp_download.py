@@ -433,7 +433,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
     
     enc = 'cp949' if sys.platform is 'win32' else 'utf-8'
     
-    logfile = open('./log.txt', 'w', encoding=enc)
+    logfile = open('./log.txt', 'a', encoding=enc)
     
     skipped = 0
     broken = 0
@@ -443,69 +443,72 @@ def download_pbp_files(start_date, end_date, playoff=False,
     
     years = list(set([x[:4] for x in game_ids]))
     
-    for y in years:
-        y_path = save_path / y
-        
-        if not y_path.is_dir():
-            try:
-                y_path.mkdir()
-            except FileExistsError:
-                logfile.write(f'ERROR : path {y_path} exists, but not a directory')
-                logfile.write(f'\tclean path and try again')
-                print(f'ERROR : path {y_path} exists, but not a directory')
-                print(f'\tclean path and try again')
-                exit(1)
-    
-    for gid in tqdm(game_ids):
-        now = datetime.datetime.now().date()
-        gid_to_date = datetime.date(int(gid[:4]),
-                                    int(gid[4:6]),
-                                    int(gid[6:8]))
-        if gid_to_date > now:
-            continue
+    try:
+        for y in years:
+            y_path = save_path / y
             
-        if (save_path / gid[:4] / f'{gid}.csv').exists():
-            skipped += 1
-            continue
+            if not y_path.is_dir():
+                try:
+                    y_path.mkdir()
+                except FileExistsError:
+                    logfile.write(f'ERROR : path {y_path} exists, but not a directory')
+                    logfile.write(f'\tclean path and try again')
+                    print(f'ERROR : path {y_path} exists, but not a directory')
+                    print(f'\tclean path and try again')
+                    exit(1)
         
-        ptime = time.time()
-        game_data_dfs = get_game_data(gid)
-        if game_data_dfs[0] is None:
-            logfile.write(game_data_dfs[-1])
-            logfile.close()
-            if debug_mode is True:
-                print(game_data_dfs[-1])
-            exit(1)
-        get_data_time += time.time() - ptime
-        if game_data_dfs is not None:
-            gs = game_status()
-            gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2], log_file=logfile)
-            parse = gs.parse_game(debug_mode)
-            gs.save_game(save_path / gid[:4])
-            if parse is True:
-                done += 1
+        for gid in tqdm(game_ids):
+            now = datetime.datetime.now().date()
+            gid_to_date = datetime.date(int(gid[:4]),
+                                        int(gid[4:6]),
+                                        int(gid[6:8]))
+            if gid_to_date > now:
+                continue
+                
+            if (save_path / gid[:4] / f'{gid}.csv').exists():
+                skipped += 1
+                continue
+            
+            ptime = time.time()
+            game_data_dfs = get_game_data(gid)
+            if game_data_dfs[0] is None:
+                logfile.write(game_data_dfs[-1])
+                if debug_mode is True:
+                    print(game_data_dfs[-1])
+                exit(1)
+            get_data_time += time.time() - ptime
+            if game_data_dfs is not None:
+                gs = game_status()
+                gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2], log_file=logfile)
+                parse = gs.parse_game(debug_mode)
+                gs.save_game(save_path / gid[:4])
+                if parse is True:
+                    done += 1
+                else:
+                    broken += 1
             else:
                 broken += 1
-        else:
-            broken += 1
-            continue
-    
-    end_time = time.time()
-    parse_time = end_time - start_time - get_data_time
-    logfile.write('====================================\n')
-    logfile.write(f'Start date : {start_date.strftime("%Y%m%d")}\n')
-    logfile.write(f'End date : {end_date.strftime("%Y%m%d")}\n')
-    logfile.write(f'Successfully downloaded games : {done}\n')
-    logfile.write(f'Skipped games(already exists) : {skipped}\n')
-    logfile.write(f'Broken games(bad data) : {broken}\n')
-    logfile.write('====================================\n')
-    if debug_mode is True:
-        logfile.write(f'Elapsed {get_game_id_time:.2f} sec in get_game_ids\n')
-        logfile.write(f'Elapsed {(get_data_time):.2f} sec in get_game_data\n')
-        logfile.write(f'Elapsed {(parse_time):.2f} sec in parse_game\n')
-    logfile.write(f'Total {(parse_time+get_game_id_time+get_data_time):.2f} sec elapsed with {len(game_ids)} games\n')
+                continue
+        
+        end_time = time.time()
+        parse_time = end_time - start_time - get_data_time
+        logfile.write('====================================\n')
+        logfile.write(f'Start date : {start_date.strftime("%Y%m%d")}\n')
+        logfile.write(f'End date : {end_date.strftime("%Y%m%d")}\n')
+        logfile.write(f'Successfully downloaded games : {done}\n')
+        logfile.write(f'Skipped games(already exists) : {skipped}\n')
+        logfile.write(f'Broken games(bad data) : {broken}\n')
+        logfile.write('====================================\n')
+        if debug_mode is True:
+            logfile.write(f'Elapsed {get_game_id_time:.2f} sec in get_game_ids\n')
+            logfile.write(f'Elapsed {(get_data_time):.2f} sec in get_game_data\n')
+            logfile.write(f'Elapsed {(parse_time):.2f} sec in parse_game\n')
+        logfile.write(f'Total {(parse_time+get_game_id_time+get_data_time):.2f} sec elapsed with {len(game_ids)} games\n')
 
-    if logfile.closed is not True:
-        logfile.close()
-    
+        if logfile.closed is not True:
+            logfile.close()
+    except: 
+        if logfile.closed is not True:
+            logfile.close()
+        assert False
     

@@ -157,6 +157,7 @@ if __name__ == '__main__':
     except:
         print('Closed during download')
         log = open('log.txt', 'a')
+        log.write('====================================\n')
         log.write(getTracebackStr())
         print(getTracebackStr())
         log.close()
