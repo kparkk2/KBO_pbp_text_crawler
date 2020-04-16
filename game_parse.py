@@ -3,9 +3,6 @@ import os, json, regex, csv, sys, traceback, pathlib
 import pandas as pd
 import numpy as np
 
-# custom library
-from utils import print_progress
-
 header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'speed', 'pitch_result', 'pa_result', 'pa_result_detail',
               'description', 'balls', 'strikes', 'outs',
@@ -106,7 +103,7 @@ def parse_runner_result(text):
 
 
 def get_pitch_location_break(row):
-    if not np.isnan(row[17]):
+    if np.isnan(row[17]):
         return [None]*6
     else:
         ax = row[16]

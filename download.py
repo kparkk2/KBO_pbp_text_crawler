@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from tqdm import tqdm, trange
 from bs4 import BeautifulSoup
 
-from new_pbp_parse import game_status
+from game_parse import game_status
 
 regular_start = {
     '3333': '0101', # playoff
