@@ -416,8 +416,14 @@ def download_pbp_files(start_date, end_date, playoff=False,
     get_game_id_time = end_time - start_time
     
     enc = 'cp949' if sys.platform is 'win32' else 'utf-8'
+
+    now = datetime.datetime.now()
     
     logfile = open('./log.txt', 'a', encoding=enc)
+    logfile.write('\n\n')
+    logfile.write('====================================\n')
+    logfile.write(f"Current Time : {now.isoformat()}\n")
+    logfile.write('====================================\n')
     
     skipped = 0
     broken = 0
