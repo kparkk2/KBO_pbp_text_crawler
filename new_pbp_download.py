@@ -49,20 +49,15 @@ playoff_start = {
 
 def get_game_ids(start_date, end_date, playoff=False):
     """
-    Get KBO game ID.
     KBO 경기 ID를 가져온다.
     
     Parameters
     -----------
-    
     start_date, end_date : datetime.date
-        get game IDs between start_date, end_date.
         ID를 가져올 경기 기간의 시작일과 종료일.
-        
         start_date <= Game Date of Games <= end_date
     
     playoff : bool, default False
-        if True, get playoff(postseason) game IDs.
         True일 경우 플레이오프(포스트시즌) 경기 ID도 받는다.
     """
     
@@ -116,14 +111,11 @@ def get_game_ids(start_date, end_date, playoff=False):
 
 def get_game_data(game_id):
     """
-    Get KBO game PBP data.
     KBO 경기 PBP 데이터를 가져온다.
     
     Parameters
     -----------
-    
     game_id : str
-        game ID of interest.
         가져올 게임 ID.
     """
     
@@ -400,30 +392,22 @@ def get_game_data(game_id):
 def download_pbp_files(start_date, end_date, playoff=False,
                        save_path=None, debug_mode=False):
     """
-    Download KBO pitch by pitch(PBP) files.
     KBO 피치 바이 피치(PBP) 파일을 다운로드.
     
     Parameters
     -----------
-    
     start_date, end_date : datetime.date
-        download PBP files between start_date, end_date.
         PBP 파일을 받을 경기 기간의 시작일과 종료일.
-        
         start_date <= Game Date of Downloaded Files <= end_date
     
     playoff : bool, default False
-        if True, download playoff(postseason) game files.
         True일 경우 플레이오프(포스트시즌) 경기 파일도 받는다.
         
     save_path : pathlib.Path, default None
-        path to save PBP files.
         PBP 파일을 저장할 경로.
-        if None, files will be saved in current path.
         값이 없을 경우(None) 현재 경로에 저장.
     
     debug_mode : bool, default False
-        if True, debug messages and elapsed time will be printed thru sys.stdout.
         True일 경우 sys.stdout을 통해 디버그 메시지와 수행 시간이 출력됨.
     """
     start_time = time.time()

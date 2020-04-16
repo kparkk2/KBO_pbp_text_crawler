@@ -1,7 +1,7 @@
 # pbp.py
 
 import argparse, traceback, sys, pathlib, datetime
-import time, tqdm
+import time
 
 from new_pbp_download import download_pbp_files
 
