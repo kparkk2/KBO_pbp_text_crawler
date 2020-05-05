@@ -46,7 +46,7 @@ def join_csvs(path, start_date, end_date):
             
             for file in yearfiles:
                 fp = file.open()
-                lines = fp.readlines()
+                lines = fp.readlines(encoding=enc)
                 if len(lines) < 2:
                     fp.close()
                     continue
