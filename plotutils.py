@@ -875,9 +875,9 @@ def pitcher_info(df, pitcher=None):
         
     groupped = sub_df.groupby('pitch_type').mean().loc[:, ['speed', 'pfx_x', 'pfx_z']]
     
-    groupped['count'] = sub_df.groupby('pitch_type').count().speed
-    groupped['max'] = sub_df.groupby('pitch_type').max().speed
-    groupped['min'] = sub_df.groupby('pitch_type').min().speed
+    groupped['count'] = sub_df.groupby('pitch_type').speed.count()
+    groupped['max'] = sub_df.groupby('pitch_type').speed.max()
+    groupped['min'] = sub_df.groupby('pitch_type').speed.min()
     
     groupped['pct'] = groupped['count'] / groupped['count'].sum() * 100
     
