@@ -167,7 +167,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
 
     for c in calls_:
         f = df.loc[df.pitch_result == c]
-        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=c, color=Colors[c], zorder=0)#cmap='set1', zorder=0)
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=c, color=Colors[c], zorder=0)
 
         if show_pitch_number is True:
             for i in f.index:
@@ -243,7 +243,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
     for p in pitch_types_:
         f = df.loc[df.pitch_type == p]
         c = BallColors[p]
-        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, color=c, zorder=0)#cmap='set1', zorder=0)
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, color=c, zorder=0)
 
         if show_pitch_number is True:
             for i in f.index:
