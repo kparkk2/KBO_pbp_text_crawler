@@ -521,7 +521,7 @@ def plot_match_calls(df, title=None):
 
 def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None):
     set_fonts()
-    if df.px.dtypes == np.object:
+    if df.px.isnull().any():
         df = clean_data(df)
 
     lb = -1.5
