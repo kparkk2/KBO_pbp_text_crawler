@@ -27,6 +27,7 @@ Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 �
 Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c', '파울':'#edf72c', '타격':'#8348d1', '번트파울':'#edf72c', '번트헛스윙':'#1a1b1c' }
 
 BallColors = {'직구': '#f03e3e',
+              '포심': '#f03e3e',
               '투심': '#e26d14',
               '싱커': '#f2bb07',
               '슬라이더': '#acfc16',
@@ -1386,9 +1387,9 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                 if s == 0:
                     continue
 
-                width = t.pfx_x.quantile(.5+span/2) - t.pfx_x.quantile(.5-span/2)
-                height = t.pfx_z.quantile(.5+span/2) - t.pfx_z.quantile(.5-span/2)
-                c1, c2 = t.pfx_x.median(), t.pfx_z.median()
+                width = (t.pfx_x.quantile(.5+span/2) - t.pfx_x.quantile(.5-span/2)) * 2.54
+                height = (t.pfx_z_raw.quantile(.5+span/2) - t.pfx_z_raw.quantile(.5-span/2)) * 2.54
+                c1, c2 = t.pfx_x.median() * 2.54, -t.pfx_z_raw.median() * 2.54
                 color = BallColors[p]
 
                 ellipse1 = Ellipse((c1, c2), width, height,
@@ -1398,17 +1399,19 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                                    ec=color, fc='#f0f0f0', lw=1,
                                    alpha=.5, zorder=1)
                 if show_dots:
-                    ax.scatter(t.pfx_x, t.pfx_z, alpha=0.25, c=color, s=dpi*.5, zorder=2)
+                    ax.scatter(t.pfx_x * 2.54, -t.pfx_z_raw * 2.54, alpha=0.25, c=color, s=dpi*.5, zorder=2)
 
                 ax.add_patch(ellipse1)
                 ax.add_patch(ellipse2)
 
                 ax.scatter(c1, c2, alpha=alpha2, s=dpi*.5, zorder=2, c=color)
-                dots_by_type.append(ax.scatter(-100, -100,
+                dots_by_type.append(ax.scatter(-1000, -1000,
                                                s=dpi*2, zorder=-1, c=color))
 
-                labels.append(p)
-
+                if p == '직구':
+                    labels.append('포심')
+                else:
+                    labels.append(p)
             ax.set_title(f'{player} Yearly Break Plot')
         else:
             color_added = {p: False for p in pitch_types}
@@ -1420,13 +1423,16 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                     t_part = t.loc[t.month == m]
                     if t_part.shape[0] == 0:
                         continue
-                    x = t_part.pfx_x.mean()
-                    y = t_part.pfx_z.mean()
+                    x = t_part.pfx_x.mean() * 2.54
+                    y = -t_part.pfx_z_raw.mean() * 2.54
                     s = t_part.shape[0]
 
                     if color_added[p] is False:
                         dots_by_type.append(ax.scatter(x, y, s=dpi*2, c=BallColors[p]))
-                        labels.append(p)
+                        if p == '직구':
+                            labels.append('포심')
+                        else:
+                            labels.append(p)
                         color_added[p] = True
                     else:
                         ax.scatter(x, y, s=dpi*2, c=BallColors[p])
@@ -1434,8 +1440,13 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                 plt.gca().set_prop_cycle(None)
             ax.set_title(f'{player} Monthly Break Plot')
 
-        ax.set_xlim(-14,14)
-        ax.set_ylim(-18,18)
+        ax.text(-43, 180, '◀가라앉음', rotation=90, weight='bold')
+
+        ax.text(-35, 180, '◀우타석', weight='bold')
+        ax.text(25, 180, '좌타석▶', weight='bold')
+        ax.set_xlim(-14 * 2.54, 14 * 2.54)
+        ax.set_ylim(0, 180)
+        ax.invert_yaxis()
 
         ax.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', fontsize='small')
 
@@ -1448,6 +1459,7 @@ def pitchtype_plot(df, pitcher, ax=None):
     if target.shape[0] == 0:
         return
     else:
+        target = target.assign(pitch_type = target.pitch_type.apply(lambda x: '포심' if x=='직구' else x))
         g = target.groupby('pitch_type').size().sort_values(ascending=False) / len(target) * 100
         mean = target.groupby('pitch_type').speed.mean()
 
