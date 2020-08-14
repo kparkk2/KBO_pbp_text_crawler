@@ -318,6 +318,7 @@ class game_status:
         save_row['away_alias'] = self.away_alias
         save_row['stadium'] = self.stadium
         save_row['referee'] = self.referee
+        save_row['gameid'] = self.game_id
 
         for runner in self.runner_bases:
             if runner[2] > 0:
