@@ -725,7 +725,7 @@ class game_status:
                         self.strikes += 1
                     elif res.find('파울') > -1:
                         self.strikes = self.strikes+1 if self.strikes < 2 else 2
-                    if (self.strikes > 3) or (self.strikes > 4) or (self.outs > 3):
+                    if (self.strikes > 3) or (self.balls > 4) or (self.outs > 3):
                         if debug_mode is True:
                             self.log_text.append('3S/4B/3O')
                         assert False
