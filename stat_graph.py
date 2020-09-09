@@ -65,13 +65,14 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
             hbp_sum += tab.loc[i].hbp
             
             # avg, obp, slg, ops, babip
-            
-            result_sum.append([hit_sum/ab_sum, # avg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum), # obp
-                               tb_sum/ab_sum, # slg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) + tb_sum/ab_sum, #ops
-                               (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) # babip
-                              ])
+            _avg = hit_sum/ab_sum if ab_sum > 0 else 0
+            _obp = (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) if (ab_sum+bb_sum+hbp_sum+sf_sum) > 0 else 0
+            _slg = tb_sum/ab_sum if ab_sum > 0 else 0
+            _ops = _obp + _slg
+            _babip = (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) if (ab_sum-so_sum-hr_sum+sf_sum) > 0 else 0
+
+            result_sum.append([_avg, _obp, _slg,
+                               _ops, _babip])
             
         fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=10)
     else:
