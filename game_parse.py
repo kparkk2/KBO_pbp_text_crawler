@@ -15,6 +15,7 @@ header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'game_date', 'home', 'away', 'home_alias', 'away_alias',
               'stadium', 'referee', 'pa_number', 'pitch_number', 'pitchID', 'gameID']
 
+# 원본 텍스트 / pa_result 기록 텍스트 / 더 디테일한 pa_result_detail 기록 텍스트
 batter_result = [
     ['삼진', '삼진', '삼진'],
     ['볼넷', '볼넷', '볼넷'],
@@ -70,6 +71,16 @@ def parse_batter_as_runner(text):
 
     result = 'o' if text.find('아웃') > 0 else 'a'
     result = 'h' if text.find('홈런') > 0 else result
+    # 낫아웃 예외처리
+    if result == 'o':
+        if text.find('낫아웃 폭투') >= 0:
+            result = 'a'
+        elif text.find('낫아웃 포일') >= 0:
+            result = 'a'
+        elif text.find('낫아웃 다른주자') >= 0:
+            result = 'a'
+        elif text.find('낫아웃 출루') >= 0:
+            result = 'a'
 
     before_base = 0
     after_base = None
