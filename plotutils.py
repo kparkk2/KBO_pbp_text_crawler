@@ -796,24 +796,40 @@ def hex_to_rgb(hex):
     return tuple(int(hex[i:i+int(hlen/3)], 16) for i in range(0, hlen, int(hlen/3)))
 
 
-def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, color=None):
+def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, color=None, by_inch=True):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    lb = -1.5
-    rb = +1.5
-    ll = -17/24
-    rl = +17/24
-    oll = -20/24
-    orl = +20/24
+    if by_inch is True:
+        df = df.assign(px = df.px * 12, pz = df.pz * 12)
+        lb = -18
+        rb = +18
+        ll = -17/2
+        rl = +17/2
+        oll = -10
+        orl = +10
 
-    bl = 1.59
-    tl = 3.44
-    obl = bl-3/24
-    otl = tl+3/24
-    bb = (bl+tl)/2 - (tl-bl)*15/16
-    tb = (bl+tl)/2 + (tl-bl)*15/16
+        bl = 18
+        tl = 42
+        obl = bl-3/2
+        otl = tl+3/2
+        bb = (bl+tl)/2 - (tl-bl)*15/16
+        tb = (bl+tl)/2 + (tl-bl)*15/16
+    else:
+        lb = -1.5
+        rb = +1.5
+        ll = -17/24
+        rl = +17/24
+        oll = -20/24
+        orl = +20/24
+
+        bl = 1.59
+        tl = 3.44
+        obl = bl-3/24
+        otl = tl+3/24
+        bb = (bl+tl)/2 - (tl-bl)*15/16
+        tb = (bl+tl)/2 + (tl-bl)*15/16
 
     strikes = df.loc[df.pitch_result == '스트라이크']
     balls = df.loc[df.pitch_result == '볼']
@@ -871,14 +887,22 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     ax.set_facecolor('#cccccc')
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt), ax=ax)
 
-    major_xtick_step = major_ytick_step = 1/2
-    minor_xtick_step = minor_ytick_step = 1/12
+    if by_inch is True:
+        major_xtick_step = major_ytick_step = 6
+        minor_xtick_step = minor_ytick_step = 1
+    else:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/12
 
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
 
-    major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
-    minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
+    if by_inch is True:
+        major_yticks = np.arange(0, 60+major_ytick_step, major_ytick_step)
+        minor_yticks = np.arange(0, 60+minor_ytick_step, minor_ytick_step)
+    else:
+        major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
+        minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
 
     ax.set_xticks(major_xticks)
     ax.set_xticks(minor_xticks, minor=True)
@@ -912,24 +936,40 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     return fig, ax
 
 
-def plot_szone(df, title=None, dpi=144, show_area=False, ax=None):
+def plot_szone(df, title=None, dpi=144, show_area=False, ax=None, by_inch=True):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    lb = -1.5
-    rb = +1.5
-    ll = -17/24
-    rl = +17/24
-    oll = -20/24
-    orl = +20/24
+    if by_inch is True:
+        df = df.assign(px = df.px * 12, pz = df.pz * 12)
+        lb = -18
+        rb = +18
+        ll = -17/2
+        rl = +17/2
+        oll = -10
+        orl = +10
 
-    bl = 1.59
-    tl = 3.44
-    obl = bl-3/24
-    otl = tl+3/24
-    bb = 1.0
-    tb = 4.0
+        bl = 18
+        tl = 42
+        obl = bl-3/2
+        otl = tl+3/2
+        bb = 12
+        tb = 48
+    else:
+        lb = -1.5
+        rb = +1.5
+        ll = -17/24
+        rl = +17/24
+        oll = -20/24
+        orl = +20/24
+
+        bl = 1.59
+        tl = 3.44
+        obl = bl-3/24
+        otl = tl+3/24
+        bb = 1.0
+        tb = 4.0
 
     strikes = df.loc[df.pitch_result == '스트라이크']
     balls = df.loc[df.pitch_result == '볼']
@@ -961,8 +1001,8 @@ def plot_szone(df, title=None, dpi=144, show_area=False, ax=None):
     major_xticks = np.linspace(lb, rb, 7)
     minor_xticks = np.linspace(lb, rb, 37)
 
-    major_yticks = np.linspace(1, 4, 7)
-    minor_yticks = np.linspace(1, 4, 37)
+    major_yticks = np.linspace(bb, tb, 7)
+    minor_yticks = np.linspace(bb, tb, 37)
 
     ax.set_xticks(major_xticks)
     ax.set_xticks(minor_xticks, minor=True)

@@ -825,11 +825,16 @@ def plot_table_color_scale(df, columns=None):
     return df.style.background_gradient(newcmp, subset=columns)
 
 
-def shadow(df, rv):
+def get_shadow_zone(df):
     target = df.loc[(df.px.between(-40/3/12, 40/3/12) & df.pz.between(14/12, 22/12)) |
-                    (df.px.between(-40/3/12, 40/3/12) & df.pz.between(38/12, 46/12)) |
-                    (df.px.between(-40/3/12, -20/3/12) & df.pz.between(14/12, 46/12)) |
-                    (df.px.between(20/3/12, 40/3/12) & df.pz.between(14/12, 46/12))]
+                (df.px.between(-40/3/12, 40/3/12) & df.pz.between(38/12, 46/12)) |
+                (df.px.between(-40/3/12, -20/3/12) & df.pz.between(14/12, 46/12)) |
+                (df.px.between(20/3/12, 40/3/12) & df.pz.between(14/12, 46/12))]
+    return target
+
+
+def shadow(df, rv):
+    target = get_shadow_zone(df)
     strikes = target.loc[target.pitch_result == 1]
 
     t1 = pd.DataFrame(target.groupby('catcher').size(), columns=['shadow_N'])
@@ -845,8 +850,9 @@ def shadow(df, rv):
     t2 = t2.rename(index=str, columns={'shadow_strikes_N': 'shadow%'})
     t2['fRun(shadow)'] = ts.mul(t2['shadow% above avg'], axis=0).div(100).mul(rv)
     t2['fRun(shadow)/2000'] = t2['fRun(shadow)'].div(total['N']).mul(2000)
+    t2['shadow% above avg'] = t2['shadow% above avg'].apply(lambda x: round(x, 2))
 
-    return t2[['fRun(shadow)', 'fRun(shadow)/2000']]
+    return t2[['fRun(shadow)', 'fRun(shadow)/2000', 'shadow% above avg']]
 
 def shadow2(df, rv):
     target = df.loc[(df.px.between(-40/3/12, 40/3/12) & df.pz.between(14/12, 22/12)) |
@@ -883,10 +889,12 @@ def frun_style(frun_df, threshold=500, shadow_df=None, rv=None, shadow_adj=True)
     if (shadow_df is not None) & (rv is not None):
         if shadow_adj is True:
             t = t.join(shadow2(shadow_df, rv))
+            t = t[['이름', '판정 횟수', 'fRun', 'fRun/2000', 'fRun(shadow)', 'fRun(shadow)/2000']]
+            columns = ['fRun', 'fRun/2000', 'fRun(shadow)', 'fRun(shadow)/2000']
         else:
             t = t.join(shadow(shadow_df, rv))
-        t = t[['이름', '판정 횟수', 'fRun', 'fRun/2000', 'fRun(shadow)', 'fRun(shadow)/2000']]
-        columns = ['fRun', 'fRun/2000', 'fRun(shadow)', 'fRun(shadow)/2000']
+            t = t[['이름', '판정 횟수', 'fRun', 'fRun/2000', 'fRun(shadow)', 'fRun(shadow)/2000', 'shadow% above avg']]
+            columns = ['fRun', 'fRun/2000', 'fRun(shadow)', 'fRun(shadow)/2000', 'shadow% above avg']
     else:
         t = t[['이름', '판정 횟수', 'fRun', 'fRun/2000']]
 
@@ -900,9 +908,14 @@ def frun_style(frun_df, threshold=500, shadow_df=None, rv=None, shadow_adj=True)
     ]
     s = plot_table_color_scale(t, columns)
 
-    if shadow_df is not None:
-        s = s.hide_index().format({'fRun': "{:.1f}", 'fRun/2000': "{:.1f}",
-                                   'fRun(shadow)': "{:.1f}", 'fRun(shadow)/2000': "{:.1f}"}).set_table_styles(styles)
+    if (shadow_df is not None) & (rv is not None):
+        if shadow_adj is True:
+            s = s.hide_index().format({'fRun': "{:.1f}", 'fRun/2000': "{:.1f}",
+                                       'fRun(shadow)': "{:.1f}", 'fRun(shadow)/2000': "{:.1f}"}).set_table_styles(styles)
+        else:
+            s = s.hide_index().format({'fRun': "{:.1f}", 'fRun/2000': "{:.1f}",
+                                       'fRun(shadow)': "{:.1f}", 'fRun(shadow)/2000': "{:.1f}",
+                                       'shadow% above avg': "{:.2f}"}).set_table_styles(styles)
     else:
         s = s.hide_index().format({'fRun': "{:.1f}", 'fRun/2000': "{:.1f}"}).set_table_styles(styles)
     return s
