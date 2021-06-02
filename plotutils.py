@@ -90,7 +90,6 @@ def clean_data(df):
     df = df[df.loc[df.px.isnull()].index]
     df = df[df.loc[df.pz.isnull()].index]
     df = df[df.loc[df.pitch_type.isnull()].index]
-    df = df[df[(df.pitch_type == 'None')
     df = df[df.loc[(df.pitch_type == 'None') & (~df.pitch_type.isnull())].index]
     df = df[df.loc[df.sz_bot.isnull()].index]
     df = df[df.loc[df.sz_top.isnull()].index]

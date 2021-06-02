@@ -25,6 +25,7 @@ regular_start = {
     '2018': '0324',
     '2019': '0323',
     '2020': '0505',
+    '2021': '0403',
 }
 
 playoff_start = {
@@ -45,6 +46,7 @@ playoff_start = {
     '2018': '1015',
     '2019': '1003',
     '2020': '1101',
+    '2021': '1031',
 }
 
 
@@ -97,6 +99,7 @@ def get_game_ids(start_date, end_date, playoff=False):
 
         for btn in buttons:
             gid = btn.a['href'].split('gameId=')[1]
+            gid = gid.split('&')[0]
             gid_date = datetime.date(int(gid[:4]),
                                      int(gid[4:6]),
                                      int(gid[6:8]))
@@ -121,9 +124,15 @@ def get_game_data(game_id):
     """
 
     relay_url = 'http://m.sports.naver.com/ajax/baseball/'\
-            'gamecenter/kbo/relayText.nhn'
+                'gamecenter/kbo/relayText.nhn'
     record_url = 'http://m.sports.naver.com/ajax/baseball/'\
                 'gamecenter/kbo/record.nhn'
+    # n_api_url/games/gameid/record
+    # n_api_url/games/gameid/relay
+    # n_api_url/gameid/live
+    n_api_url = 'https://api-gw.sports.naver.com/schedule'
+    lineup_pos_url = 'https://www.koreabaseball.com/ws/Schedule.asmx/GetBoxScoreScroll'
+
     params = {'gameId': game_id, 'half': '1'}
 
     headers = {
@@ -143,13 +152,29 @@ def get_game_data(game_id):
         #####################################
         # 1. pitch by pitch 데이터 가져오기 #
         #####################################
+        '''
         relay_response = requests.get(relay_url,
                                       params=params,
                                       headers=headers)
+        '''
+        relay_response = requests.get(f'{n_api_url}/games/{game_id}/relay')
+
         if relay_response.status_code > 200:
             relay_response.close()
-            return [None, None, 'response error\n']
+            return [None, None, 'relay response error\n']
 
+        relay_js = relay_response.json()['result']['textRelayData']
+        relay_response.close()
+
+        live_game_response = requests.get(f'{n_api_url}/{game_id}/live')
+
+        if live_game_response.status_code > 200:
+            live_game_response.close()
+            return [None, None, 'live response error\n']
+
+        live_game_js = live_game_response.json()['result']['lives']
+        live_game_response.close()
+        '''
         relay_json = relay_response.json()
         js = None
         try:
@@ -163,12 +188,15 @@ def get_game_data(game_id):
             return [None, None, 'invalid game ID\n']
 
         last_inning = js['currentInning']
+        '''
+        last_inning = relay_js['inn']
 
         if last_inning is None:
             return [None, None, 'no last inning\n']
 
         game_data_set = {}
         game_data_set['relayList'] = []
+        '''
         for x in js['relayList']:
             game_data_set['relayList'].append(x)
 
@@ -179,6 +207,13 @@ def get_game_data(game_id):
         game_data_set['stadium'] = js['schedule']['stadium']
 
         for inn in range(2, last_inning + 1):
+        '''
+        game_data_set['homeTeamLineUp'] = relay_js['homeLineup']
+        game_data_set['awayTeamLineUp'] = relay_js['awayLineup']
+        game_data_set['stadium'] = live_game_js['stadium']
+
+        for inn in range(1, last_inning + 1):
+            '''
             params = {
                 'gameId': game_id,
                 'half': str(inn)
@@ -199,6 +234,9 @@ def get_game_data(game_id):
 
             for x in js['relayList']:
                 game_data_set['relayList'].append(x)
+            '''
+            for x in relay_js['textRelays']:
+                game_data_set['relayList'].append(x)
 
         #########################
         # 2. 가져온 정보 다듬기 #
@@ -215,22 +253,26 @@ def get_game_data(game_id):
         text_set = []
         stadium = game_data_set['stadium']
         for k in range(len(relay_list)):
-            for j in range(len(relay_list[k].get('textOptionList'))):
-                text_row = relay_list[k].get('textOptionList')[j]
+            livetext_set = relay_list[k].get('textOptions')
+            livetext_set_no = relay_list[k].get('no')
+            for j in range(len(livetext_set)):
+                livetext_raw = livetext_set[j]
 
-                text_row_dict = {}
-                text_row_dict['textOrder'] = relay_list[k].get('no')
+                text_reshaped = {}
+                text_reshaped['textOrder'] = livetext_set_no
                 for key in text_keys:
                     if key == 'playerChange':
-                        if text_row.get(key) is not None:
+                        if livetext_raw.get(key) is not None:
                             for x in ['outPlayer', 'inPlayer', 'shiftPlayer']:
-                                if x in text_row.get(key).keys():
-                                    text_row_dict[x] = text_row.get(key).get(x).get('playerId')
+                                if x in livetext_raw.get(key).keys():
+                                    text_reshaped[x] = livetext_raw.get(key).get(x).get('playerId')
                     else:
-                        text_row_dict[key] = None if key not in text_row.keys() else text_row.get(key)
-                # text_row_dict['referee'] = referee
-                text_row_dict['stadium'] = stadium
-                text_set.append(text_row_dict)
+                        if key not in livetext_raw.keys():
+                            text_reshaped[key] = None
+                        else:
+                            text_reshaped[key] = livetext_raw.get(key)
+                text_reshaped['stadium'] = stadium
+                text_set.append(text_reshaped)
         text_set_df = pd.DataFrame(text_set)
         text_set_df = text_set_df.rename(index=str, columns={'ptsPitchId': 'pitchId'})
         text_set_df.seqno = pd.to_numeric(text_set_df.seqno)
@@ -239,15 +281,20 @@ def get_game_data(game_id):
         pitch_data_set = []
         pitch_data_df = None
         for k in range(len(relay_list)):
-            if relay_list[k].get('ptsOptionList') is not None:
-                for j in range(len(relay_list[k].get('ptsOptionList'))):
-                    pitch_data = relay_list[k].get('ptsOptionList')[j]
+            livepitch_set = relay_list[k].get('ptsOptions')
+            livepitch_set_no = relay_list[k].get('no')
+            if relay_list[k].get('ptsOptions') is not None:
+                for j in range(len(livepitch_set)):
+                    livepitch_raw = livepitch_set[j]
 
-                    pitch_data_dict = {}
-                    pitch_data_dict['textOrder'] = relay_list[k].get('no')
+                    livepitch_reshaped = {}
+                    livepitch_reshaped['textOrder'] = livepitch_set_no
                     for key in pitch_keys:
-                        pitch_data_dict[key] = None if key not in pitch_data.keys() else pitch_data.get(key)
-                    pitch_data_set.append(pitch_data_dict)
+                        if key not in livepitch_raw.keys():
+                            livepitch_reshaped[key] = None
+                        else :
+                            livepitch_reshaped[key] = livepitch_raw.get(key)
+                    pitch_data_set.append(livepitch_reshaped)
 
         # 텍스트(중계) 데이터, 트래킹 데이터 취합
         if len(pitch_data_set) > 0:
@@ -259,6 +306,7 @@ def get_game_data(game_id):
         ##################################################
         # 3. 선발 라인업, 포지션, 레퍼리 데이터 가져오기 #
         ##################################################
+        '''
         lineup_url = 'https://sports.news.naver.com/gameCenter'\
                      '/gameRecord.nhn?category=kbo&gameId='
         lineup_response = requests.get(lineup_url + game_id)
@@ -303,6 +351,48 @@ def get_game_data(game_id):
         boxscore = cont.get('battersBoxscore')
         away_lineup = boxscore.get('away')
         home_lineup = boxscore.get('home')
+        '''
+        record_response = requests.get(f'{n_api_url}/games/{game_id}/record')
+        record_js = record_response.get('result').get('recordData')
+        referees = record_js.get('etcRecords')[-1].get('result').split(' ')
+
+        away_team_name = live_game_js['awayTeamName']
+        home_team_name = live_game_js['homeTeamName']
+
+        record_response.close()
+
+        post_params = {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8;',
+            'leId': 1,
+            'srId': 0,
+            'seasonId': 2021,
+            'gameId': game_id
+        }
+        lineup_response = requests.post(lineup_pos_url,
+                                        data=post_params)
+        if lineup_response.status_code > 200:
+            lineup_response.close()
+            return [None, None, 'lineup response error\n']
+
+        hitter_js = lineup_response.json()['arrHitter']
+
+        away_lineup = json.loads(hitter_js[0].get('table1').replace('\r\n  ', '').replace(' ',''))
+        away_lineup = [x['row'] for x in away_lineup['rows']]
+        away_lineup = [[int(x[0]['Text']), x[1]['Text'], x[2]['Text']] for x in away_lineup]
+
+        home_lineup = json.loads(hitter_js[1].get('table1').replace('\r\n  ', '').replace(' ',''))
+        home_lineup = [x['row'] for x in home_lineup['rows']]
+        home_lineup = [[int(x[0]['Text']), x[1]['Text'], x[2]['Text']] for x in away_lineup]
+
+        pitcher_js = lineup_response.json()['arrPitcher']
+
+        away_pitcher = json.loads(pitcher_js[0].get('table').replace('\r\n  ', '').replace(' ',''))
+        away_pitcher = [x['row'] for x in away_pitcher['rows']]
+        away_pitcher = [[x[0]['Text'], x[1]['Text']] for x in away_pitcher]
+
+        home_pitcher = json.loads(pitcher_js[0].get('table').replace('\r\n  ', '').replace(' ',''))
+        home_pitcher = [x['row'] for x in home_pitcher['rows']]
+        home_pitcher = [[x[0]['Text'], x[1]['Text']] for x in home_pitcher]
 
         pos_dict = {'중': '중견수', '좌': '좌익수', '우': '우익수',
                     '유': '유격수', '포': '포수', '지': '지명타자',
@@ -311,19 +401,27 @@ def get_game_data(game_id):
         home_players = []
         away_players = []
 
-        for i in range(len(home_lineup)):
-            player = home_lineup[i]
-            name = player.get('name')
-            pos = player.get('pos')[0]
-            pCode = player.get('playerCode')
-            home_players.append({'name': name, 'pos': pos, 'pCode': pCode})
+        for player in range(home_lineup):
+            order = player[0]
+            pos = player[1]
+            name = player[2]
+            #player = home_lineup['rows'][i]
+            #name = player.get('name')
+            #pos = player.get('pos')[0]
+            #pCode = player.get('playerCode')
+            #home_players.append({'name': name, 'pos': pos, 'pCode': pCode})
+            home_players.append({'name': name, 'pos': pos, 'order': order})
 
-        for i in range(len(away_lineup)):
-            player = away_lineup[i]
-            name = player.get('name')
-            pos = player.get('pos')[0]
-            pCode = player.get('playerCode')
-            away_players.append({'name': name, 'pos': pos, 'pCode': pCode})
+        for player in range(home_lineup):
+            order = player[0]
+            pos = player[1]
+            name = player[2]
+            #player = away_lineup[i]
+            #name = player.get('name')
+            #pos = player.get('pos')[0]
+            #pCode = player.get('playerCode')
+            #away_players.append({'name': name, 'pos': pos, 'pCode': pCode})
+            away_players.append({'name': name, 'pos': pos, 'order': order})
 
 
         ##############################
@@ -333,126 +431,73 @@ def get_game_data(game_id):
                        'hitType', 'seqno', 'batOrder']
         pit_columns = ['name', 'pCode', 'hitType', 'seqno']
 
-        atl = game_data_set.get('awayTeamLineUp')
-        abat = atl.get('batter')
-        apit = atl.get('pitcher')
-        abats = pd.DataFrame(abat, columns=hit_columns).sort_values(['batOrder', 'seqno'])
-        apits = pd.DataFrame(apit, columns=pit_columns).sort_values('seqno')
+        away_team_lineup = game_data_set.get('awayTeamLineUp')
+        away_batters_dict = away_team_lineup.get('batter')
+        away_pitchers_dict = away_team_lineup.get('pitcher')
+        away_batters = pd.DataFrame(away_batters_dict,
+                                    columns=hit_columns).sort_values(['batOrder', 'seqno'])
+        away_pitchers = pd.DataFrame(away_pitchers_dict,
+                                     columns=pit_columns).sort_values('seqno')
 
-        htl = game_data_set.get('homeTeamLineUp')
-        hbat = htl.get('batter')
-        hpit = htl.get('pitcher')
-        hbats = pd.DataFrame(hbat, columns=hit_columns).sort_values(['batOrder', 'seqno'])
-        hpits = pd.DataFrame(hpit, columns=pit_columns).sort_values('seqno')
+        home_team_lineup = game_data_set.get('homeTeamLineUp')
+        home_batters_dict = home_team_lineup.get('batter')
+        home_pitchers_dict = home_team_lineup.get('pitcher')
+        home_batters = pd.DataFrame(home_batters_dict,
+                                    columns=hit_columns).sort_values(['batOrder', 'seqno'])
+        home_pitchers = pd.DataFrame(home_pitchers_dict,
+                                     columns=pit_columns).sort_values('seqno')
 
         #####################################
         # 5. 라인업 정보 보강             #
         #####################################
-        record_response = requests.get(record_url,
-                                      params=params,
-                                      headers=headers)
-        if record_response.status_code > 200:
-            record_response.close()
-            return [None, None, 'response error\n']
-
-        record_json = record_response.json()
-        record_response.close()
-
-        apr = pd.DataFrame(record_json['awayPitcher'])
-        hpr = pd.DataFrame(record_json['homePitcher'])
-        abr = pd.DataFrame(record_json['awayBatter'])
-        hbr = pd.DataFrame(record_json['homeBatter'])
-        apr = apr.rename(index=str, columns={'pcode':'pCode'})
-        hpr = hpr.rename(index=str, columns={'pcode':'pCode'})
-        abr = abr.rename(index=str, columns={'pcode':'pCode'})
-        hbr = hbr.rename(index=str, columns={'pcode':'pCode'})
-
-        apr.loc[:, 'seqno'] = 10
-        apr.loc[:, 'hitType'] = None
-        hpr.loc[:, 'seqno'] = 10
-        hpr.loc[:, 'hitType'] = None
-
-        abr.loc[:, 'seqno'] = 10
-        abr.loc[:, 'hitType'] = None
-        abr.loc[:, 'posName'] = None
-        hbr.loc[:, 'seqno'] = 10
-        hbr.loc[:, 'hitType'] = None
-        hbr.loc[:, 'posName'] = None
-
-        for p in apr.pCode.unique():
-            if p in apits.pCode.unique():
-                apr.loc[(apr.pCode == p), 'seqno'] = int(apits.loc[apits.pCode == p].seqno.values[0])
-                apr.loc[(apr.pCode == p), 'hitType'] = apits.loc[apits.pCode == p].hitType.values[0]
-            else:
-                apr.loc[(apr.pCode == p), 'seqno'] = 10
-        for p in hpr.pCode.unique():
-            if p in hpits.pCode.unique():
-                hpr.loc[(hpr.pCode == p), 'seqno'] = int(hpits.loc[hpits.pCode == p].seqno.values[0])
-                hpr.loc[(hpr.pCode == p), 'hitType'] = hpits.loc[hpits.pCode == p].hitType.values[0]
-            else:
-                hpr.loc[(hpr.pCode == p), 'seqno'] = 10
-        for p in abats.pCode.unique():
-            if p in abats.pCode.unique():
-                abr.loc[(abr.pCode == p), 'seqno'] = int(abats.loc[abats.pCode == p].seqno.values[0])
-                abr.loc[(abr.pCode == p), 'posName'] = abats.loc[abats.pCode == p].posName.values[0]
-                abr.loc[(abr.pCode == p), 'hitType'] = abats.loc[abats.pCode == p].hitType.values[0]
-            else:
-                abr.loc[(abr.pCode == p), 'seqno'] = 10
-        for p in hbats.pCode.unique():
-            if p in hbats.pCode.unique():
-                hbr.loc[(hbr.pCode == p), 'seqno'] = int(hbats.loc[hbats.pCode == p].seqno.values[0])
-                hbr.loc[(hbr.pCode == p), 'posName'] = hbats.loc[hbats.pCode == p].posName.values[0]
-                hbr.loc[(hbr.pCode == p), 'hitType'] = hbats.loc[hbats.pCode == p].hitType.values[0]
-            else:
-                hbr.loc[(hbr.pCode == p), 'seqno'] = 10
-
-        apr = apr.astype({'seqno': int})
-        hpr = hpr.astype({'seqno': int})
-        abr = abr.astype({'seqno': int})
-        hbr = hbr.astype({'seqno': int})
-
-        apits = apr[pit_columns]
-        hpits = hpr[pit_columns]
-        abats = abr[hit_columns]
-        hbats = hbr[hit_columns]
 
         # 선발 출장한 경우, 선수의 포지션을 경기 시작할 때 포지션으로 수정
         # (pitch by pitch 데이터에서 가져온 정보는 경기 종료 시의 포지션임)
         for player in away_players:
             # '교'로 적혀있는 교체 선수는 넘어간다
-            if player.get('pos') == '교':
+            if player.get('pos')[0] == '교':
                 continue
-            abats.loc[(abats.name == player.get('name')) &
-                      (abats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
+            #abats.loc[(abats.name == player.get('name')) &
+            #          (abats.pCode == player.get('pCode')),
+            #          'posName'] = pos_dict.get(player.get('pos'))
+            away_batters.loc[(away_batters.name == player[.get('name')]) &
+                             (away_batters.batOrder == player.get('order')),
+                             'posName'] = pos_dict.get(player.get('pos')[0])
             if len(player.get('name')) > 3:
                 pname = player.get('name')
-                for i in range(len(abats)):
-                    if abats.iloc[i].values[0].find(pname) > -1:
-                        pCode = abats.iloc[i].pCode
-                        abats.loc[(abats.pCode == pCode), 'posName'] = pos_dict.get(player.get('pos'))
+                for i in range(len(away_batters)):
+                    if away_batters.iloc[i].values[0].find(pname) > -1:
+                        pCode = away_batters.iloc[i].pCode
+                        away_batters.loc[(away_batters.pCode == pCode),
+                                         'posName'] = pos_dict.get(player.get('pos'))
                         break
 
         for player in home_players:
             # '교'로 적혀있는 교체 선수는 넘어간다
             if player.get('pos') == '교':
                 continue
-            hbats.loc[(hbats.name == player.get('name')) &
-                      (hbats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
+            #hbats.loc[(hbats.name == player.get('name')) &
+            #          (hbats.pCode == player.get('pCode')),
+            #           'posName'] = pos_dict.get(player.get('pos'))
+            home_batters.loc[(home_batters.name == player[.get('name')]) &
+                             (home_batters.batOrder == player.get('order')),
+                             'posName'] = pos_dict.get(player.get('pos')[0])
             if len(player.get('name')) > 3:
                 pname = player.get('name')
-                for i in range(len(hbats)):
-                    if hbats.iloc[i].values[0].find(pname) > -1:
-                        pCode = hbats.iloc[i].pCode
-                        hbats.loc[(hbats.pCode == pCode), 'posName'] = pos_dict.get(player.get('pos'))
+                for i in range(len(home_batters)):
+                    if home_batters.iloc[i].values[0].find(pname) > -1:
+                        pCode = home_batters.iloc[i].pCode
+                        home_batters.loc[(home_batters.pCode == pCode),
+                                         'posName'] = pos_dict.get(player.get('pos'))
                         break
 
-        abats = abats.assign(homeaway = 'a', team_name = away_team_name)
-        hbats = hbats.assign(homeaway = 'h', team_name = home_team_name)
-        apits = apits.assign(homeaway = 'a', team_name = away_team_name)
-        hpits = hpits.assign(homeaway = 'h', team_name = home_team_name)
+        away_batters = away_batters.assign(homeaway = 'a', team_name = away_team_name)
+        home_batters = home_batters.assign(homeaway = 'h', team_name = home_team_name)
+        away_pitchers = away_pitchers.assign(homeaway = 'a', team_name = away_team_name)
+        home_pitchers = home_pitchers.assign(homeaway = 'h', team_name = home_team_name)
 
-        batting_df = pd.concat([abats, hbats])
-        pitching_df = pd.concat([apits, hpits])
+        batting_df = pd.concat([away_batters, home_batters])
+        pitching_df = pd.concat([away_pitchers, home_pitchers])
         batting_df.pCode = pd.to_numeric(batting_df.pCode)
         pitching_df.pCode = pd.to_numeric(pitching_df.pCode)
 
@@ -489,7 +534,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
     end_time = time.time()
     get_game_id_time = end_time - start_time
 
-    enc = 'cp949' if sys.platform is 'win32' else 'utf-8'
+    enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
 
     now = datetime.datetime.now()
 
