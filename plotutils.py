@@ -133,7 +133,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         fig = None
 
     if calls is None:
-        calls_ = df.pitch_result.drop_duplicates()
+        calls_ = df.pitch_result.unique()
     elif type(calls) is list:
         calls_ = calls
     elif type(calls) is str:
@@ -144,13 +144,13 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         exit(1)
 
     for c in calls_:
-        f = df.loc[df.pitch_result == c]
+        f = df[df.pitch_result == c]
         ax.scatter(f.px, f.pz, alpha=.5, s=2*np.pi*dpi, label=c, color=Colors[c], zorder=0)
 
         if show_pitch_number == True:
             for i in f.index:
-                if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                    ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number.astype(int),
+                if ((f[i].px < rb ) & (f[i].px > lb) & (f[i].pz < tb) & (f[i].pz > bb)):
+                    ax.text(f[i].px, f[i].pz-0.05, f[i].pitch_number.astype(int),
                             color='white', fontsize='medium', weight='bold', horizontalalignment='center')
 
     ax.plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
@@ -208,7 +208,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
         fig = None
 
     if pitch_types is None:
-        pitch_types_ = df.pitch_type.drop_duplicates()
+        pitch_types_ = df.pitch_type.unique()
     elif type(pitch_types) is list:
         pitch_types_ = pitch_types
     elif type(pitch_types) is str:
@@ -219,14 +219,14 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
         exit(1)
 
     for p in pitch_types_:
-        f = df.loc[df.pitch_type == p]
+        f = df[df.pitch_type == p]
         c = BallColors[p]
         ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, color=c, zorder=0)
 
         if show_pitch_number == True:
             for i in f.index:
-                if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                    ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                if ((f[i].px < rb ) & (f[i].px > lb) & (f[i].pz < tb) & (f[i].pz > bb)):
+                    ax.text(f[i].px, f[i].pz-0.05, f[i].pitch_number,
                             color='white', fontsize='medium', weight='bold', horizontalalignment='center')
 
     ax.plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
@@ -400,13 +400,13 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
         bb = (bl+tl)/2 - (tl-bl)*15/16
         tb = (bl+tl)/2 + (tl-bl)*15/16
 
-    strikes = df.loc[df.pitch_result == '스트라이크']
-    balls = df.loc[df.pitch_result == '볼']
+    strikes = df[df.pitch_result == '스트라이크']
+    balls = df[df.pitch_result == '볼']
 
     bins = 36
 
-    c1, x, y, _ = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
-    c2, x, y, _ = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c1, x, y = np.histogram2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y = np.histogram2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
     plt.close()
 
     np.seterr(divide='ignore', invalid='ignore')
@@ -540,14 +540,13 @@ def plot_szone(df, title=None, dpi=144, show_area=False, ax=None, by_inch=True):
         bb = 1.0
         tb = 4.0
 
-    strikes = df.loc[df.pitch_result == '스트라이크']
-    balls = df.loc[df.pitch_result == '볼']
+    strikes = df[df.pitch_result == '스트라이크']
+    balls = df[df.pitch_result == '볼']
 
     bins = 36
 
-    c1, x, y, i = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
-    c2, x, y, i = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
-    plt.close()
+    c1, x, y = np.histogram2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y = np.histogram2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
 
     np.seterr(divide='ignore', invalid='ignore')
     r = np.nan_to_num(c1 / (c1+c2))
@@ -602,7 +601,7 @@ def plot_szone(df, title=None, dpi=144, show_area=False, ax=None, by_inch=True):
     plt.rcParams['axes.unicode_minus'] = False
 
     if title is not None:
-        plt.title(title, fontsize=14, horizontalalignment='center')
+        ax.set_title(title, fontsize=14, horizontalalignment='center')
 
     area = np.sum(rg >= 0.5)
     print('S-Zone size: {} sq.inch'.format(area))
@@ -616,14 +615,14 @@ def plot_szone(df, title=None, dpi=144, show_area=False, ax=None, by_inch=True):
 
 def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=True, ax=None):
     if pitcher is not None:
-        sub_df = df.loc[df.pitcher == pitcher]
+        sub_df = df[df.pitcher == pitcher]
     else:
         sub_df = df
 
     if sub_df.px.dtypes == np.object:
         sub_df = clean_data(sub_df)
 
-    pitches = sub_df.pitch_type.drop_duplicates()
+    pitches = sub_df.pitch_type.unique()
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(4,4), dpi=100, facecolor='white')
@@ -631,7 +630,7 @@ def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=Tru
         fig = None
 
     for p in pitches:
-        ax.scatter(sub_df.loc[sub_df.pitch_type == p].x0, sub_df.loc[sub_df.pitch_type == p].z0, s=np.pi*20, label=p,cmap='set1')
+        ax.scatter(sub_df[sub_df.pitch_type == p].x0, sub_df[sub_df.pitch_type == p].z0, s=np.pi*20, label=p,cmap='set1')
 
     plt.rcParams['axes.unicode_minus'] = False
     ax.set_xbound(-3, 3)
@@ -663,7 +662,7 @@ def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=Tru
 def pitcher_info(df, pitcher=None):
     pd.set_option('display.float_format', lambda x: '%.1f' % x)
     if pitcher is not None:
-        sub_df = df.loc[df.pitcher == pitcher]
+        sub_df = df[df.pitcher == pitcher]
     else:
         sub_df = df
 
@@ -686,14 +685,14 @@ def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
     pd.set_option('display.float_format', lambda x: '%.1f' % x)
     if pitcher is not None:
         if isinstance(pitcher, str):
-            sub_df = df.loc[df.pitcher == pitcher]
+            sub_df = df[df.pitcher == pitcher]
         elif isinstance(pitcher, list):
-            sub_df = df.loc[df.pitcher.isin(pitcher)]
+            sub_df = df[df.pitcher.isin(pitcher)]
         elif isinstance(pitcher, pd.Series):
             if pitcher.dtypes == np.object:
-                sub_df = df.loc[df.pitcher.isin(pitcher)]
+                sub_df = df[df.pitcher.isin(pitcher)]
             else:
-                sub_df = df.loc[df.pitcher.isin(pitcher.index)]
+                sub_df = df[df.pitcher.isin(pitcher.index)]
         else:
             return False
     else:
@@ -725,10 +724,10 @@ def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
             tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
                                  'swing': sub_df.groupby('pitch_type').sum().swing,
                                  'miss': sub_df.groupby('pitch_type').sum().miss,
-                                 'iz_raw_num': sub_df.loc[izmask].groupby('pitch_type').count().speed,
+                                 'iz_raw_num': sub_df[izmask].groupby('pitch_type').count().speed,
                                  'iz_swing': sub_df.groupby('pitch_type').sum().iz_swing,
                                  'iz_miss': sub_df.groupby('pitch_type').sum().iz_miss,
-                                 'oz_raw_num': sub_df.loc[ozmask].groupby('pitch_type').count().speed,
+                                 'oz_raw_num': sub_df[ozmask].groupby('pitch_type').count().speed,
                                  'oz_swing': sub_df.groupby('pitch_type').sum().oz_swing,
                                  'oz_miss': sub_df.groupby('pitch_type').sum().oz_miss
                                 })
@@ -736,10 +735,10 @@ def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
             d = {'raw_num': sub_df.count().speed,
                  'swing': sub_df.sum().swing,
                  'miss': sub_df.sum().miss,
-                 'iz_raw_num': sub_df.loc[izmask].count().speed,
+                 'iz_raw_num': sub_df[izmask].count().speed,
                  'iz_swing': sub_df.sum().iz_swing,
                  'iz_miss': sub_df.sum().iz_miss,
-                 'oz_raw_num': sub_df.loc[ozmask].count().speed,
+                 'oz_raw_num': sub_df[ozmask].count().speed,
                  'oz_swing': sub_df.sum().oz_swing,
                  'oz_miss': sub_df.sum().oz_miss
                 }
@@ -750,10 +749,10 @@ def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
             tab =  pd.DataFrame({'raw_num': sub_df.groupby(['pitcher', 'pitch_type']).count().speed,
                                  'swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().swing,
                                  'miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().miss,
-                                 'iz_raw_num': sub_df.loc[izmask].groupby(['pitcher', 'pitch_type']).count().speed,
+                                 'iz_raw_num': sub_df[izmask].groupby(['pitcher', 'pitch_type']).count().speed,
                                  'iz_swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().iz_swing,
                                  'iz_miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().iz_miss,
-                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['pitcher', 'pitch_type']).count().speed,
+                                 'oz_raw_num': sub_df[ozmask].groupby(['pitcher', 'pitch_type']).count().speed,
                                  'oz_swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().oz_swing,
                                  'oz_miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().oz_miss
                                 })
@@ -761,10 +760,10 @@ def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
             tab =  pd.DataFrame({'raw_num': sub_df.groupby(['pitcher']).count().speed,
                                  'swing': sub_df.groupby(['pitcher']).sum().swing,
                                  'miss': sub_df.groupby(['pitcher']).sum().miss,
-                                 'iz_raw_num': sub_df.loc[izmask].groupby(['pitcher']).count().speed,
+                                 'iz_raw_num': sub_df[izmask].groupby(['pitcher']).count().speed,
                                  'iz_swing': sub_df.groupby(['pitcher']).sum().iz_swing,
                                  'iz_miss': sub_df.groupby(['pitcher']).sum().iz_miss,
-                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['pitcher']).count().speed,
+                                 'oz_raw_num': sub_df[ozmask].groupby(['pitcher']).count().speed,
                                  'oz_swing': sub_df.groupby(['pitcher']).sum().oz_swing,
                                  'oz_miss': sub_df.groupby(['pitcher']).sum().oz_miss
                                 })
@@ -784,14 +783,14 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
     pd.set_option('display.float_format', lambda x: '%.1f' % x)
     if batter is not None:
         if isinstance(batter, str):
-            sub_df = df.loc[df.batter == batter]
+            sub_df = df[df.batter == batter]
         elif isinstance(batter, list):
-            sub_df = df.loc[df.batter.isin(batter)]
+            sub_df = df[df.batter.isin(batter)]
         elif isinstance(batter, pd.Series):
             if batter.dtypes == np.object:
-                sub_df = df.loc[df.batter.isin(batter)]
+                sub_df = df[df.batter.isin(batter)]
             else:
-                sub_df = df.loc[df.batter.isin(batter.index)]
+                sub_df = df[df.batter.isin(batter.index)]
         else:
             return False
     else:
@@ -824,10 +823,10 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
             tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
                                  'swing': sub_df.groupby('pitch_type').sum().swing,
                                  'miss': sub_df.groupby('pitch_type').sum().miss,
-                                 'iz_raw_num': sub_df.loc[izmask].groupby('pitch_type').count().speed,
+                                 'iz_raw_num': sub_df[izmask].groupby('pitch_type').count().speed,
                                  'iz_swing': sub_df.groupby('pitch_type').sum().iz_swing,
                                  'iz_miss': sub_df.groupby('pitch_type').sum().iz_miss,
-                                 'oz_raw_num': sub_df.loc[ozmask].groupby('pitch_type').count().speed,
+                                 'oz_raw_num': sub_df[ozmask].groupby('pitch_type').count().speed,
                                  'oz_swing': sub_df.groupby('pitch_type').sum().oz_swing,
                                  'oz_miss': sub_df.groupby('pitch_type').sum().oz_miss
                                 })
@@ -835,10 +834,10 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
             d = {'raw_num': sub_df.count().speed,
                  'swing': sub_df.sum().swing,
                  'miss': sub_df.sum().miss,
-                 'iz_raw_num': sub_df.loc[izmask].count().speed,
+                 'iz_raw_num': sub_df[izmask].count().speed,
                  'iz_swing': sub_df.sum().iz_swing,
                  'iz_miss': sub_df.sum().iz_miss,
-                 'oz_raw_num': sub_df.loc[ozmask].count().speed,
+                 'oz_raw_num': sub_df[ozmask].count().speed,
                  'oz_swing': sub_df.sum().oz_swing,
                  'oz_miss': sub_df.sum().oz_miss
                 }
@@ -857,10 +856,10 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
             tab =  pd.DataFrame({'raw_num': sub_df.groupby(['batter', 'pitch_type']).count().speed,
                                  'swing': sub_df.groupby(['batter', 'pitch_type']).sum().swing,
                                  'miss': sub_df.groupby(['batter', 'pitch_type']).sum().miss,
-                                 'iz_raw_num': sub_df.loc[izmask].groupby(['batter', 'pitch_type']).count().speed,
+                                 'iz_raw_num': sub_df[izmask].groupby(['batter', 'pitch_type']).count().speed,
                                  'iz_swing': sub_df.groupby(['batter', 'pitch_type']).sum().iz_swing,
                                  'iz_miss': sub_df.groupby(['batter', 'pitch_type']).sum().iz_miss,
-                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['batter', 'pitch_type']).count().speed,
+                                 'oz_raw_num': sub_df[ozmask].groupby(['batter', 'pitch_type']).count().speed,
                                  'oz_swing': sub_df.groupby(['batter', 'pitch_type']).sum().oz_swing,
                                  'oz_miss': sub_df.groupby(['batter', 'pitch_type']).sum().oz_miss
                                 })
@@ -868,10 +867,10 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
             tab =  pd.DataFrame({'raw_num': sub_df.groupby(['batter']).count().speed,
                                  'swing': sub_df.groupby(['batter']).sum().swing,
                                  'miss': sub_df.groupby(['batter']).sum().miss,
-                                 'iz_raw_num': sub_df.loc[izmask].groupby(['batter']).count().speed,
+                                 'iz_raw_num': sub_df[izmask].groupby(['batter']).count().speed,
                                  'iz_swing': sub_df.groupby(['batter']).sum().iz_swing,
                                  'iz_miss': sub_df.groupby(['batter']).sum().iz_miss,
-                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['batter']).count().speed,
+                                 'oz_raw_num': sub_df[ozmask].groupby(['batter']).count().speed,
                                  'oz_swing': sub_df.groupby(['batter']).sum().oz_swing,
                                  'oz_miss': sub_df.groupby(['batter']).sum().oz_miss
                                 })
@@ -970,11 +969,11 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
     #   True for show every dot
     #   False for only ellipse
     plt.style.use('fivethirtyeight')
-    target = df.loc[df.pitcher == player]
+    target = df[df.pitcher == player]
     if target.shape[0] == 0:
         return
     else:
-        pitch_types = target.pitch_type.drop_duplicates()
+        pitch_types = target.pitch_type.unique()
 
         target = target.assign(month = target.game_date.apply(lambda x: datetime.datetime.strptime(str(x), '%Y%m%d').month))
 
@@ -989,7 +988,7 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
             maxfreq = target.groupby('pitch_type').size().max() / len(target)
 
             for p in BallColors.keys():
-                t = target.loc[target.pitch_type == p]
+                t = target[target.pitch_type == p]
                 freq = len(t) / len(target)
                 alpha = freq / maxfreq * .8
                 alpha2 = min(1, freq*2+.25)
@@ -1025,12 +1024,12 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
             ax.set_title(f'{player} Break Plot')
         else:
             color_added = {p: False for p in pitch_types}
-            for m in target.month.drop_duplicates():
+            for m in target.month.unique():
                 for p in BallColors.keys():
-                    t = target.loc[target.pitch_type == p]
+                    t = target[target.pitch_type == p]
                     if t.shape[0] == 0:
                         continue
-                    t_part = t.loc[t.month == m]
+                    t_part = t[t.month == m]
                     if t_part.shape[0] == 0:
                         continue
                     x = t_part.pfx_x.mean() * 2.54
@@ -1065,7 +1064,7 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
 
 def pitchtype_plot(df, pitcher, ax=None):
     plt.style.use('fivethirtyeight')
-    target = df.loc[df.pitcher == pitcher]
+    target = df[df.pitcher == pitcher]
     if target.shape[0] == 0:
         return
     else:
@@ -1182,7 +1181,7 @@ def draw_zone_line(ax, color='black'):
 
 def pitchmix_breakdown(df, pitcher, ax=None, span=0.6):
     plt.style.use('fivethirtyeight')
-    target = df.loc[df.pitcher == pitcher]
+    target = df[df.pitcher == pitcher]
     if target.shape[0] == 0:
         return
     else:
@@ -1283,3 +1282,4 @@ def pitchmix_breakdown(df, pitcher, ax=None, span=0.6):
 
     plt.show()
     plt.close()
+

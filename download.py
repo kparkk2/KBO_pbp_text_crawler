@@ -26,6 +26,7 @@ regular_start = {
     '2019': '0323',
     '2020': '0505',
     '2021': '0403',
+    '2022': '0402',
 }
 
 playoff_start = {
@@ -47,6 +48,7 @@ playoff_start = {
     '2019': '1003',
     '2020': '1101',
     '2021': '1101',
+    '2022': '1101',
 }
 
 
@@ -854,11 +856,11 @@ def download_pbp_files(start_date, end_date, playoff=False,
             logfile.write(f'Elapsed {(parse_time):.2f} sec in parse_game\n')
         logfile.write(f'Total {(parse_time+get_game_id_time+get_data_time):.2f} sec elapsed with {len(game_ids)} games\n')
 
-        if logfile.closed is not True:
+        if logfile.closed == False:
             logfile.close()
     except:
         logfile.write(f'=== gameID : {gid}\n')
-        if logfile.closed is not True:
+        if logfile.closed == False:
             logfile.close()
         assert False
 

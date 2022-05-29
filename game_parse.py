@@ -237,8 +237,8 @@ class game_status:
         self.home = game_id[10:12]
         self.stadium = rdf.stadium.unique()[0]
         self.referee = rdf.referee.unique()[0]
-        self.away_alias = pdf.loc[pdf.homeaway == 'a'].team_name.unique()[0]
-        self.home_alias = pdf.loc[pdf.homeaway == 'h'].team_name.unique()[0]
+        self.away_alias = pdf[pdf.homeaway == 'a'].team_name.unique()[0]
+        self.home_alias = pdf[pdf.homeaway == 'h'].team_name.unique()[0]
         if 'pCode' in pdf.columns:
             pdf = pdf.rename(index=str, columns={'pCode': 'pcode'})
         if 'pCode' in bdf.columns:
@@ -248,29 +248,29 @@ class game_status:
         # 라인업 & 필드 채우기 #
         ########################
 
-        bats = [bdf.loc[bdf.homeaway == 'a'],
-                bdf.loc[bdf.homeaway == 'h']]
-        pits = [pdf.loc[pdf.homeaway == 'a'],
-                pdf.loc[pdf.homeaway == 'h']]
-        abat_seqno_min = bats[0].loc[bats[0].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
-        hbat_seqno_min = bats[1].loc[bats[1].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
+        bats = [bdf[bdf.homeaway == 'a'],
+                bdf[bdf.homeaway == 'h']]
+        pits = [pdf[pdf.homeaway == 'a'],
+                pdf[pdf.homeaway == 'h']]
+        abat_seqno_min = bats[0][bats[0].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
+        hbat_seqno_min = bats[1][bats[1].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
 
         for i in range(9):
-            away_code = bats[0].loc[(bats[0].batOrder == i+1) &
-                                    (bats[0].seqno == abat_seqno_min[i])].pcode.values[0]
-            away_name = bats[0].loc[(bats[0].batOrder == i+1) &
-                                    (bats[0].seqno == abat_seqno_min[i])].name.values[0]
-            home_code = bats[1].loc[(bats[1].batOrder == i+1) &
-                                    (bats[1].seqno == hbat_seqno_min[i])].pcode.values[0]
-            home_name = bats[1].loc[(bats[1].batOrder == i+1) &
-                                    (bats[1].seqno == hbat_seqno_min[i])].name.values[0]
-            away_hittype = bats[0].loc[bats[0].pcode == away_code].hitType.values[0]
-            home_hittype = bats[1].loc[bats[1].pcode == home_code].hitType.values[0]
+            away_code = bats[0][(bats[0].batOrder == i+1) &
+                                (bats[0].seqno == abat_seqno_min[i])].pcode.values[0]
+            away_name = bats[0][(bats[0].batOrder == i+1) &
+                                (bats[0].seqno == abat_seqno_min[i])].name.values[0]
+            home_code = bats[1][(bats[1].batOrder == i+1) &
+                                (bats[1].seqno == hbat_seqno_min[i])].pcode.values[0]
+            home_name = bats[1][(bats[1].batOrder == i+1) &
+                                (bats[1].seqno == hbat_seqno_min[i])].name.values[0]
+            away_hittype = bats[0][bats[0].pcode == away_code].hitType.values[0]
+            home_hittype = bats[1][bats[1].pcode == home_code].hitType.values[0]
             away_player = {'name': away_name, 'code': away_code, 'hitType': away_hittype}
             home_player = {'name': home_name, 'code': home_code, 'hitType': home_hittype}
 
-            away_pos = bats[0].loc[bats[0].pcode == away_code].posName.values[0]
-            home_pos = bats[1].loc[bats[1].pcode == home_code].posName.values[0]
+            away_pos = bats[0][bats[0].pcode == away_code].posName.values[0]
+            home_pos = bats[1][bats[1].pcode == home_code].posName.values[0]
             self.fields[1][away_pos] = away_player
             self.fields[0][home_pos] = home_player
 
@@ -288,10 +288,10 @@ class game_status:
         self.fields[1]['투수'] = away_pitcher
         self.fields[0]['투수'] = home_pitcher
 
-        home_bdf = bdf.loc[bdf.homeaway == 'h']
-        away_bdf = bdf.loc[bdf.homeaway == 'a']
-        home_pdf = pdf.loc[pdf.homeaway == 'h']
-        away_pdf = pdf.loc[pdf.homeaway == 'a']
+        home_bdf = bdf[bdf.homeaway == 'h']
+        away_bdf = bdf[bdf.homeaway == 'a']
+        home_pdf = pdf[pdf.homeaway == 'h']
+        away_pdf = pdf[pdf.homeaway == 'a']
 
         batter_list_cols = ['name', 'pcode', 'posName', 'hitType', 'batOrder', 'seqno']
         pitcher_list_cols = ['name', 'pcode', 'hitType', 'seqno']
@@ -311,7 +311,7 @@ class game_status:
             if col in rdf.columns:
                 rdf_cols.append(col)
 
-        self.relay_array = rdf.loc[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
+        self.relay_array = rdf[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
 
 
     def convert_row_to_save_format(self, row,
