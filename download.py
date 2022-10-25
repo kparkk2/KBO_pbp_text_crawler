@@ -48,7 +48,7 @@ playoff_start = {
     '2019': '1003',
     '2020': '1101',
     '2021': '1101',
-    '2022': '1101',
+    '2022': '1013',
 }
 
 
@@ -759,7 +759,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
     get_data_time = 0
     gid = None
 
-    years = list(set([x[:4] for x in game_ids]))
+    years = list(set([x[-4:] for x in game_ids]))
 
     try:
         for y in years:

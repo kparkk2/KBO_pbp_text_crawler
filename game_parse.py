@@ -233,6 +233,8 @@ class game_status:
         self.log_file = log_file
 
         self.game_date = game_id[:8]
+        if int(game_id[:4]) > 3000:
+            self.game_date = f'{game_id[-4:]}{game_id[4:8]}'
         self.away = game_id[8:10]
         self.home = game_id[10:12]
         self.stadium = rdf.stadium.unique()[0]
