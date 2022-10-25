@@ -313,7 +313,7 @@ class game_status:
             if col in rdf.columns:
                 rdf_cols.append(col)
 
-        self.relay_array = rdf[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
+        self.relay_array = rdf.loc[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
 
 
     def convert_row_to_save_format(self, row,
