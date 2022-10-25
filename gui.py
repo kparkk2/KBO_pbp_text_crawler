@@ -237,7 +237,7 @@ class Ui_Dialog(object):
                 start_time = time.time()
                 get_data_time = 0
                 
-                years = list(set([x[:4] for x in game_ids]))
+                years = list(set([x[-4:] for x in game_ids]))
 
                 try:
                     for y in years:
@@ -262,18 +262,18 @@ class Ui_Dialog(object):
                         self.progressBar.setValue(int(m*c/t))
                         self.noteLabel.setText(_translate("Dialog",
                                                f"다운로드 진행 중... ({c+1}/{t})"))
-                        gid_to_date = datetime.date(int(gid[:4]),
+                        gid_to_date = datetime.date(int(gid[-4:]),
                                                     int(gid[4:6]),
                                                     int(gid[6:8]))
                         if gid_to_date > now.date():
                             continue
 
-                        if (sp / gid[:4] / f'{gid}.csv').exists():
+                        if (sp / gid[-4:] / f'{gid}.csv').exists():
                             self.skipped += 1
                             continue
 
                         ptime = time.time()
-                        source_path = sp / gid[:4] / 'source'
+                        source_path = sp / gid[-4:] / 'source'
                         if (source_path / f'{gid}_pitching.csv').exists() &\
                             (source_path / f'{gid}_batting.csv').exists() &\
                             (source_path / f'{gid}_relay.csv').exists():
@@ -297,9 +297,9 @@ class Ui_Dialog(object):
                                 try:
                                     source_path.mkdir()
                                 except FileExistsError:
-                                    source_path = save_path / gid[:4]
-                                    logfile.write(f'NOTE: {gid[:4]}/source exists but not a directory.')
-                                    logfile.write(f'source files will be saved in {gid[:4]} instead.')
+                                    source_path = save_path / gid[-4:]
+                                    logfile.write(f'NOTE: {gid[-4:]}/source exists but not a directory.')
+                                    logfile.write(f'source files will be saved in {gid[-4:]} instead.')
 
                             if not (source_path / f'{gid}_pitching.csv').exists():
                                 game_data_dfs[0].to_csv(str(source_path / f'{gid}_pitching.csv'), index=False, encoding=enc)
@@ -313,7 +313,7 @@ class Ui_Dialog(object):
                             gs = game_status()
                             gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2], log_file=logfile)
                             parse = gs.parse_game(debug_mode)
-                            gs.save_game(sp / gid[:4])
+                            gs.save_game(sp / gid[-4:])
                             if parse == True:
                                 self.done += 1
                             else:
