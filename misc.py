@@ -650,6 +650,7 @@ def calc_framing_gam(df, rv_by_count=False):
     sub_df = sub_df.assign(throws = np.where(sub_df.throws=='우', 0, 1)) # 우=0, 좌=1
     sub_df.stadium = pd.Categorical(sub_df.stadium)
     sub_df = sub_df.assign(venue = sub_df.stadium.cat.codes)
+    sub_df = sub_df.assign(pitcherteam = np.where(sub_df.inning_topbot == '말', sub_df.away_alias, sub_df.home_alias))
 
     sub_df = sub_df.assign(pitch_result=np.where(sub_df.pitch_result=='스트라이크', 1, 0))
 
@@ -663,7 +664,7 @@ def calc_framing_gam(df, rv_by_count=False):
     predictions = gam.predict(x)
     proba = gam.predict_proba(x)
 
-    logs = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium', 'batter',
+    logs = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium', 'batter', 'pitcherteam',
                                       'home', 'away', 'inning_topbot', 'game_date', 'pitch_type']]
     logs = logs.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
 

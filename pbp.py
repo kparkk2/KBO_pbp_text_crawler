@@ -31,7 +31,7 @@ def join_csvs(path, start_date, end_date):
             yfilepath = str(path / f'{y}.csv')
             yfile = open(yfilepath, 'w', encoding=enc)
             
-            yearfiles = [x for x in csvs if (x.stem.find(str(y)) > -1) & (len(x.stem) > 4)]
+            yearfiles = [x for x in csvs if (x.stem.find(str(y)) == 0) & (len(x.stem) > 4)]
             yearfiles.sort(reverse=False)
 
             header_written = False
