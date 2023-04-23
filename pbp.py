@@ -20,7 +20,7 @@ def join_csvs(path, start_date, end_date):
     if len(csvs) < 1:
         print('no csv file found')
     else:
-        years = list(set([str(filename.stem)[-4:] for filename in csvs]))
+        years = list(set([str(filename.stem)[:4] for filename in csvs]))
 
         years_given = list(range(start_date.year, end_date.year+1))
         
@@ -31,7 +31,7 @@ def join_csvs(path, start_date, end_date):
             yfilepath = str(path / f'{y}.csv')
             yfile = open(yfilepath, 'w', encoding=enc)
             
-            yearfiles = [x for x in csvs if (x.stem.find(str(y)) == 0) & (len(x.stem) > 4)]
+            yearfiles = [x for x in csvs if (str(x.stem)[:4] == y) & (len(x.stem) > 4)]
             yearfiles.sort(reverse=False)
 
             header_written = False
