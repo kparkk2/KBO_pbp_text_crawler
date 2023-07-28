@@ -320,7 +320,7 @@ class game_status:
 
 
     def convert_row_to_save_format(self, row,
-                                   pa_result_details=None):
+                                   pa_result_details=None, is_ibb=False):
         # row: pandas Series
         save_row = {k: None for k in header_row}
         save_row['pitcher'] = self.pitcher_name
@@ -414,6 +414,9 @@ class game_status:
                     save_row['ax'] = row[16]
                     save_row['ay'] = row[18]
                     save_row['az'] = row[19]
+        if is_ibb is True:
+            save_row['pitch_result'] = '고의 볼'
+            save_row['pitch_number'] = self.pitch_number
 
         if pa_result_details is not None:
             save_row['description'] = pa_result_details[0]
@@ -956,9 +959,21 @@ class game_status:
                         self.print_rows[-1]['pa_result'] = self.pa_result
                         self.print_rows[-1]['pa_result_detail'] = self.pa_result_detail
                     else:
-                        save_row = self.convert_row_to_save_format(self.last_pitch,
-                                                                   [self.description, self.pa_result, self.pa_result_detail])
-                        self.print_rows.append(save_row)
+                        if self.pa_result == '자동 고의4구':
+                            while self.balls < 3:
+                                self.pitch_number += 1
+                                save_row = self.convert_row_to_save_format(None,
+                                                                           [None, None, None], True)
+                                self.print_rows.append(save_row)
+                                self.balls += 1
+                            save_row = self.convert_row_to_save_format(None,
+                                                                       [self.description, self.pa_result, self.pa_result_detail], True)
+                            self.print_rows.append(save_row)
+                            self.balls += 1
+                        else:
+                            save_row = self.convert_row_to_save_format(self.last_pitch,
+                                                                       [self.description, self.pa_result, self.pa_result_detail])
+                            self.print_rows.append(save_row)
 
                     self.ind = cur_ind
                     self.handle_runner_stack(self.text_stack, debug_mode)
