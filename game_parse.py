@@ -9,6 +9,9 @@ header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'inning', 'inning_topbot', 'score_away', 'score_home',
               'stands', 'throws', 'on_1b', 'on_2b', 'on_3b', 'pos_1', 'pos_2', 'pos_3', 'pos_4', 'pos_5',
               'pos_6', 'pos_7', 'pos_8', 'pos_9',
+              'on_1b_id', 'on_2b_id', 'on_3b_id',
+              'pos_1_id', 'pos_2_id', 'pos_3_id', 'pos_4_id', 'pos_5_id',
+              'pos_6_id', 'pos_7_id', 'pos_8_id', 'pos_9_id',
               'px', 'pz', 'pfx_x', 'pfx_z', 'pfx_x_raw', 'pfx_z_raw',
               'x0', 'z0', 'sz_top', 'sz_bot',
               'y0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az',
@@ -348,15 +351,17 @@ class game_status:
         save_row['referee'] = self.referee
         save_row['gameID'] = self.game_id
 
-        if self.change_error == False:
+        if self.change_error is False:
             for runner in self.runner_bases:
                 if runner[2] > 0:
                     save_row[f'on_{runner[2]}b'] = runner[0]
+                    save_row[f'on_{runner[2]}b_id'] = runner[1]
         else:
             for i in range(1, 4):
                 save_row[f'on_{i}b'] = None
+                save_row[f'on_{i}b_id'] = None
 
-        if self.change_error == False:
+        if self.change_error is False:
             save_row['pos_1'] = self.fields[self.top_bot]['투수'].get('name')
             save_row['pos_2'] = self.fields[self.top_bot]['포수'].get('name')
             save_row['pos_3'] = self.fields[self.top_bot]['1루수'].get('name')
@@ -366,9 +371,19 @@ class game_status:
             save_row['pos_7'] = self.fields[self.top_bot]['좌익수'].get('name')
             save_row['pos_8'] = self.fields[self.top_bot]['중견수'].get('name')
             save_row['pos_9'] = self.fields[self.top_bot]['우익수'].get('name')
+            save_row['pos_1_id'] = self.fields[self.top_bot]['투수'].get('code')
+            save_row['pos_2_id'] = self.fields[self.top_bot]['포수'].get('code')
+            save_row['pos_3_id'] = self.fields[self.top_bot]['1루수'].get('code')
+            save_row['pos_4_id'] = self.fields[self.top_bot]['2루수'].get('code')
+            save_row['pos_5_id'] = self.fields[self.top_bot]['유격수'].get('code')
+            save_row['pos_6_id'] = self.fields[self.top_bot]['3루수'].get('code')
+            save_row['pos_7_id'] = self.fields[self.top_bot]['좌익수'].get('code')
+            save_row['pos_8_id'] = self.fields[self.top_bot]['중견수'].get('code')
+            save_row['pos_9_id'] = self.fields[self.top_bot]['우익수'].get('code')
         else:
             for i in range(1, 10):
                 save_row[f'pos_{i}'] = None
+                save_row[f'pos_{i}_id'] = None
 
         if row is not None:
             save_row['pitch_type'] = row[4]
@@ -409,8 +424,8 @@ class game_status:
 
     def handle_runner_stack(self, runner_stack, debug_mode=False):
         if len(self.runner_bases) == 0:
-            if debug_mode == True:
-                if self.change_error == False:
+            if debug_mode is True:
+                if self.change_error is False:
                     self.log_text.append('base error: No runners but calling handle_runner_stack')
                     for row in runner_stack:
                         self.log_text.append(f'text - {row}')
@@ -428,7 +443,7 @@ class game_status:
             else:
                 runner_name, run_result, runner_before_base, runner_after_base = parse_runner_result(row[2])
 
-            if self.change_error == False:
+            if self.change_error is False:
                 base_loop_num = 0
                 while not ((cur_runner[0] == runner_name) &\
                             (cur_runner[2] <= runner_before_base) &\
@@ -439,8 +454,8 @@ class game_status:
                     cur_runner = self.runner_bases[cur_runner_ind]
                     base_loop_num += 1
                     if base_loop_num > 4:
-                        if debug_mode == True:
-                            if self.change_error == False:
+                        if debug_mode is True:
+                            if self.change_error is False:
                                 self.log_text.append('base error: cannot find runner in bases')
                                 for row in runner_stack:
                                     self.log_text.append(f'text - {row}')
@@ -460,12 +475,12 @@ class game_status:
             elif run_result == 'o':
                 self.outs += 1
 
-        if self.change_error == False:
+        if self.change_error is False:
             after_runner_bases = []
 
             for runner in self.runner_bases:
                 # name, code, src, route
-                if (batter_runner == True) & (runner[2] == 0) & (runner[3][0] == 5):
+                if (batter_runner is True) & (runner[2] == 0) & (runner[3][0] == 5):
                     continue
                 elif runner[3][0] == 5:
                     after_runner_bases.append(runner[:])
@@ -594,10 +609,10 @@ class game_status:
                                     after_hittype = self.home_batter_list[i+1][3]
                                     break
                     if after_code is None:
-                        if debug_mode == True:
+                        if debug_mode is True:
                             self.log_text.append('cant find player code in batter list')
                             self.log_text.append(f'text - {text}')
-                        if self.change_error == False:
+                        if self.change_error is False:
                             self.change_error = True
                 elif after_pos == '투수':
                     # 예외처리
@@ -636,10 +651,10 @@ class game_status:
                                     after_hittype = self.away_pitcher_list[i+1][2]
                                     break
                     if after_code is None:
-                        if debug_mode == True:
+                        if debug_mode is True:
                             self.log_text.append('cant find player code in pitcher list')
                             self.log_text.append(f'text - {text}')
-                        if self.change_error == False:
+                        if self.change_error is False:
                             self.change_error = True
                     if ((self.DH_exist[self.top_bot] is False) or\
                         (self.DH_exist_after[self.top_bot] != self.DH_exist[self.top_bot])):
@@ -672,10 +687,10 @@ class game_status:
                                 after_hittype = self.home_batter_list[i+1][3]
                                 break
                     if after_code is None:
-                        if debug_mode == True:
+                        if debug_mode is True:
                             self.log_text.append('cant find player code in batter list')
                             self.log_text.append(f'text - {text}')
-                        if self.change_error == False:
+                        if self.change_error is False:
                             self.change_error = True
                 else:
                     # 대타 교체
@@ -723,7 +738,7 @@ class game_status:
                                        (self.batter_name == after_name):
                                         already_change = True
                                         break
-                                if already_change == True:
+                                if already_change is True:
                                     continue
                                 else:
                                     for i in range(9):
@@ -731,16 +746,16 @@ class game_status:
                                            (self.batter_name == after_name):
                                             already_change = True
                                             break
-                                    if already_change == True:
+                                    if already_change is True:
                                         continue
                             if before_code is None:
-                                if debug_mode == True:
+                                if debug_mode is True:
                                     self.log_text.append('cant find player name/position in lineup')
                                     self.log_text.append(f'text - {text}')
-                                if self.change_error == False:
+                                if self.change_error is False:
                                     self.change_error = True
                         except:
-                            if self.change_error == False:
+                            if self.change_error is False:
                                 self.change_error = True
 
                     # 라인업(타순)에서 교체
@@ -771,9 +786,9 @@ class game_status:
 
                     # 주자인 경우(루상 주자와 대조) 베이스 교체
                     if after_code is None:
-                        if debug_mode == True:
+                        if debug_mode is True:
                             self.log_text.append('cant find player code in lineup')
-                        if self.change_error == False:
+                        if self.change_error is False:
                             self.change_error = True
                     for i in range(len(self.runner_bases)):
                         if self.runner_bases[i][1] == before_code:
@@ -821,7 +836,7 @@ class game_status:
                     elif res.find('파울') > -1:
                         self.strikes = self.strikes+1 if self.strikes < 2 else 2
                     if (self.strikes > 3) or (self.balls > 4):
-                        if debug_mode == True:
+                        if debug_mode is True:
                             self.log_text.append('3S/4B')
                         assert False
                     self.ind = self.ind + 1
@@ -836,7 +851,7 @@ class game_status:
                     self.description = ''
                     if len(position) > 2:
                         self.cur_order = int(position[0])
-                        if self.change_error == False:
+                        if self.change_error is False:
                             self.batter_name, self.batter_code,\
                             _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
                         else:
@@ -872,7 +887,7 @@ class game_status:
 
                         self.runner_bases.append([self.batter_name, self.batter_code, 0, [5]])
                     else:
-                        if self.change_error == False:
+                        if self.change_error is False:
                             self.batter_name, self.batter_code,\
                             _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
                         else:
@@ -948,7 +963,7 @@ class game_status:
                     self.ind = cur_ind
                     self.handle_runner_stack(self.text_stack, debug_mode)
                     if self.outs > 3:
-                        if debug_mode == True:
+                        if debug_mode is True:
                             self.log_text.append('Outs > 3')
                         assert False
                 elif (cur_type == 14) or (cur_type == 24):
@@ -976,14 +991,14 @@ class game_status:
 
                     self.handle_runner_stack(self.text_stack, debug_mode)
                     if self.outs > 3:
-                        if debug_mode == True:
+                        if debug_mode is True:
                             self.log_text.append('Outs > 3')
                         assert False
                 elif cur_type == 0:
                     # 이닝 시작
                     self.ind = self.ind + 1
                     if (len(self.print_rows) > 0) & (self.outs < 3):
-                        if debug_mode == True:
+                        if debug_mode is True:
                             self.log_text.append('outs < 3')
                         assert False
                     if self.top_bot == 1:
@@ -1034,7 +1049,7 @@ class game_status:
                     prlen -= 1
                 else:
                     break
-            if debug_mode == True:
+            if debug_mode is True:
                 self.log_text.append("-"*60)
                 self.log_text.append(f"=== gameID : {self.game_id}")
                 self.log_text.append("-"*60)
