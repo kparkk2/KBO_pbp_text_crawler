@@ -968,8 +968,8 @@ class game_status:
                                 self.balls += 1
                             save_row = self.convert_row_to_save_format(None,
                                                                        [self.description, self.pa_result, self.pa_result_detail], True)
-                            self.print_rows.append(save_row)
                             self.balls += 1
+                            self.print_rows.append(save_row)
                         else:
                             save_row = self.convert_row_to_save_format(self.last_pitch,
                                                                        [self.description, self.pa_result, self.pa_result_detail])
