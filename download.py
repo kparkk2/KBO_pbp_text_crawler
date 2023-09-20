@@ -514,10 +514,6 @@ def get_game_data_renewed(game_id):
         homeTeamName = game_meta_data.get('homeTeamName')
         awayTeamCode = game_meta_data.get('awayTeamCode')
         awayTeamName = game_meta_data.get('awayTeamName')
-        if game_meta_data.get('currentInning') is not None:
-            max_inning = int(game_meta_data.get('currentInning').split('회')[0])
-        else:
-            max_inning = int(game_meta_data.get('statusInfo').split('회')[0])
 
         box_score_req = requests.get(f'{nav_api_header}{game_id}/record')
         if box_score_req.status_code > 200:
@@ -535,6 +531,15 @@ def get_game_data_renewed(game_id):
         else:
             print(game_id)
             referees = ['']
+
+        currentInning = game_meta_data.get('currentInning')
+        if (currentInning is not None) & (currentInning != ''):
+            max_inning = int(game_meta_data.get('currentInning').split('회')[0])
+        else:
+            if game_meta_data.get('statusInfo') != '경기전':
+                max_inning = int(game_meta_data.get('statusInfo').split('회')[0])
+            else:
+                max_inning = int(box_score_data.get('currentInning'))
         away_batting_order = box_score_data.get('battersBoxscore').get('away')
         home_batting_order = box_score_data.get('battersBoxscore').get('home')
         away_pitcher_boxscore = box_score_data.get('pitchersBoxscore').get('away')
