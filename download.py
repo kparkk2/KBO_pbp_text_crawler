@@ -376,7 +376,7 @@ def get_game_data(game_id):
         hpits = pd.DataFrame(hpit, columns=pit_columns).sort_values('seqno')
 
         #####################################
-        # 5. 라인업 정보 보강             #
+        # 5. 라인업 정보 보강               #
         #####################################
         record_response = requests.get(record_url,
                                       params=params,
@@ -491,6 +491,7 @@ def get_game_data(game_id):
 
 def get_game_data_renewed(game_id):
     nav_api_header = 'https://api-gw.sports.naver.com/schedule/games/'
+    get_boxscore_api = 'https://www.koreabaseball.com/ws/Schedule.asmx/GetBoxScoreScroll'
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
@@ -536,8 +537,8 @@ def get_game_data_renewed(game_id):
             referees = ['']
         away_batting_order = box_score_data.get('battersBoxscore').get('away')
         home_batting_order = box_score_data.get('battersBoxscore').get('home')
-        away_pitchers = box_score_data.get('pitchersBoxscore').get('away')
-        home_pitchers = box_score_data.get('pitchersBoxscore').get('home')
+        away_pitcher_boxscore = box_score_data.get('pitchersBoxscore').get('away')
+        home_pitcher_boxscore = box_score_data.get('pitchersBoxscore').get('home')
 
         #####################################
         # 1. pitch by pitch 데이터 가져오기 #
@@ -637,14 +638,32 @@ def get_game_data_renewed(game_id):
             name = player.get('name')
             pos = player.get('pos')[0]
             pcode = player.get('playerCode')
-            home_players.append({'name': name, 'pos': pos, 'pcode': pcode})
+            ab = player.get('ab')
+            run = player.get('run')
+            hit = player.get('hit')
+            rbi = player.get('rbi')
+            hr = player.get('hr')
+            bb = player.get('bb')
+            k = player.get('kk')
+            home_players.append({'name': name, 'pos': pos, 'pcode': pcode,
+                                 'ab': ab, 'run': run, 'hit': hit,
+                                 'rbi': rbi, 'hr': hr, 'bb': bb, 'k': k})
 
         for i in range(len(away_batting_order)):
             player = away_batting_order[i]
             name = player.get('name')
             pos = player.get('pos')[0]
             pcode = player.get('playerCode')
-            away_players.append({'name': name, 'pos': pos, 'pcode': pcode})
+            ab = player.get('ab')
+            run = player.get('run')
+            hit = player.get('hit')
+            rbi = player.get('rbi')
+            hr = player.get('hr')
+            bb = player.get('bb')
+            k = player.get('kk')
+            away_players.append({'name': name, 'pos': pos, 'pcode': pcode,
+                                 'ab': ab, 'run': run, 'hit': hit,
+                                 'rbi': rbi, 'hr': hr, 'bb': bb, 'k': k})
 
         ############################################
         # 3. 메타 데이터에 있는 라인업 정보와 취합 #
@@ -687,7 +706,8 @@ def get_game_data_renewed(game_id):
         home_lineup_df = home_lineup_df.assign(name = np.where(home_lineup_df.name_x.isnull(),
                                                                home_lineup_df.name_y,
                                                                home_lineup_df.name_x))
-        lineup_df_columns = ['name', 'pcode', 'posName', 'hitType', 'seqno', 'batOrder', 'pos']
+        lineup_df_columns = ['name', 'pcode', 'posName', 'hitType', 'seqno', 'batOrder',
+                             'pos', 'ab', 'run', 'hit', 'rbi', 'hr', 'bb', 'k']
         away_lineup_df = away_lineup_df[lineup_df_columns]
         home_lineup_df = home_lineup_df[lineup_df_columns]
 
@@ -711,6 +731,125 @@ def get_game_data_renewed(game_id):
         pitching_df = pd.concat([away_pitcher_df, home_pitcher_df])
         batting_df.pcode = pd.to_numeric(batting_df.pcode)
         pitching_df.pcode = pd.to_numeric(pitching_df.pcode)
+
+        ######################
+        # 4. 박스스코어 추가 #
+        ######################
+        if int(game_id[:4]) < 3000:
+            if len(away_pitcher_boxscore) > 0:
+                pitcher_boxscore = {}
+                for x in (away_pitcher_boxscore + home_pitcher_boxscore):
+                    pitcher_boxscore[int(x.get('pcode'))] = x.copy()
+                for k in pitcher_boxscore.keys():
+                    ip = pitcher_boxscore[k]['inn']
+                    if ip.find('⅔') > 0:
+                        ip = int(ip[0])+0.2
+                    elif ip.find('⅓') > 0:
+                        ip = int(ip[0])+0.1
+                    else:
+                        ip = int(ip)
+                    pitcher_boxscore[k]['inn'] = ip
+                    pitcher_boxscore[k]['pcode'] = k
+                    pitcher_boxscore[k]['hbp'] = int(pitcher_boxscore[k]['bbhp']) - int(pitcher_boxscore[k]['bb'])
+                pitcher_boxscore_columns = ['pcode', 'wls', 'w', 'l', 's', 'inn', 'pa', 'bf', 'ab', 'hit', 'hr', 'bbhp', 'bb', 'hbp', 'kk', 'r', 'er', 'era']
+
+                # 등판 결과 승 패 세 이닝 타자 투구수 타수 피안타 홈런 4사구 삼진 실점 자책 평자 game_date game_id
+                pitcher_boxscore_df = pd.DataFrame(pitcher_boxscore).T
+                pitcher_boxscore_df = pitcher_boxscore_df[pitcher_boxscore_columns]
+                pitcher_boxscore_df = pitcher_boxscore_df.rename(index=int,
+                                                                 columns={'wls': '결과',
+                                                                          'w': '승',
+                                                                          'l': '패',
+                                                                          's': '세',
+                                                                          'inn': '이닝',
+                                                                          'bf': '투구수',
+                                                                          'pa': '타자',
+                                                                          'ab': '타수',
+                                                                          'hit': '피안타',
+                                                                          'hr': '홈런',
+                                                                          'bbhp': '4사구',
+                                                                          'bb': '볼넷',
+                                                                          'hbp': '사구',
+                                                                          'kk': '삼진',
+                                                                          'r': '실점',
+                                                                          'er': '자책',
+                                                                          'era': '평균자책점'})
+                pitching_df = pd.merge(pitching_df, pitcher_boxscore_df, on='pcode', how='outer')
+                pitching_df = pitching_df.rename(index=int,
+                                                 columns={'pcode_x': 'pcode'})
+                pitching_df = pitching_df.assign(등판 = np.nan,
+                                                 game_date = datetime.date(int(game_id[:4]),
+                                                                           int(game_id[4:6]),
+                                                                           int(game_id[6:8])),
+                                                 game_id = game_id[:-4])
+                pitching_df_columns = ['name', 'pcode', 'hitType', 'seqno', 'homeaway', 'team_name',
+                                       '등판', '결과', '승', '패', '세', '이닝', '타자', '투구수',
+                                       '타수', '피안타', '홈런', '4사구', '삼진', '실점', '자책',
+                                       '평균자책점', '볼넷', '사구', 'game_date', 'game_id']
+                pitching_df = pitching_df[pitching_df_columns]
+            else:
+                params = {
+                    'leId': 1,
+                    'srId': 0,
+                    'seasonId': int(game_id[:4]),
+                    'gameId': game_id[:-4]
+                }
+                req = requests.post(get_boxscore_api, data=params)
+                req_js = req.json()
+                req.close()
+
+                if req_js.get('msg') == '성공':
+                    text = [req_js.get('arrPitcher')[0].get('table'), req_js.get('arrPitcher')[1].get('table')]
+                    text = [x.replace('\\r', '').replace('\\n', '') for x in text]
+                    text = [x.replace('\n', '').replace('\r', '').strip() for x in text]
+                    text = [x.replace('\\', '') for x in text]
+                    text = [x.replace('\"{', '{').replace('\ "}', '}') for x in text]
+                    text = [x.replace('  ', '').replace('}\"', '}') for x in text]
+
+                    away_pitchers_table = json.loads(text[0])
+                    home_pitchers_table = json.loads(text[1])
+                    away_pitchers_header = away_pitchers_table.get('headers')[0]
+                    home_pitchers_header = home_pitchers_table.get('headers')[0]
+                    headers = [x.get('Text') for x in home_pitchers_header.get('row')]
+
+                    away_pitchers = []
+                    home_pitchers = []
+
+                    for pitcher in home_pitchers_table.get('rows'):
+                        values = [x.get('Text') for x in pitcher.get('row')]
+                        values = [x.replace('&nbsp;', '') for x in values]
+                        name = values[0]
+                        data = {k: v for k, v in zip(headers, values)}
+                        home_pitchers.append(data)
+                    for pitcher in away_pitchers_table.get('rows'):
+                        values = [x.get('Text') for x in pitcher.get('row')]
+                        values = [x.replace('&nbsp;', '') for x in values]
+                        name = values[0]
+                        data = {k: v for k, v in zip(headers, values)}
+                        away_pitchers.append(data)
+                    away_pitching_df = pd.concat([pitching_df[pitching_df.homeaway == 'a'],
+                                                  pd.DataFrame(away_pitchers)], axis=1)
+                    home_pitching_df = pd.concat([pitching_df[pitching_df.homeaway == 'h'],
+                                                  pd.DataFrame(home_pitchers)], axis=1)
+                    columns = home_pitching_df.columns.tolist()
+                    columns.remove('선수명')
+                    pitching_df = pd.concat([away_pitching_df, home_pitching_df])[columns]
+                    # 없는 컬럼 볼넷, 사구 추가
+                    pitching_df = pitching_df.assign(볼넷 = np.nan,
+                                                     사구 = np.nan,
+                                                     game_date = datetime.date(int(game_id[:4]),
+                                                                               int(game_id[4:6]),
+                                                                               int(game_id[6:8])),
+                                                     game_id = game_id[:-4])
+                    pitching_df = pitching_df.rename(index=int, columns={'평자': '평균자책점'})
+    batting_df = batting_df.rename(index=int,
+                                   columns = {'ab': '타수',
+                                              'run': '득점',
+                                              'hit': '안타',
+                                              'rbi': '타점',
+                                              'hr': '홈런',
+                                              'bb': '볼넷',
+                                              'k': '삼진'})
     return pitching_df, batting_df, relay_df
 
 
