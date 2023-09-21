@@ -755,7 +755,7 @@ def get_game_data_renewed(game_id):
                         ip = int(ip)
                     pitcher_boxscore[k]['inn'] = ip
                     pitcher_boxscore[k]['pcode'] = k
-                    pitcher_boxscore[k]['hbp'] = int(pitcher_boxscore[k]['bbhp']) - int(pitcher_boxscore[k]['bb'])
+                    pitcher_boxscore[k]['hbp'] = max(int(pitcher_boxscore[k]['bbhp']) - int(pitcher_boxscore[k]['bb']), 0)
                 pitcher_boxscore_columns = ['pcode', 'wls', 'w', 'l', 's', 'inn', 'pa', 'bf', 'ab', 'hit', 'hr', 'bbhp', 'bb', 'hbp', 'kk', 'r', 'er', 'era']
 
                 # 등판 결과 승 패 세 이닝 타자 투구수 타수 피안타 홈런 4사구 삼진 실점 자책 평자 game_date game_id
