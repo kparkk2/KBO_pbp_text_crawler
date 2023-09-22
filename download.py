@@ -786,11 +786,13 @@ def get_game_data_renewed(game_id):
                                                  game_date = datetime.date(int(game_id[:4]),
                                                                            int(game_id[4:6]),
                                                                            int(game_id[6:8])),
-                                                 game_id = game_id[:-4])
+                                                 game_id = game_id[:-4],
+                                                 level='1군',
+                                                 level_eng='KBO')
                 pitching_df_columns = ['name', 'pcode', 'hitType', 'seqno', 'homeaway', 'team_name',
                                        '등판', '결과', '승', '패', '세', '이닝', '타자', '투구수',
                                        '타수', '피안타', '홈런', '4사구', '삼진', '실점', '자책',
-                                       '평균자책점', '볼넷', '사구', 'game_date', 'game_id']
+                                       '평균자책점', '볼넷', '사구', 'game_date', 'game_id', 'level', 'level_eng']
                 pitching_df = pitching_df[pitching_df_columns]
             else:
                 params = {
@@ -845,7 +847,9 @@ def get_game_data_renewed(game_id):
                                                      game_date = datetime.date(int(game_id[:4]),
                                                                                int(game_id[4:6]),
                                                                                int(game_id[6:8])),
-                                                     game_id = game_id[:-4])
+                                                     game_id = game_id[:-4],
+                                                     level='1군',
+                                                     level_eng='KBO')
                     pitching_df = pitching_df.rename(index=int, columns={'평자': '평균자책점'})
     batting_df = batting_df.rename(index=int,
                                    columns = {'ab': '타수',
@@ -855,6 +859,7 @@ def get_game_data_renewed(game_id):
                                               'hr': '홈런',
                                               'bb': '볼넷',
                                               'k': '삼진'})
+    batting_df = batting_df.assign(level='1군', level_eng='KBO')
     return pitching_df, batting_df, relay_df
 
 
