@@ -16,3 +16,4 @@ venv/
 *.pyc
 *.txt
 *.xlsx
+update_game_log.py
