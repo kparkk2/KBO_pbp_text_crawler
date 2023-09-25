@@ -18,3 +18,4 @@ venv/
 *.xlsx
 *.xls
 update_game_log.py
+.DS_store
