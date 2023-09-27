@@ -17,5 +17,5 @@ venv/
 *.txt
 *.xlsx
 *.xls
-update_game_log.py
+update_game_*.py
 .DS_store

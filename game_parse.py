@@ -55,8 +55,8 @@ batter_result = [
     [' 플라이 아웃', '필드 아웃', '플라이 아웃'],
     [' 번트 아웃', '필드 아웃', '번트 아웃'],
     ['야수선택', '야수 선택', '야수 선택'],
-    ['실책', '실책', '실책'],
     ['타격방해', '타격방해', '타격방해'],
+    ['실책', '실책', '실책'],
     ['삼중살', '삼중살', '삼중살'],
     ['부정타격', '필드 아웃', '부정 타격 아웃'],
     ['번트', '번트 안타', '안타'],
@@ -366,8 +366,8 @@ class game_status:
             save_row['pos_2'] = self.fields[self.top_bot]['포수'].get('name')
             save_row['pos_3'] = self.fields[self.top_bot]['1루수'].get('name')
             save_row['pos_4'] = self.fields[self.top_bot]['2루수'].get('name')
-            save_row['pos_5'] = self.fields[self.top_bot]['유격수'].get('name')
-            save_row['pos_6'] = self.fields[self.top_bot]['3루수'].get('name')
+            save_row['pos_5'] = self.fields[self.top_bot]['3루수'].get('name')
+            save_row['pos_6'] = self.fields[self.top_bot]['유격수'].get('name')
             save_row['pos_7'] = self.fields[self.top_bot]['좌익수'].get('name')
             save_row['pos_8'] = self.fields[self.top_bot]['중견수'].get('name')
             save_row['pos_9'] = self.fields[self.top_bot]['우익수'].get('name')
@@ -375,8 +375,8 @@ class game_status:
             save_row['pos_2_id'] = self.fields[self.top_bot]['포수'].get('code')
             save_row['pos_3_id'] = self.fields[self.top_bot]['1루수'].get('code')
             save_row['pos_4_id'] = self.fields[self.top_bot]['2루수'].get('code')
-            save_row['pos_5_id'] = self.fields[self.top_bot]['유격수'].get('code')
-            save_row['pos_6_id'] = self.fields[self.top_bot]['3루수'].get('code')
+            save_row['pos_5_id'] = self.fields[self.top_bot]['3루수'].get('code')
+            save_row['pos_6_id'] = self.fields[self.top_bot]['유격수'].get('code')
             save_row['pos_7_id'] = self.fields[self.top_bot]['좌익수'].get('code')
             save_row['pos_8_id'] = self.fields[self.top_bot]['중견수'].get('code')
             save_row['pos_9_id'] = self.fields[self.top_bot]['우익수'].get('code')
