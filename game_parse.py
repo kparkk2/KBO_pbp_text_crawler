@@ -429,9 +429,15 @@ class game_status:
         if len(self.runner_bases) == 0:
             if debug_mode is True:
                 if self.change_error is False:
-                    self.log_text.append('base error: No runners but calling handle_runner_stack')
+                    self.log_text.append('주자 처리 에러: 주자가 없는데 handle_runner_stack 호출')
+                    print("-"*60)
+                    print(f"=== gameID : {self.game_id}")
+                    print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
                     for row in runner_stack:
                         self.log_text.append(f'text - {row}')
+                        print(f'=== text - {text}')
+                    print("-"*60)
+                    print('주자 처리 에러: 주자가 없는데 handle_runner_stack 호출')
                     self.change_error = True
             cur_runner = None
         else:
@@ -459,9 +465,15 @@ class game_status:
                     if base_loop_num > 4:
                         if debug_mode is True:
                             if self.change_error is False:
-                                self.log_text.append('base error: cannot find runner in bases')
+                                self.log_text.append('주자 처리 에러: 루상에서 처리하려는 대상 주자를 찾을 수 없음')
+                                print("-"*60)
+                                print(f"=== gameID : {self.game_id}")
+                                print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
                                 for row in runner_stack:
                                     self.log_text.append(f'text - {row}')
+                                    print(f'=== text - {text}')
+                                print("-"*60)
+                                print('주자 처리 에러: 루상에서 처리하려는 대상 주자를 찾을 수 없음')
                                 self.change_error = True
                         break
 
@@ -613,10 +625,17 @@ class game_status:
                                     break
                     if after_code is None:
                         if debug_mode is True:
-                            self.log_text.append('cant find player code in batter list')
-                            self.log_text.append(f'text - {text}')
+                            self.log_text.append('교체 에러: 교체하려는 야수가 경기 타자 기록 명단에 없음')
+                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            self.log.text.append(f'=== text - {text}')
                         if self.change_error is False:
                             self.change_error = True
+                            print("-"*60)
+                            print(f"=== gameID : {self.game_id}")
+                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f'=== text - {text}')
+                            print("-"*60)
+                            print('교체 에러: 교체하려는 야수가 경기 타자 기록 명단에 없음')
                 elif after_pos == '투수':
                     # 예외처리
                     # 기존 투수가 야수 자리에 들어가는 경우(지명타자 소멸)
@@ -655,10 +674,17 @@ class game_status:
                                     break
                     if after_code is None:
                         if debug_mode is True:
-                            self.log_text.append('cant find player code in pitcher list')
-                            self.log_text.append(f'text - {text}')
+                            self.log_text.append('교체 에러: 교체하려는 투수가 경기 투수 기록 명단에 없음')
+                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            self.log.text.append(f'=== text - {text}')
                         if self.change_error is False:
                             self.change_error = True
+                            print("-"*60)
+                            print(f"=== gameID : {self.game_id}")
+                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f'=== text - {text}')
+                            print("-"*60)
+                            print('교체 에러: 교체하려는 투수가 경기 투수 기록 명단에 없음')
                     if ((self.DH_exist[self.top_bot] is False) or\
                         (self.DH_exist_after[self.top_bot] != self.DH_exist[self.top_bot])):
                         for i in range(9):
@@ -691,10 +717,17 @@ class game_status:
                                 break
                     if after_code is None:
                         if debug_mode is True:
-                            self.log_text.append('cant find player code in batter list')
-                            self.log_text.append(f'text - {text}')
+                            self.log_text.append('교체 에러: 교체하려는 야수가 경기 타자 기록 명단에 없음')
+                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            self.log.text.append(f'=== text - {text}')
                         if self.change_error is False:
                             self.change_error = True
+                            print("-"*60)
+                            print(f"=== gameID : {self.game_id}")
+                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f'=== text - {text}')
+                            print("-"*60)
+                            print('교체 에러: 교체하려는 야수가 경기 타자 기록 명단에 없음')
                 else:
                     # 대타 교체
                     for i in range(9):
@@ -753,10 +786,17 @@ class game_status:
                                         continue
                             if before_code is None:
                                 if debug_mode is True:
-                                    self.log_text.append('cant find player name/position in lineup')
-                                    self.log_text.append(f'text - {text}')
+                                    self.log_text.append('교체 에러: 교체하려는 야수가 현재 라인업에 없음')
+                                    self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                                    self.log.text.append(f'=== text - {text}')
                                 if self.change_error is False:
                                     self.change_error = True
+                                    print("-"*60)
+                                    print(f"=== gameID : {self.game_id}")
+                                    print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                                    print(f'=== text - {text}')
+                                    print("-"*60)
+                                    print('교체 에러: 교체하려는 야수가 현재 라인업에 없음')
                         except:
                             if self.change_error is False:
                                 self.change_error = True
@@ -790,9 +830,17 @@ class game_status:
                     # 주자인 경우(루상 주자와 대조) 베이스 교체
                     if after_code is None:
                         if debug_mode is True:
-                            self.log_text.append('cant find player code in lineup')
+                            self.log_text.append('교체 에러: 교체 투입되려는 대주자가 경기 타자 기록 명단업에 없음')
+                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            self.log.text.append(f'=== text - {text}')
                         if self.change_error is False:
                             self.change_error = True
+                            print("-"*60)
+                            print(f"=== gameID : {self.game_id}")
+                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f'=== text - {text}')
+                            print("-"*60)
+                            print('교체 에러: 교체 투입되려는 대주자가 경기 타자 기록 명단업에 없음')
                     for i in range(len(self.runner_bases)):
                         if self.runner_bases[i][1] == before_code:
                             self.runner_bases[i][0] = after_name
@@ -840,7 +888,15 @@ class game_status:
                         self.strikes = self.strikes+1 if self.strikes < 2 else 2
                     if (self.strikes > 3) or (self.balls > 4):
                         if debug_mode is True:
-                            self.log_text.append('3S/4B')
+                            self.log_text.append('투구 이후 3S 또는 4B가 됨')
+                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            self.log.text.append(f'=== text - {text}')
+                            print("-"*60)
+                            print(f"=== gameID : {self.game_id}")
+                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f'=== text - {text}')
+                            print("-"*60)
+                            print('투구 이후 3S 또는 4B가 됨')
                         assert False
                     self.ind = self.ind + 1
 
@@ -980,7 +1036,15 @@ class game_status:
                     self.handle_runner_stack(self.text_stack, debug_mode)
                     if self.outs > 3:
                         if debug_mode is True:
-                            self.log_text.append('Outs > 3')
+                            self.log_text.append('타자 주자 처리 결과 3아웃이 넘어감')
+                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            self.log.text.append(f'=== text - {text}')
+                            print("-"*60)
+                            print(f"=== gameID : {self.game_id}")
+                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f'=== text - {text}')
+                            print("-"*60)
+                            print('타자 주자 처리 결과 3아웃이 넘어감')
                         assert False
                 elif (cur_type == 14) or (cur_type == 24):
                     # 주자(비득점/득점)
@@ -1008,14 +1072,30 @@ class game_status:
                     self.handle_runner_stack(self.text_stack, debug_mode)
                     if self.outs > 3:
                         if debug_mode is True:
-                            self.log_text.append('Outs > 3')
+                            self.log_text.append('주자 처리 결과 3아웃이 넘어감')
+                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            self.log.text.append(f'=== text - {text}')
+                            print("-"*60)
+                            print(f"=== gameID : {self.game_id}")
+                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f'=== text - {text}')
+                            print("-"*60)
+                            print('주자 처리 결과 3아웃이 넘어감')
                         assert False
                 elif cur_type == 0:
                     # 이닝 시작
                     self.ind = self.ind + 1
                     if (len(self.print_rows) > 0) & (self.outs < 3):
                         if debug_mode is True:
-                            self.log_text.append('outs < 3')
+                            self.log_text.append('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
+                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            self.log.text.append(f'=== text - {text}')
+                            print("-"*60)
+                            print(f"=== gameID : {self.game_id}")
+                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f'=== text - {text}')
+                            print("-"*60)
+                            print('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
                         assert False
                     if self.top_bot == 1:
                         self.inn += 1

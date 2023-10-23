@@ -910,7 +910,13 @@ def download_pbp_files(start_date, end_date, playoff=False,
     get_data_time = 0
     gid = None
 
-    years = list(set([x[-4:] for x in game_ids]))
+    years = []
+    for gid in game_ids:
+        if len(gid) > 13:
+            years.append(gid[-4:])
+        else:
+            years.append(gid[:4])
+    years = list(set(years))
 
     try:
         for y in years:
@@ -930,6 +936,8 @@ def download_pbp_files(start_date, end_date, playoff=False,
             now = datetime.datetime.now().date()
             gid_year = int(gid[:4])
             if gid_year > 3000:
+                if gid_year > 9000:
+                    continue
                 gid_year = int(gid[-4:])
             gid_to_date = datetime.date(gid_year,
                                         int(gid[4:6]),

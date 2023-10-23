@@ -68,8 +68,8 @@ def get_re24(df):
     g2 = pa_res.groupby(['game_date', 'home', 'away',
                          'inning', 'inning_topbot']).score_home
     pa_res = pa_res.assign(max_score_in_inning = np.where(pa_res.inning_topbot == '초',
-                                                          g1.transform(max),
-                                                          g2.transform(max)))
+                                                          g1.transform('max'),
+                                                          g2.transform('max')))
 
     # 해당 플레이 이후 그 이닝에서 발생하는 점수
     pa_res = pa_res.assign(runs_scored_after_play = np.where(pa_res.inning_topbot == '초',
@@ -141,8 +141,8 @@ def get_rv_event(df):
     g2 = pa_res.groupby(['game_date', 'home', 'away',
                          'inning', 'inning_topbot']).score_home
     pa_res = pa_res.assign(max_score_in_inning = np.where(pa_res.inning_topbot == '초',
-                                                          g1.transform(max),
-                                                          g2.transform(max)))
+                                                          g1.transform('max'),
+                                                          g2.transform('max')))
 
     # 해당 플레이 이후 그 이닝에서 발생하는 점수
     pa_res = pa_res.assign(runs_scored_after_play = np.where(pa_res.inning_topbot == '초',
@@ -293,8 +293,8 @@ def get_rv_event_simple(df, more_simple=False):
     g2 = pa_res.groupby(['game_date', 'home', 'away',
                          'inning', 'inning_topbot']).score_home
     pa_res = pa_res.assign(max_score_in_inning = np.where(pa_res.inning_topbot == '초',
-                                                          g1.transform(max),
-                                                          g2.transform(max)))
+                                                          g1.transform('max'),
+                                                          g2.transform('max')))
 
     # 해당 플레이 이후 그 이닝에서 발생하는 점수
     pa_res = pa_res.assign(runs_scored_after_play = np.where(pa_res.inning_topbot == '초',
