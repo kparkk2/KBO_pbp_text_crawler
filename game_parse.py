@@ -223,6 +223,11 @@ class game_status:
         # error status
         self.change_error = False
 
+        # 실책으로 인한 출루 시, 타자주자를 단순 출루로 표기할 때가 있음
+        # 주자 처리 과정에서 아웃이 없고 실책이 나왔을 때
+        # 타석 결과를 변경하기 위한 Flag 역할 변수
+        self.runner_advance_by_error = False
+
         # debug
         self.ind = 0
         self.cur_row = None
@@ -451,6 +456,10 @@ class game_status:
                 batter_runner = True
             else:
                 runner_name, run_result, runner_before_base, runner_after_base = parse_runner_result(row[2])
+                if row[2].find('실책') > 0:
+                    self.runner_advance_by_error = True
+                elif row[2].find('주루방해') > 0:
+                    self.runner_advance_by_error = True
 
             if self.change_error is False:
                 base_loop_num = 0
@@ -1006,6 +1015,7 @@ class game_status:
                     result = parse_batter_result(self.cur_text.strip())
                     self.pa_result = result[0]
                     self.pa_result_detail = result[1]
+                    cur_outs = self.outs
 
                     # 타격 결과가 '타격'인 경우에는 새 row를 추가, 여기에 description등을 넣음
                     # 자동 고의4구 경우도 새 row를 추가
@@ -1030,10 +1040,29 @@ class game_status:
                         else:
                             save_row = self.convert_row_to_save_format(self.last_pitch,
                                                                        [self.description, self.pa_result, self.pa_result_detail])
+                            # 실책 출루의 경우 타자 주자가 그냥 '출루'로 표기되는 경우 있음
+                            # 이럴 때 결과(pa_result, pa_result_detail)가 그냥 '포스 아웃', '땅볼 아웃'이 됨
+                            # 이를 실책으로 바꾸려면
+                            # (1) 결과가 그냥 '아웃'이어야 하고
+                            # (2) 이후 텍스트에서 주자가 실책으로 진루한다는 말이 나와야 하고
+                            # (3) 아웃카운트 올라가는 일이 없어야 함
+                            # 이는 주자 텍스트 처리가 모두 끝난 뒤에만 알 수 있다.
+                            # 아웃카운트 대조를 위해 값을 저장하고
+                            # Flag 역할 변수의 값 변화 유무를 주시한다.
+                            #   * 주루방해로 타자주자와 주자 올 세이프인 경우 -> 실책으로 기록
                             self.print_rows.append(save_row)
 
                     self.ind = cur_ind
+                    self.runner_advance_by_error = False
                     self.handle_runner_stack(self.text_stack, debug_mode)
+                    if ((cur_outs == self.outs) &
+                        (self.runner_advance_by_error is True) &
+                        (self.print_rows[-1]['pa_result'] == '포스 아웃') &
+                        (self.print_rows[-1]['pa_result_detail'] == '땅볼 아웃')):
+                        self.print_rows[-1]['pa_result'] = '실책'
+                        self.print_rows[-1]['pa_result_detail'] = '실책'
+                    self.runner_advance_by_error = False
+
                     if self.outs > 3:
                         if debug_mode is True:
                             self.log_text.append('타자 주자 처리 결과 3아웃이 넘어감')
@@ -1069,7 +1098,9 @@ class game_status:
                     self.print_rows.append(save_row)
                     self.ind = cur_ind
 
+                    self.runner_advance_by_error = False
                     self.handle_runner_stack(self.text_stack, debug_mode)
+                    self.runner_advance_by_error = False
                     if self.outs > 3:
                         if debug_mode is True:
                             self.log_text.append('주자 처리 결과 3아웃이 넘어감')
