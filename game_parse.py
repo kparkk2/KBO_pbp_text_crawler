@@ -6,7 +6,7 @@ import numpy as np
 header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'speed', 'pitch_result', 'pa_result', 'pa_result_detail',
               'description', 'balls', 'strikes', 'outs',
-              'inning', 'inning_topbot', 'score_away', 'score_home',
+              'inning', 'inning_topbot', 'score_away', 'score_home', 'outs_on_play', 'runs_scored',
               'stands', 'throws', 'on_1b', 'on_2b', 'on_3b', 'pos_1', 'pos_2', 'pos_3', 'pos_4', 'pos_5',
               'pos_6', 'pos_7', 'pos_8', 'pos_9',
               'on_1b_id', 'on_2b_id', 'on_3b_id',
@@ -33,9 +33,9 @@ batter_result = [
     ['2루타', '2루타', '2루타'],
     ['3루타', '3루타', '3루타'],
     ['홈런', '홈런', '홈런'],
+    ['낫 아웃', '삼진', '낫아웃 삼진'],
     ['낫아웃 폭투', '낫아웃 출루', '낫아웃 폭투'],
     ['낫아웃 포일', '낫아웃 출루', '낫아웃 포일'],
-    ['낫 아웃', '삼진', '낫아웃 삼진'],
     ['낫아웃 다른주자 수비 실책', '낫아웃 출루', '낫아웃 다른 주자 수비 실책'],
     ['낫아웃 다른주자 수비', '낫아웃 출루', '낫아웃 다른 주자 포스 아웃'],
     ['낫아웃 출루', '낫아웃 다른 주자 수비', '낫아웃 다른 주자 수비'],
@@ -211,7 +211,9 @@ class game_status:
         self.pitch_result = None
         self.pa_result = None
         self.pa_result_detail = None
-        self.description = ''        
+        self.description = ''
+        self.outs_on_play = 0 # 삼진, 낫아웃은 0
+        self.runs_scored = 0
 
         # print rows
         self.print_rows = []
@@ -339,6 +341,8 @@ class game_status:
         save_row['inning_topbot'] = '초' if self.top_bot == 0 else '말'
         save_row['score_away'] = self.score[0]
         save_row['score_home'] = self.score[1]
+        save_row['outs_on_play'] = self.outs_on_play
+        save_row['runs_scored'] = self.runs_scored
         if (self.stands is not None) and (type(self.stands) == str):
             if len(self.stands) > 2:
                 save_row['stands'] = self.stands[2]
@@ -451,7 +455,7 @@ class game_status:
 
         batter_runner = False
         for row in runner_stack[::-1]:
-            if (row[3] == 13) or (row[3] == 23):
+            if ((row[3] == 13) | (row[3] == 23)):
                 runner_name, run_result, runner_before_base, runner_after_base = parse_batter_as_runner(row[2])
                 batter_runner = True
             else:
@@ -496,8 +500,20 @@ class game_status:
 
             if run_result == 'h':
                 self.score[self.top_bot] += 1
+                self.runs_scored += 1
             elif run_result == 'o':
                 self.outs += 1
+                if self.pa_result is None:
+                    self.outs_on_play += 1
+                elif (self.pa_result =='삼진') |\
+                     (self.pa_result == '낫아웃 출루') |\
+                     (self.pa_result == '낫아웃 다른 주자 수비'):
+                     # 삼진/낫아웃의 경우, 타자주자 아웃에 의한 outs_on_play 증감은 0
+                     # 동시에 일어난 주자 아웃인 경우만 +1
+                     if (row[3] != 13) & (row[3] != 23):
+                         self.outs_on_play += 1
+                else:
+                    self.outs_on_play += 1
 
         if self.change_error is False:
             after_runner_bases = []
@@ -881,6 +897,8 @@ class game_status:
                     self.pitch_number += 1
                     res = self.cur_text.split(' ')[-1]
                     self.pitch_result = res
+                    self.outs_on_play = 0
+                    self.runs_scored = 0
                     # 인플레이/삼진/볼넷 이외에는 여기서 row print
                     # 몸에맞는공은 타석 결과에서 수정
                     if res != '타격':
@@ -917,6 +935,8 @@ class game_status:
                     self.pitch_result = None
                     self.pa_result_detail = None
                     self.description = ''
+                    self.outs_on_play = 0
+                    self.runs_scored = 0
                     if len(position) > 2:
                         self.cur_order = int(position[0])
                         if self.change_error is False:
@@ -999,6 +1019,8 @@ class game_status:
                     cur_ind = self.ind
                     self.cur_row = self.relay_array[cur_ind]
                     self.description = ''
+                    self.outs_on_play = 0
+                    self.runs_scored = 0
 
                     while ((cur_type == 13) or (cur_type == 23) or\
                            (cur_type == 14) or (cur_type == 24)):
@@ -1061,6 +1083,17 @@ class game_status:
                         (self.print_rows[-1]['pa_result_detail'] == '땅볼 아웃')):
                         self.print_rows[-1]['pa_result'] = '실책'
                         self.print_rows[-1]['pa_result_detail'] = '실책'
+                    if self.runs_scored > 0:
+                        self.print_rows[-1]['runs_scored'] = self.runs_scored
+                    if self.outs_on_play > 0:
+                        # 낫아웃 & 다른 주자 아웃인 경우 (아웃>0)
+                        # outs_on_play에서 삼진 몫인 1을 빼고 기록
+                        # 예시) 낫아웃 + 1루주자 2루에서 포스아웃 -> 0으로 기록
+                        if ((self.pa_result == '낫아웃 출루') |
+                            (self.pa_result == '낫아웃 다른 주자 수비')):
+                            self.print_rows[-1]['outs_on_play'] = self.outs_on_play - 1
+                        else:
+                            self.print_rows[-1]['outs_on_play'] = self.outs_on_play
                     self.runner_advance_by_error = False
 
                     if self.outs > 3:
@@ -1083,6 +1116,8 @@ class game_status:
                     cur_ind = self.ind
                     self.cur_row = self.relay_array[cur_ind]
                     self.description = ''
+                    self.outs_on_play = 0
+                    self.runs_scored = 0
                     while (cur_type == 14) or (cur_type == 24):
                         self.text_stack.append(self.cur_row)
                         self.description += self.cur_row[2].strip() + '; '
@@ -1096,11 +1131,17 @@ class game_status:
                     save_row = self.convert_row_to_save_format(None,
                                                                [self.description, None, None])
                     self.print_rows.append(save_row)
+
                     self.ind = cur_ind
 
                     self.runner_advance_by_error = False
                     self.handle_runner_stack(self.text_stack, debug_mode)
+                    if self.runs_scored > 0:
+                        self.print_rows[-1]['runs_scored'] = self.runs_scored
+                    if self.outs_on_play > 0:
+                        self.print_rows[-1]['outs_on_play'] = self.outs_on_play
                     self.runner_advance_by_error = False
+
                     if self.outs > 3:
                         if debug_mode is True:
                             self.log_text.append('주자 처리 결과 3아웃이 넘어감')
@@ -1139,6 +1180,8 @@ class game_status:
                     self.last_pitch = None
 
                     self.pitch_number = 0
+                    self.outs_on_play = 0
+                    self.runs_scored = 0
                 elif cur_type == 2:
                     # 교체/변경
                     # 교체/변경 텍스트 row를 쭉 text_stack에 쌓는다
@@ -1147,6 +1190,8 @@ class game_status:
                     cur_ind = self.ind
                     self.cur_row = self.relay_array[cur_ind]
                     self.description = ''
+                    self.outs_on_play = 0
+                    self.runs_scored = 0
 
                     while self.cur_row[3] == 2:
                         self.text_stack.append(self.cur_row[2])
