@@ -110,17 +110,24 @@ def get_game_ids(start_date, end_date, playoff=False):
         dates = result.get('dates')
 
         for date in dates:
-            date_gameIds = date.get('gameIds')
-            if len(date_gameIds) > 0:
-                for x in date_gameIds:
-                    gid_date = datetime.date(year, int(x[4:6]), int(x[6:8]))
-                    if start_date <= gid_date <= end_date:
-                        if playoff == False:
-                            if year_regular_start_date <= gid_date < year_playoff_start_date:
-                                game_ids.append(x)
-                        else:
-                            if year_regular_start_date <= gid_date < year_last_date:
-                                game_ids.append(x)
+            gameInfos = date.get('gameInfos')
+            if gameInfos is None:
+                continue
+            else:
+                for elem in gameInfos:
+                    gid = elem.get('gameId')
+                    gStatusCode = elem.get('statusCode')
+                    if gStatusCode != 'RESULT':
+                        continue
+                    else:
+                        gid_date = datetime.date(year, int(gid[4:6]), int(gid[6:8]))
+                        if start_date <= gid_date <= end_date:
+                            if playoff == False:
+                                if year_regular_start_date <= gid_date < year_playoff_start_date:
+                                    game_ids.append(gid)
+                            else:
+                                if year_regular_start_date <= gid_date < year_last_date:
+                                    game_ids.append(gid)
 
     return game_ids
 
