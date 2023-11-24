@@ -68,8 +68,8 @@ def get_game_ids(start_date, end_date, playoff=False):
         True일 경우 플레이오프(포스트시즌) 경기 ID도 받는다.
     """
 
-    timetable_url = 'https://sports.news.naver.com/'\
-                    'kbaseball/schedule/index.nhn?month='
+    calendar_api = 'https://api-gw.sports.naver.com/schedule/calendar?'\
+                   'upperCategoryId=kbaseball&categoryIds=kbo&date='
 
     mon1 = start_date.replace(day=1)
     r = []
@@ -93,12 +93,6 @@ def get_game_ids(start_date, end_date, playoff=False):
                                                 int(year_playoff_start[2:]))
         year_last_date = datetime.date(year, 12, 31)
 
-        calendar_api = 'https://api-gw.sports.naver.com/schedule/calendar?'\
-                       'upperCategoryId=kbaseball&categoryIds=kbo&date='
-
-        calendar_api = 'https://api-gw.sports.naver.com/schedule/calendar?'\
-                       'upperCategoryId=kbaseball&categoryIds=kbo&date='
-
         cal_url = calendar_api + f"{d.strftime('%Y-%m-%d')}"
         try:
             req = requests.get(cal_url)
@@ -119,7 +113,14 @@ def get_game_ids(start_date, end_date, playoff=False):
             date_gameIds = date.get('gameIds')
             if len(date_gameIds) > 0:
                 for x in date_gameIds:
-                    game_ids.append(x)
+                    gid_date = datetime.date(year, int(x[4:6]), int(x[6:8]))
+                    if start_date <= gid_date <= end_date:
+                        if playoff == False:
+                            if year_regular_start_date <= gid_date < year_playoff_start_date:
+                                game_ids.append(x)
+                        else:
+                            if year_regular_start_date <= gid_date < year_last_date:
+                                game_ids.append(x)
 
     return game_ids
 
