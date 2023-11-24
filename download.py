@@ -92,51 +92,35 @@ def get_game_ids(start_date, end_date, playoff=False):
                                                 int(year_playoff_start[:2]),
                                                 int(year_playoff_start[2:]))
         year_last_date = datetime.date(year, 12, 31)
-        sch_url = timetable_url + f'{month}&year={year}'
 
-        response = requests.get(sch_url)
-        soup = BeautifulSoup(response.text, 'lxml')
-        response.close()
+        calendar_api = 'https://api-gw.sports.naver.com/schedule/calendar?'\
+                       'upperCategoryId=kbaseball&categoryIds=kbo&date='
 
-        sch_tbs = soup.findAll('div', attrs={'class': 'sch_tb'})
-        sch_tb2s = soup.findAll('div', attrs={'class': 'sch_tb2'})
-        sch_tbs += sch_tb2s
+        calendar_api = 'https://api-gw.sports.naver.com/schedule/calendar?'\
+                       'upperCategoryId=kbaseball&categoryIds=kbo&date='
 
-        for row in sch_tbs:
-            day_table = row.findAll('tr')
-            for game in day_table:
-                add_state = game.findAll('td', attrs={'class': 'add_state'})
-                tds = game.findAll('td')
-                if len(tds) < 4:
-                    continue
-                links = game.findAll('span',
-                                    attrs={'class': 'td_btn'})
-                date_td = game.findAll('span', attrs={'class': 'td_date'})
-                if len(date_td) > 0:
-                    date_text = date_td[0].text
-                if len(add_state) > 0:
-                    status = add_state[0].findAll('span')[-1].get('class')[0]
-                    if status == 'suspended':
-                        continue
+        cal_url = calendar_api + f"{d.strftime('%Y-%m-%d')}"
+        try:
+            req = requests.get(cal_url)
+            if req.status_code != 200:
+                print(f'status code exception occured, status_code = {req.status_code}')
+                req.close()
+                continue
+            js = req.json()
+            req.close()
+        except AttributeError:
+            print('AttributeError exception occured')
+            exit(1)
+        js = req.json()
+        result = js.get('result')
+        dates = result.get('dates')
 
-                for btn in links:
-                    gid = btn.a['href'].split('/')[2]
-                    try:
-                        gid_year = int(gid[:4])
-                        if gid_year > 3000:
-                            gid_year = int(gid[-4:])
-                        gid_date = datetime.date(gid_year,
-                                                 int(gid[4:6]),
-                                                 int(gid[6:8]))
-                    except:
-                        continue
-                    if start_date <= gid_date <= end_date:
-                        if playoff == False:
-                            if year_regular_start_date <= gid_date < year_playoff_start_date:
-                                game_ids.append(gid)
-                        else:
-                            if year_regular_start_date <= gid_date < year_last_date:
-                                game_ids.append(gid)
+        for date in dates:
+            date_gameIds = date.get('gameIds')
+            if len(date_gameIds) > 0:
+                for x in date_gameIds:
+                    game_ids.append(x)
+
     return game_ids
 
 
