@@ -39,6 +39,7 @@ batter_result = [
     ['낫아웃 다른주자 수비 실책', '낫아웃 출루', '낫아웃 다른 주자 수비 실책'],
     ['낫아웃 다른주자 수비', '낫아웃 출루', '낫아웃 다른 주자 포스 아웃'],
     ['낫아웃 출루', '낫아웃 다른 주자 수비', '낫아웃 다른 주자 수비'],
+    ['희생플라이 땅볼', '희생플라이', '희생플라이'],
     ['땅볼로 출루', '포스 아웃', '땅볼 아웃'],
     ['땅볼 아웃', '포스 아웃', '땅볼 아웃'],
     ['인필드', '필드 아웃', '인필드 플라이'],
@@ -1023,9 +1024,11 @@ class game_status:
                     self.runs_scored = 0
 
                     while ((cur_type == 13) or (cur_type == 23) or\
-                           (cur_type == 14) or (cur_type == 24)):
-                        self.text_stack.append(self.cur_row)
-                        self.description += self.cur_row[2].strip() + '; '
+                           (cur_type == 14) or (cur_type == 24) or (cur_type == 7)):
+                        if cur_type != 7:
+                            # 시스템 메시지(비디오 판독 등) 패스
+                            self.text_stack.append(self.cur_row)
+                            self.description += self.cur_row[2].strip() + '; '
                         cur_ind += 1
 
                         if self.relay_array[cur_ind][0] != cur_to:
@@ -1118,9 +1121,11 @@ class game_status:
                     self.description = ''
                     self.outs_on_play = 0
                     self.runs_scored = 0
-                    while (cur_type == 14) or (cur_type == 24):
-                        self.text_stack.append(self.cur_row)
-                        self.description += self.cur_row[2].strip() + '; '
+                    while (cur_type == 14) or (cur_type == 24) or (cur_type == 7):
+                        if cur_type != 7:
+                            # 시스템 메시지(비디오 판독 등) 패스
+                            self.text_stack.append(self.cur_row)
+                            self.description += self.cur_row[2].strip() + '; '
                         cur_ind = cur_ind + 1
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
@@ -1209,6 +1214,7 @@ class game_status:
 
                     self.handle_change(self.text_stack, debug_mode)
                 elif cur_type == 7:
+                    # 시스템 메시지
                     self.ind = self.ind + 1
                 else:
                     self.ind = self.ind + 1
