@@ -442,7 +442,7 @@ class game_status:
                     self.log_text.append('주자 처리 에러: 주자가 없는데 handle_runner_stack 호출')
                     print("-"*60)
                     print(f"=== gameID : {self.game_id}")
-                    print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                    print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                     for row in runner_stack:
                         self.log_text.append(f'text - {row}')
                         print(f'=== text - {text}')
@@ -482,7 +482,7 @@ class game_status:
                                 self.log_text.append('주자 처리 에러: 루상에서 처리하려는 대상 주자를 찾을 수 없음')
                                 print("-"*60)
                                 print(f"=== gameID : {self.game_id}")
-                                print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                                print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                                 for row in runner_stack:
                                     self.log_text.append(f'text - {row}')
                                     print(f'=== text - {text}')
@@ -652,13 +652,13 @@ class game_status:
                     if after_code is None:
                         if debug_mode is True:
                             self.log_text.append('교체 에러: 교체하려는 야수가 경기 타자 기록 명단에 없음')
-                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                            self.log.text.append(f'=== text - {text}')
+                            self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                            self.log_text.append(f'=== text - {text}')
                         if self.change_error is False:
                             self.change_error = True
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
-                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                             print(f'=== text - {text}')
                             print("-"*60)
                             print('교체 에러: 교체하려는 야수가 경기 타자 기록 명단에 없음')
@@ -701,13 +701,13 @@ class game_status:
                     if after_code is None:
                         if debug_mode is True:
                             self.log_text.append('교체 에러: 교체하려는 투수가 경기 투수 기록 명단에 없음')
-                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                            self.log.text.append(f'=== text - {text}')
+                            self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                            self.log_text.append(f'=== text - {text}')
                         if self.change_error is False:
                             self.change_error = True
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
-                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                             print(f'=== text - {text}')
                             print("-"*60)
                             print('교체 에러: 교체하려는 투수가 경기 투수 기록 명단에 없음')
@@ -744,13 +744,13 @@ class game_status:
                     if after_code is None:
                         if debug_mode is True:
                             self.log_text.append('교체 에러: 교체하려는 야수가 경기 타자 기록 명단에 없음')
-                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                            self.log.text.append(f'=== text - {text}')
+                            self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                            self.log_text.append(f'=== text - {text}')
                         if self.change_error is False:
                             self.change_error = True
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
-                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                             print(f'=== text - {text}')
                             print("-"*60)
                             print('교체 에러: 교체하려는 야수가 경기 타자 기록 명단에 없음')
@@ -813,13 +813,13 @@ class game_status:
                             if before_code is None:
                                 if debug_mode is True:
                                     self.log_text.append('교체 에러: 교체하려는 야수가 현재 라인업에 없음')
-                                    self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                                    self.log.text.append(f'=== text - {text}')
+                                    self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                                    self.log_text.append(f'=== text - {text}')
                                 if self.change_error is False:
                                     self.change_error = True
                                     print("-"*60)
                                     print(f"=== gameID : {self.game_id}")
-                                    print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                                    print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                                     print(f'=== text - {text}')
                                     print("-"*60)
                                     print('교체 에러: 교체하려는 야수가 현재 라인업에 없음')
@@ -857,13 +857,13 @@ class game_status:
                     if after_code is None:
                         if debug_mode is True:
                             self.log_text.append('교체 에러: 교체 투입되려는 대주자가 경기 타자 기록 명단업에 없음')
-                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                            self.log.text.append(f'=== text - {text}')
+                            self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                            self.log_text.append(f'=== text - {text}')
                         if self.change_error is False:
                             self.change_error = True
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
-                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                             print(f'=== text - {text}')
                             print("-"*60)
                             print('교체 에러: 교체 투입되려는 대주자가 경기 타자 기록 명단업에 없음')
@@ -917,11 +917,11 @@ class game_status:
                     if (self.strikes > 3) or (self.balls > 4):
                         if debug_mode is True:
                             self.log_text.append('투구 이후 3S 또는 4B가 됨')
-                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                            self.log.text.append(f'=== text - {text}')
+                            self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                            self.log_text.append(f'=== text - {text}')
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
-                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                             print(f'=== text - {text}')
                             print("-"*60)
                             print('투구 이후 3S 또는 4B가 됨')
@@ -1102,11 +1102,11 @@ class game_status:
                     if self.outs > 3:
                         if debug_mode is True:
                             self.log_text.append('타자 주자 처리 결과 3아웃이 넘어감')
-                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                            self.log.text.append(f'=== text - {text}')
+                            self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                            self.log_text.append(f'=== text - {text}')
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
-                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                             print(f'=== text - {text}')
                             print("-"*60)
                             print('타자 주자 처리 결과 3아웃이 넘어감')
@@ -1150,11 +1150,11 @@ class game_status:
                     if self.outs > 3:
                         if debug_mode is True:
                             self.log_text.append('주자 처리 결과 3아웃이 넘어감')
-                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                            self.log.text.append(f'=== text - {text}')
+                            self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                            self.log_text.append(f'=== text - {text}')
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
-                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                             print(f'=== text - {text}')
                             print("-"*60)
                             print('주자 처리 결과 3아웃이 넘어감')
@@ -1165,11 +1165,11 @@ class game_status:
                     if (len(self.print_rows) > 0) & (self.outs < 3):
                         if debug_mode is True:
                             self.log_text.append('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
-                            self.log.text.append(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
-                            self.log.text.append(f'=== text - {text}')
+                            self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                            self.log_text.append(f'=== text - {text}')
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
-                            print(f"=== {self.inning}회{'말' if self.topbot == 1 else '초'} {self.outs}사")
+                            print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                             print(f'=== text - {text}')
                             print("-"*60)
                             print('저번 이닝을 마쳤을 때 3아웃이 되지 않음')

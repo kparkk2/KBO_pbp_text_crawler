@@ -28,6 +28,7 @@ regular_start = {
     '2021': '0403',
     '2022': '0402',
     '2023': '0401',
+    '2024': '0309',
 }
 
 playoff_start = {
@@ -51,6 +52,7 @@ playoff_start = {
     '2021': '1101',
     '2022': '1013',
     '2023': '1019',
+    '2024': '1101',
 }
 
 
@@ -117,9 +119,7 @@ def get_game_ids(start_date, end_date, playoff=False):
                 for elem in gameInfos:
                     gid = elem.get('gameId')
                     gStatusCode = elem.get('statusCode')
-                    if gStatusCode != 'RESULT':
-                        continue
-                    else:
+                    if gStatusCode in ['RESULT', 'ENDED']:
                         gid_date = datetime.date(year, int(gid[4:6]), int(gid[6:8]))
                         if start_date <= gid_date <= end_date:
                             if playoff == False:
@@ -743,6 +743,8 @@ def get_game_data_renewed(game_id):
                         ip = int(ip[0])+0.2
                     elif ip.find('⅓') > 0:
                         ip = int(ip[0])+0.1
+                    elif ip.find('.') > 0:
+                        ip = ip
                     else:
                         ip = int(ip)
                     pitcher_boxscore[k]['inn'] = ip
@@ -852,6 +854,7 @@ def get_game_data_renewed(game_id):
                                               'bb': '볼넷',
                                               'k': '삼진'})
     batting_df = batting_df.assign(level='1군', level_eng='KBO')
+    batting_df = batting_df.sort_values(['batOrder', 'seqno'], ascending=True)
     return pitching_df, batting_df, relay_df
 
 
