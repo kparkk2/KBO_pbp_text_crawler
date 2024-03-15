@@ -950,9 +950,18 @@ def download_pbp_files(start_date, end_date, playoff=False,
                 (source_path / f'{gid}_batting.csv').exists() &\
                 (source_path / f'{gid}_relay.csv').exists():
                 game_data_dfs = []
-                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv'), encoding=enc))
-                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv'), encoding=enc))
-                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv'), encoding=enc))
+                try:
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv'), encoding='cp949'))
+                except:
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv'), encoding='utf-8'))
+                try:
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv'), encoding='cp949'))
+                except:
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv'), encoding='utf-8'))
+                try:
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv'), encoding='cp949'))
+                except:
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv'), encoding='utf-8'))
             else:
                 game_data_dfs = get_game_data_renewed(gid)
 
