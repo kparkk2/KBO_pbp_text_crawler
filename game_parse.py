@@ -324,6 +324,8 @@ class game_status:
             if col in rdf.columns:
                 rdf_cols.append(col)
 
+        # seqno 이상한 버그가 있음
+        rdf = rdf.assign(seqno = range(0, len(rdf)))
         self.relay_array = rdf.loc[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
 
 
@@ -1031,6 +1033,10 @@ class game_status:
                             self.description += self.cur_row[2].strip() + '; '
                         cur_ind += 1
 
+                        # 시스템 메시지(승리 메시지/경기 종료 메시지) 뜨지 않고 종료되는 경우 있음
+                        if cur_ind == len(self.relay_array):
+                            break
+
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
                         self.cur_row = self.relay_array[cur_ind]
@@ -1057,9 +1063,9 @@ class game_status:
                                                                            [None, None, None], True)
                                 self.print_rows.append(save_row)
                                 self.balls += 1
+                            self.pitch_number += 1
                             save_row = self.convert_row_to_save_format(None,
                                                                        [self.description, self.pa_result, self.pa_result_detail], True)
-                            self.pitch_number += 1
                             self.print_rows.append(save_row)
                             self.balls += 1
                         else:
@@ -1127,6 +1133,10 @@ class game_status:
                             self.text_stack.append(self.cur_row)
                             self.description += self.cur_row[2].strip() + '; '
                         cur_ind = cur_ind + 1
+
+                        # 시스템 메시지(승리 메시지/경기 종료 메시지) 뜨지 않고 종료되는 경우 있음
+                        if cur_ind == len(self.relay_array):
+                            break
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
                         self.cur_row = self.relay_array[cur_ind]
