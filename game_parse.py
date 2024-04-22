@@ -1,4 +1,4 @@
-import os, json, regex, csv, sys, traceback, pathlib
+import os, json, csv, sys, traceback, pathlib
 
 import pandas as pd
 import numpy as np
@@ -51,8 +51,8 @@ batter_result = [
     ['희생플라이아웃', '희생플라이', '희생플라이'],
     ['쓰리번트', '삼진', '쓰리번트 삼진'],
     ['타구맞음', '타구맞음 아웃', '타구맞음 아웃'],
-    ['희생번트 실책', '실책', '희생번트 실책'],
-    ['희생번트 야수선택', '희생번트', '희생번트 야수선택'],
+    ['희생번트 실책', '희생번트 실책', '희생번트 실책'],
+    ['희생번트 야수선택', '희생번트 야수선택', '희생번트 야수선택'],
     [' 플라이 아웃', '필드 아웃', '플라이 아웃'],
     [' 번트 아웃', '필드 아웃', '번트 아웃'],
     ['야수선택', '야수 선택', '야수 선택'],
@@ -63,12 +63,14 @@ batter_result = [
     ['번트', '번트 안타', '안타'],
 ]
 
-
 def parse_batter_result(text):
     for tup in batter_result:
         if text.find(tup[0]) >= 0:
+            # 희생플라이 실책인 경우
+            if tup[0] == 실책:
+                if (text.find('희생플라이') >= 0) & (text.find('아웃') < 0):
+                    return ['희생플라이 실책', '희생플라이 실책']
             return tup[1], tup[2]
-
 
 def parse_batter_as_runner(text):
     runner = text.split(' ')[0]
