@@ -67,7 +67,7 @@ def parse_batter_result(text):
     for tup in batter_result:
         if text.find(tup[0]) >= 0:
             # 희생플라이 실책인 경우
-            if tup[0] == 실책:
+            if tup[0] == '실책':
                 if (text.find('희생플라이') >= 0) & (text.find('아웃') < 0):
                     return ['희생플라이 실책', '희생플라이 실책']
             return tup[1], tup[2]
