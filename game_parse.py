@@ -327,6 +327,9 @@ class game_status:
             if col in rdf.columns:
                 rdf_cols.append(col)
 
+        # 중복 row 문제
+        rdf = rdf.loc[rdf[['textOrder', 'seqno', 'text']].drop_duplicates().index]
+
         # seqno 이상한 버그가 있음
         rdf = rdf.assign(seqno = range(0, len(rdf)))
         self.relay_array = rdf.loc[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
