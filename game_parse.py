@@ -335,8 +335,11 @@ class game_status:
         self.relay_array = rdf.loc[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
 
 
-    def convert_row_to_save_format(self, row,
-                                   pa_result_details=None, is_ibb=False):
+    def convert_row_to_save_format(self,
+                                   row,
+                                   pa_result_details=None,
+                                   is_pitchclock_violation=False,
+                                   is_ibb=False):
         # row: pandas Series
         save_row = {k: None for k in header_row}
         save_row['pitcher'] = self.pitcher_name
@@ -410,28 +413,32 @@ class game_status:
             save_row['pitch_number'] = self.pitch_number
             save_row['pitchID'] = row[5]
 
-            if len(row) > 13:
-                if not np.isnan(row[17]):
-                    save_row['x0'] = row[17]
-                    save_row['z0'] = row[15]
-                    save_row['sz_top'] = row[10]
-                    save_row['sz_bot'] = row[11]
-                    px, pz, pfx_x, pfx_z, pfx_x_raw, pfx_z_raw = get_pitch_location_break(row)
+            if is_pitchclock_violation is True:
+                save_row['pitch_result'] = row[2][row[2].find(' ')+1:]
+            else:
+                save_row['pitch_result'] = row[2].split(' ')[-1]
+                if len(row) > 13:
+                    if not np.isnan(row[17]):
+                        save_row['x0'] = row[17]
+                        save_row['z0'] = row[15]
+                        save_row['sz_top'] = row[10]
+                        save_row['sz_bot'] = row[11]
+                        px, pz, pfx_x, pfx_z, pfx_x_raw, pfx_z_raw = get_pitch_location_break(row)
 
-                    save_row['px'] = px
-                    save_row['pz'] = pz
-                    save_row['pfx_x'] = pfx_x
-                    save_row['pfx_z'] = pfx_z
-                    save_row['pfx_x_raw'] = pfx_x_raw
-                    save_row['pfx_z_raw'] = pfx_z_raw
+                        save_row['px'] = px
+                        save_row['pz'] = pz
+                        save_row['pfx_x'] = pfx_x
+                        save_row['pfx_z'] = pfx_z
+                        save_row['pfx_x_raw'] = pfx_x_raw
+                        save_row['pfx_z_raw'] = pfx_z_raw
 
-                    save_row['y0'] = 50
-                    save_row['vx0'] = row[14]
-                    save_row['vy0'] = row[12]
-                    save_row['vz0'] = row[13]
-                    save_row['ax'] = row[16]
-                    save_row['ay'] = row[18]
-                    save_row['az'] = row[19]
+                        save_row['y0'] = 50
+                        save_row['vx0'] = row[14]
+                        save_row['vy0'] = row[12]
+                        save_row['vz0'] = row[13]
+                        save_row['ax'] = row[16]
+                        save_row['ay'] = row[18]
+                        save_row['az'] = row[19]
         if is_ibb is True:
             save_row['pitch_result'] = '고의 볼'
             save_row['pitch_number'] = self.pitch_number
@@ -902,6 +909,7 @@ class game_status:
                 ##############################
 
                 if cur_type == 1:
+                    # 볼, 스트라이크, 헛스윙, 파울
                     self.last_pitch = row
                     self.pitch_number += 1
                     res = self.cur_text.split(' ')[-1]
@@ -935,6 +943,47 @@ class game_status:
                             print('투구 이후 3S 또는 4B가 됨')
                         assert False
                     self.ind = self.ind + 1
+
+                elif cur_type == 7:
+                    # 시스템 메시지(비디오 판독, 피치클락 위반 등)
+                    res = self.cur_text[self.cur_text.find(' ')+1:]
+                    if res.find('피치클락') < 0:
+                        # 시스템 메시지
+                        self.ind = self.ind + 1
+                    elif res.find('위반') < 0:
+                        # 시스템 메시지
+                        self.ind = self.ind + 1
+                    else:
+                        if (res.find('스트') > -1) or (res.find('볼') > -1):
+                            self.last_pitch = row
+                            self.pitch_number += 1
+                            self.pitch_result = res
+                            self.outs_on_play = 0
+                            self.runs_scored = 0
+                            # 인플레이/삼진/볼넷 이외에는 여기서 row print
+                            # 몸에맞는공은 타석 결과에서 수정
+                            if res != '타격':
+                                save_row = self.convert_row_to_save_format(row,
+                                                                           is_pitchclock_violation=True)
+                                self.print_rows.append(save_row)
+
+                            if res.find('볼') > -1:
+                                self.balls += 1
+                            elif res.find('스트라이크') > -1:
+                                self.strikes += 1
+                            if (self.strikes > 3) or (self.balls > 4):
+                                if debug_mode is True:
+                                    self.log_text.append('투구 이후 3S 또는 4B가 됨')
+                                    self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                                    self.log_text.append(f'=== text - {text}')
+                                    print("-"*60)
+                                    print(f"=== gameID : {self.game_id}")
+                                    print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                                    print(f'=== text - {text}')
+                                    print("-"*60)
+                                    print('투구 이후 3S 또는 4B가 됨')
+                                assert False
+                        self.ind = self.ind + 1
 
                 elif cur_type == 8:
                     # 타석 시작(x번타자 / 대타)
@@ -1229,9 +1278,6 @@ class game_status:
                     self.print_rows.append(save_row)
 
                     self.handle_change(self.text_stack, debug_mode)
-                elif cur_type == 7:
-                    # 시스템 메시지
-                    self.ind = self.ind + 1
                 else:
                     self.ind = self.ind + 1
             return True
