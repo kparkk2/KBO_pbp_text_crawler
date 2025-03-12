@@ -571,6 +571,7 @@ def get_game_data_renewed(game_id):
                 textRow = {}
                 pitchTrackerRow = {}
 
+                homeOrAway = textSetList.get('homeOrAway')
                 textSet = textSetList.get('textOptions')
                 textSetNo = textSetList.get('no')
                 for pitchTextData in textSet:
@@ -589,6 +590,7 @@ def get_game_data_renewed(game_id):
                                 textRow[key] = pitchTextData.get(key)
                     textRow['referee'] = referees[0]
                     textRow['stadium'] = stadium
+                    textRow['homeOrAway'] = homeOrAway
                     game_data_set['pitchTextList'].append(textRow)
 
                 pitchTrackerSet = textSetList.get('ptsOptions')
@@ -982,6 +984,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
                         logfile.write(f'NOTE: {gid_year}/source exists but not a directory.')
                         logfile.write(f'source files will be saved in {gid_year} instead.')
 
+                enc = 'cp949'
                 if not (source_path / f'{gid}_pitching.csv').exists():
                     game_data_dfs[0].to_csv(str(source_path / f'{gid}_pitching.csv'),
                                             index=False, encoding=enc, errors='replace')

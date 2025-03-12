@@ -318,7 +318,8 @@ class game_status:
         self.away_pitcher_list = away_pdf[pitcher_list_cols].values.tolist()
 
         rdf_cols = ['textOrder', 'seqno', 'text', 'type',
-                    'stuff', 'pitchId', 'speed', 'referee', 'stadium']
+                    'stuff', 'pitchId', 'speed', 'referee', 'stadium',
+                    'homeOrAway',]
         if 'x0' in rdf.columns:
             rdf_cols += ['crossPlateX', 'topSz', 'bottomSz',
                          'vy0', 'vz0', 'vx0', 'z0', 'ax', 'x0', 'ay', 'az']
@@ -332,6 +333,9 @@ class game_status:
 
         # seqno 이상한 버그가 있음
         rdf = rdf.assign(seqno = range(0, len(rdf)))
+        rdf = rdf.drop_duplicates(['textOrder', 'text', 'ballcount'])
+        rdf = pd.concat([rdf[rdf.type != 0],
+                         rdf[rdf.type == 0].drop_duplicates(['type', 'text'])]).sort_index()
         self.relay_array = rdf.loc[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
 
 
@@ -459,8 +463,8 @@ class game_status:
                     print(f"=== gameID : {self.game_id}")
                     print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                     for row in runner_stack:
-                        self.log_text.append(f'text - {row}')
-                        print(f'=== text - {text}')
+                        self.log_text.append(f'text - {row[2]}')
+                        print(f'=== text - {row[2]}')
                     print("-"*60)
                     print('주자 처리 에러: 주자가 없는데 handle_runner_stack 호출')
                     self.change_error = True
@@ -499,8 +503,8 @@ class game_status:
                                 print(f"=== gameID : {self.game_id}")
                                 print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                                 for row in runner_stack:
-                                    self.log_text.append(f'text - {row}')
-                                    print(f'=== text - {text}')
+                                    self.log_text.append(f'text - {self.cur_text}')
+                                    print(f'=== text - {self.cur_text}')
                                 print("-"*60)
                                 print('주자 처리 에러: 루상에서 처리하려는 대상 주자를 찾을 수 없음')
                                 self.change_error = True
@@ -900,9 +904,10 @@ class game_status:
             self.top_bot = 1
             while self.ind < self.relay_array.shape[0]:
                 row = self.relay_array[self.ind]
-                cur_type = row[3]
-                self.cur_text = row[2]
                 cur_to = row[0]
+                self.cur_text = row[2]
+                cur_type = row[3]
+                homeOrAway = row[9]
 
                 ##############################
                 ###### type에 따라 파싱 ######
@@ -934,11 +939,11 @@ class game_status:
                         if debug_mode is True:
                             self.log_text.append('투구 이후 3S 또는 4B가 됨')
                             self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                            self.log_text.append(f'=== text - {text}')
+                            self.log_text.append(f'=== text - {self.cur_text}')
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
                             print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                            print(f'=== text - {text}')
+                            print(f'=== text - {self.cur_text}')
                             print("-"*60)
                             print('투구 이후 3S 또는 4B가 됨')
                         assert False
@@ -975,17 +980,48 @@ class game_status:
                                 if debug_mode is True:
                                     self.log_text.append('투구 이후 3S 또는 4B가 됨')
                                     self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                                    self.log_text.append(f'=== text - {text}')
+                                    self.log_text.append(f'=== text - {self.cur_text}')
                                     print("-"*60)
                                     print(f"=== gameID : {self.game_id}")
                                     print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                                    print(f'=== text - {text}')
+                                    print(f'=== text - {row[2]}')
                                     print("-"*60)
                                     print('투구 이후 3S 또는 4B가 됨')
                                 assert False
                         self.ind = self.ind + 1
 
                 elif cur_type == 8:
+                    # 버그: 이닝 텍스트 row가 통째로 누락 (20250311HHSK02025)
+                    # relay csv에 homeOrAway 컬럼을 추가 (0 초, 1 말)
+                    # self의 top_bot 값과 비교해서 다르면 이닝 교체로 간주한다
+                    if homeOrAway != self.top_bot:
+                        if (len(self.print_rows) > 0) & (self.outs < 3):
+                            if debug_mode is True:
+                                self.log_text.append('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
+                                self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                                self.log_text.append(f'=== homeOrAway: {homeOrAway} / self.top_bot: - {self.top_bot}')
+                                self.log_text.append(f'=== text - {self.cur_text}')
+                                print("-"*60)
+                                print(f"=== gameID : {self.game_id}")
+                                print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
+                                print(f'=== text - {self.cur_text}')
+                                print("-"*60)
+                                print('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
+                            assert False
+                        if self.top_bot == 1:
+                            self.inn += 1
+                        self.top_bot = (1 - self.top_bot)
+                        self.pitcher_name, self.pitcher_code, self.throws = self.fields[self.top_bot].get('투수').values()
+
+                        self.runner_bases = []
+                        self.balls, self.outs, self.strikes = 0, 0, 0
+                        self.DH_exist_after = self.DH_exist[:]
+                        self.last_pitch = None
+
+                        self.pitch_number = 0
+                        self.outs_on_play = 0
+                        self.runs_scored = 0
+
                     # 타석 시작(x번타자 / 대타)
                     position = self.cur_text.split(' ')[0]
                     self.last_pitch = None
@@ -1164,11 +1200,11 @@ class game_status:
                         if debug_mode is True:
                             self.log_text.append('타자 주자 처리 결과 3아웃이 넘어감')
                             self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                            self.log_text.append(f'=== text - {text}')
+                            self.log_text.append(f'=== text - {self.cur_text}')
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
                             print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                            print(f'=== text - {text}')
+                            print(f'=== text - {self.cur_text}')
                             print("-"*60)
                             print('타자 주자 처리 결과 3아웃이 넘어감')
                         assert False
@@ -1216,11 +1252,11 @@ class game_status:
                         if debug_mode is True:
                             self.log_text.append('주자 처리 결과 3아웃이 넘어감')
                             self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                            self.log_text.append(f'=== text - {text}')
+                            self.log_text.append(f'=== text - {self.cur_text}')
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
                             print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                            print(f'=== text - {text}')
+                            print(f'=== text - {self.cur_text}')
                             print("-"*60)
                             print('주자 처리 결과 3아웃이 넘어감')
                         assert False
@@ -1231,11 +1267,11 @@ class game_status:
                         if debug_mode is True:
                             self.log_text.append('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
                             self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                            self.log_text.append(f'=== text - {text}')
+                            self.log_text.append(f'=== text - {self.cur_text}')
                             print("-"*60)
                             print(f"=== gameID : {self.game_id}")
                             print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                            print(f'=== text - {text}')
+                            print(f'=== text - {self.cur_text}')
                             print("-"*60)
                             print('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
                         assert False
@@ -1340,7 +1376,8 @@ class game_status:
                                                      'sz_top': 3, 'sz_bot': 3, 'y0': 3,
                                                      'vx0': 3, 'vy0': 3, 'vz0': 3,
                                                      'ax': 3, 'ay': 3, 'az': 3}).loc[:, 'px':'az']
-            enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
+            #enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
+            enc = 'cp949'
 
             if path is None:
                 path = pathlib.Path('.')
