@@ -318,8 +318,7 @@ class game_status:
         self.away_pitcher_list = away_pdf[pitcher_list_cols].values.tolist()
 
         rdf_cols = ['textOrder', 'seqno', 'text', 'type',
-                    'stuff', 'pitchId', 'speed', 'referee', 'stadium',
-                    'homeOrAway',]
+                    'stuff', 'pitchId', 'speed', 'referee', 'stadium']
         if 'x0' in rdf.columns:
             rdf_cols += ['crossPlateX', 'topSz', 'bottomSz',
                          'vy0', 'vz0', 'vx0', 'z0', 'ax', 'x0', 'ay', 'az']
@@ -327,6 +326,7 @@ class game_status:
         for col in ['outPlayer', 'inPlayer', 'shiftPlayer']:
             if col in rdf.columns:
                 rdf_cols.append(col)
+        rdf_cols += ['homeOrAway']
 
         # 중복 row 문제
         rdf = rdf.loc[rdf[['textOrder', 'seqno', 'text']].drop_duplicates().index]
@@ -907,7 +907,7 @@ class game_status:
                 cur_to = row[0]
                 self.cur_text = row[2]
                 cur_type = row[3]
-                homeOrAway = row[9]
+                homeOrAway = row[-1]
 
                 ##############################
                 ###### type에 따라 파싱 ######

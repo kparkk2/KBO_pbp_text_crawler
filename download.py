@@ -859,7 +859,13 @@ def get_game_data_renewed(game_id):
                                               'k': '삼진'})
     batting_df = batting_df.assign(level='1군', level_eng='KBO')
     batting_df = batting_df.sort_values(['batOrder', 'seqno'], ascending=True)
-    return pitching_df, batting_df, relay_df
+    
+    rdf_cols = relay_df.columns.tolist()
+    idx = rdf_cols.index('homeOrAway')
+    rdf_cols.pop(idx)
+    rdf_cols.append('homeOrAway')
+    
+    return pitching_df, batting_df, relay_df[rdf_cols]
 
 
 def download_pbp_files(start_date, end_date, playoff=False,
