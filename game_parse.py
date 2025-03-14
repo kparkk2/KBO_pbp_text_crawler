@@ -342,8 +342,8 @@ class game_status:
     def convert_row_to_save_format(self,
                                    row,
                                    pa_result_details=None,
-                                   is_pitchclock_violation=False,
-                                   is_ibb=False):
+                                   is_ibb=False,
+                                   is_pitchclock_violation=False):
         # row: pandas Series
         save_row = {k: None for k in header_row}
         save_row['pitcher'] = self.pitcher_name
