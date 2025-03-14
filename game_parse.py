@@ -901,13 +901,12 @@ class game_status:
         try:
             self.ind = 0
             self.inn = 0
-            self.top_bot = 1
             while self.ind < self.relay_array.shape[0]:
                 row = self.relay_array[self.ind]
                 cur_to = row[0]
                 self.cur_text = row[2]
                 cur_type = row[3]
-                homeOrAway = row[-1]
+                homeOrAway = int(row[-1])
 
                 ##############################
                 ###### type에 따라 파싱 ######
@@ -997,16 +996,16 @@ class game_status:
                     if homeOrAway != self.top_bot:
                         if (len(self.print_rows) > 0) & (self.outs < 3):
                             if debug_mode is True:
-                                self.log_text.append('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
+                                self.log_text.append('이닝 텍스트 row 누락 의심')
                                 self.log_text.append(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
-                                self.log_text.append(f'=== homeOrAway: {homeOrAway} / self.top_bot: - {self.top_bot}')
+                                self.log_text.append(f'=== homeOrAway: {homeOrAway} / self.top_bot: {self.top_bot}')
                                 self.log_text.append(f'=== text - {self.cur_text}')
                                 print("-"*60)
                                 print(f"=== gameID : {self.game_id}")
                                 print(f"=== {self.inn}회{'말' if self.top_bot == 1 else '초'} {self.outs}사")
                                 print(f'=== text - {self.cur_text}')
                                 print("-"*60)
-                                print('저번 이닝을 마쳤을 때 3아웃이 되지 않음')
+                                print('이닝 텍스트 row 누락 의심')
                             assert False
                         if self.top_bot == 1:
                             self.inn += 1
