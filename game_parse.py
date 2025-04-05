@@ -1121,12 +1121,24 @@ class game_status:
                             # 시스템 메시지(비디오 판독 등) 패스
                             self.text_stack.append(self.cur_row)
                             self.description += self.cur_row[2].strip() + '; '
+                        else:
+                            # 시스템 메시지(비디오 판독, 피치클락 위반 등)
+                            res = self.cur_row[2][self.cur_row[2].find(' ')+1:]
+                            if res.find('피치클락') < 0:
+                                # 시스템 메시지
+                                pass
+                            elif res.find('위반') < 0:
+                                # 시스템 메시지
+                                pass
+                            else:
+                                # 피치클락 위반
+                                # 이 경우, 주루 관련 메시지는 종료된 것임
+                                break
                         cur_ind += 1
 
                         # 시스템 메시지(승리 메시지/경기 종료 메시지) 뜨지 않고 종료되는 경우 있음
                         if cur_ind == len(self.relay_array):
                             break
-
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
                         self.cur_row = self.relay_array[cur_ind]
@@ -1222,7 +1234,20 @@ class game_status:
                             # 시스템 메시지(비디오 판독 등) 패스
                             self.text_stack.append(self.cur_row)
                             self.description += self.cur_row[2].strip() + '; '
-                        cur_ind = cur_ind + 1
+                        else:
+                            # 시스템 메시지(비디오 판독, 피치클락 위반 등)
+                            res = self.cur_row[2][self.cur_row[2].find(' ')+1:]
+                            if res.find('피치클락') < 0:
+                                # 시스템 메시지
+                                pass
+                            elif res.find('위반') < 0:
+                                # 시스템 메시지
+                                pass
+                            else:
+                                # 피치클락 위반
+                                # 이 경우, 주루 관련 메시지는 종료된 것임
+                                break
+                        cur_ind += 1
 
                         # 시스템 메시지(승리 메시지/경기 종료 메시지) 뜨지 않고 종료되는 경우 있음
                         if cur_ind == len(self.relay_array):
