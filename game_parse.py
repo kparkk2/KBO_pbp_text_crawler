@@ -266,8 +266,8 @@ class game_status:
 
         bats = [bdf[bdf.homeaway == 'a'],
                 bdf[bdf.homeaway == 'h']]
-        pits = [pdf[pdf.homeaway == 'a'],
-                pdf[pdf.homeaway == 'h']]
+        pits = [pdf[pdf.homeaway == 'a'].sort_values('seqno'),
+                pdf[pdf.homeaway == 'h'].sort_values('seqno')]
         abat_seqno_min = bats[0][bats[0].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
         hbat_seqno_min = bats[1][bats[1].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
 
@@ -306,8 +306,8 @@ class game_status:
 
         home_bdf = bdf[bdf.homeaway == 'h']
         away_bdf = bdf[bdf.homeaway == 'a']
-        home_pdf = pdf[pdf.homeaway == 'h']
-        away_pdf = pdf[pdf.homeaway == 'a']
+        home_pdf = pdf[pdf.homeaway == 'h'].sort_values('seqno')
+        away_pdf = pdf[pdf.homeaway == 'a'].sort_values('seqno')
 
         batter_list_cols = ['name', 'pcode', 'posName', 'hitType', 'batOrder', 'seqno']
         pitcher_list_cols = ['name', 'pcode', 'hitType', 'seqno']
