@@ -596,11 +596,18 @@ class game_status:
         change_stack = []
         for text in text_stack:
             order = None
-            before_pos = text.split(' ')[0]
+            #before_pos = text.split(' ')[0]
+            before_text = text.split(':')[0].strip()
+            first_ws_pos = before_text.find(' ')
+            before_pos = before_text[:first_ws_pos].strip()
+            before_name = before_text[first_ws_pos+1:].strip()
 
             if text.find('변경') > 0:
+                # POS1 NAME1 : POS2(으)로 수비위치 변경
                 after_pos = text.split('(')[0].strip().split(' ')[-1]
-                shift_name = text.split(' ')[1].strip()
+                #shift_name = text.split(' ')[1].strip()
+                shift_name = before_name
+
                 shift_code = None
                 shift_hittype = None
 
@@ -630,9 +637,17 @@ class game_status:
                 change = [before_pos, after_pos, order, shift_name, shift_code, shift_hittype]
                 change_stack.append(change)
             else:
-                after_pos = text.split('(')[0].strip().split(' ')[3]
-                after_name = text.split('(')[0].strip().split(' ')[-1]
-                before_name = text.split(' ')[1].strip()
+                #after_pos = text.split('(')[0].strip().split(' ')[3]
+                #after_name = text.split('(')[0].strip().split(' ')[-1]
+                #before_name = text.split(' ')[1].strip()
+                # '코엔 윈' 나오면서 split을 다시 해야됨
+                # 교체 텍스트는 앞으로 아래와 같이 상정
+                # POS1 NAME1 : POS2 NAME2 (으)로 교체
+                after_text = text.split(':')[1].strip().split('(')[0].strip()
+                first_ws_pos = after_text.find(' ')
+                after_pos = after_text[:first_ws_pos].strip()
+                after_name = after_text[first_ws_pos+1:].strip()
+
                 before_code = None
                 after_code = None
                 after_hittype = None
@@ -1036,7 +1051,10 @@ class game_status:
                             self.batter_name, self.batter_code,\
                             _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
                         else:
-                            self.batter_name = self.cur_text.split(' ')[1]
+                            #self.batter_name = self.cur_text.split(' ')[1]
+                            # '코엔 윈' 생겨서 parsing을 다르게 해야 됨
+                            first_ws_pos = self.cur_text.find(' ')
+                            self.batter_name = self.cur_text[first_ws_pos+1:].strip()
                             self.batter_code = None
                             self.stands = None
                         self.pitch_number = 0
@@ -1047,8 +1065,14 @@ class game_status:
                         # '대타 OOO' 텍스트가 들어왔는데, batter_name과 다름
                         # 교체된 것으로 간주, batter_name과 lineups의 이름과 code 등을 바꾼다
                         # 임시조치
-                        if self.batter_name != self.cur_text.split(' ')[1]:
-                            self.batter_name = self.cur_text.split(' ')[1]
+
+                        # '코엔 윈' 생겨서 parsing을 다르게 해야 됨
+                        #if self.batter_name != self.cur_text.split(' ')[1]:
+                            #self.batter_name = self.cur_text.split(' ')[1]
+                        first_ws_pos = self.cur_text.find(' ')
+                        batter_name_in_text = self.cur_text[first_ws_pos+1:].strip()
+                        if self.batter_name != batter_name_in_text:
+                            self.batter_name = batter_name_in_text
                             self.lineups[self.top_bot][self.cur_order - 1]['name'] = self.batter_name
 
                             if self.top_bot == 0:
@@ -1072,16 +1096,26 @@ class game_status:
                             self.batter_name, self.batter_code,\
                             _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
                         else:
-                            self.batter_name = self.cur_text.split(' ')[1]
+                            # self.batter_name = self.cur_text.split(' ')[1]
+                            # '코엔 윈' 생겨서 parsing을 다르게 해야 됨
+                            first_ws_pos = self.cur_text.find(' ')
+                            self.batter_name = self.cur_text[first_ws_pos+1:].strip()
                             self.batter_code = None
                             self.stands = None
                         # 버그 : 대타 교체 텍스트가 누락된 경우. 20170902HTWO02017
                         # '대타 OOO' 텍스트가 들어왔는데, batter_name과 다름
                         # 교체된 것으로 간주, batter_name과 lineups의 이름과 code 등을 바꾼다
                         # 임시조치
-                        if self.batter_name != self.cur_text.split(' ')[1]:
-                            if len(self.cur_text.strip().split(' ')) > 1:
-                                self.batter_name = self.cur_text.strip().split(' ')[1]
+
+                        # '코엔 윈' 생겨서 parsing을 다르게 해야 됨
+                        #if self.batter_name != self.cur_text.split(' ')[1]:
+                            #if len(self.cur_text.strip().split(' ')) > 1:
+                                #self.batter_name = self.cur_text.strip().split(' ')[1]
+                        first_ws_pos = self.cur_text.find(' ')
+                        batter_name_in_text = self.cur_text[first_ws_pos+1:].strip()
+                        if self.batter_name != batter_name_in_text:
+                            if len(batter_name_in_text) > 1:
+                                self.batter_name = batter_name_in_text
                                 self.lineups[self.top_bot][self.cur_order - 1]['name'] =self.batter_name
                                 if self.top_bot == 0:
                                     for p in self.away_batter_list:
