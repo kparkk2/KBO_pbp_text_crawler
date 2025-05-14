@@ -264,8 +264,8 @@ class game_status:
         # 라인업 & 필드 채우기 #
         ########################
 
-        bats = [bdf[bdf.homeaway == 'a'],
-                bdf[bdf.homeaway == 'h']]
+        bats = [bdf[bdf.homeaway == 'a'].sort_values(['batOrder', 'seqno']),
+                bdf[bdf.homeaway == 'h'].sort_values(['batOrder', 'seqno'])]
         pits = [pdf[pdf.homeaway == 'a'].sort_values('seqno'),
                 pdf[pdf.homeaway == 'h'].sort_values('seqno')]
         abat_seqno_min = bats[0][bats[0].batOrder.between(1, 9)].groupby('batOrder').seqno.min().tolist()
@@ -304,8 +304,8 @@ class game_status:
         self.fields[1]['투수'] = away_pitcher
         self.fields[0]['투수'] = home_pitcher
 
-        home_bdf = bdf[bdf.homeaway == 'h']
-        away_bdf = bdf[bdf.homeaway == 'a']
+        home_bdf = bdf[bdf.homeaway == 'h'].sort_values(['batOrder', 'seqno'])
+        away_bdf = bdf[bdf.homeaway == 'a'].sort_values(['batOrder', 'seqno'])
         home_pdf = pdf[pdf.homeaway == 'h'].sort_values('seqno')
         away_pdf = pdf[pdf.homeaway == 'a'].sort_values('seqno')
 
