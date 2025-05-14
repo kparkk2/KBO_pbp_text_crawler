@@ -333,7 +333,10 @@ class game_status:
 
         # seqno 이상한 버그가 있음
         rdf = rdf.assign(seqno = range(0, len(rdf)))
-        rdf = rdf.drop_duplicates(['textOrder', 'text', 'ballcount'])
+        if 'ballcount' in rdf.columns:
+            rdf = rdf.drop_duplicates(['textOrder', 'text', 'ballcount'])
+        else:
+            rdf = rdf.drop_duplicates(['textOrder', 'text'])
         rdf = pd.concat([rdf[rdf.type != 0],
                          rdf[rdf.type == 0].drop_duplicates(['type', 'text'])]).sort_index()
         self.relay_array = rdf.loc[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
