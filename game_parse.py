@@ -74,7 +74,7 @@ def parse_batter_result(text):
             return tup[1], tup[2]
 
 def parse_batter_as_runner(text):
-    runner = text.split(' ')[0]
+    runner = text.split(':')[0].strip()
 
     result = 'o' if text.find('아웃') > 0 else 'a'
     result = 'h' if text.find('홈런') > 0 else result
@@ -110,7 +110,9 @@ def parse_batter_as_runner(text):
 
 
 def parse_runner_result(text):
-    runner = text.split(' ')[1]
+    runner_text = text.split(':')[0].strip()
+    first_ws_pos = runner_text.find(' ')
+    runner = runner_text[first_ws_pos+1:].strip()
 
     result = 'o' if text.find('아웃') > 0 else 'a' # o : out, a : advance
     result = 'h' if text.find('홈인') > 0 else result # 'h' : home-in
