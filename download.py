@@ -12,6 +12,8 @@ regular_start = {
     '4444': '0101', # playoff
     '5555': '0101', # playoff
     '7777': '0101', # playoff
+    '8888': '0101', # event
+    '9999': '0101', # event
     '2008': '0329',
     '2009': '0404',
     '2010': '0327',
@@ -37,6 +39,8 @@ playoff_start = {
     '4444': '1231', # playoff
     '5555': '1231', # playoff
     '7777': '1231', # playoff
+    '8888': '1231', # event
+    '9999': '1231', # event
     '2008': '1008',
     '2009': '0920',
     '2010': '1005',
@@ -941,7 +945,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
             now = datetime.datetime.now().date()
             gid_year = int(gid[:4])
             if gid_year > 3000:
-                if gid_year > 9000:
+                if gid_year > 6000:
                     continue
                 gid_year = int(gid[-4:])
             gid_to_date = datetime.date(gid_year,
