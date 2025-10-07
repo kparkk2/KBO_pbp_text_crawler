@@ -945,37 +945,38 @@ def download_pbp_files(start_date, end_date, playoff=False,
             now = datetime.datetime.now().date()
             gid_year = int(gid[:4])
             if gid_year > 3000:
-                if gid_year > 6000:
+                if gid_year > 8000:
                     continue
                 gid_year = int(gid[-4:])
+            gid_for_save = f'{gid_year}{gid[4:]}'
             gid_to_date = datetime.date(gid_year,
                                         int(gid[4:6]),
                                         int(gid[6:8]))
             if gid_to_date > now:
                 continue
 
-            if (save_path / str(gid_year) / f'{gid}.csv').exists():
+            if (save_path / str(gid_year) / f'{gid_for_save}.csv').exists():
                 skipped += 1
                 continue
 
             ptime = time.time()
             source_path = save_path / str(gid_year) / 'source'
-            if (source_path / f'{gid}_pitching.csv').exists() &\
-                (source_path / f'{gid}_batting.csv').exists() &\
-                (source_path / f'{gid}_relay.csv').exists():
+            if (source_path / f'{gid_for_save}_pitching.csv').exists() &\
+                (source_path / f'{gid_for_save}_batting.csv').exists() &\
+                (source_path / f'{gid_for_save}_relay.csv').exists():
                 game_data_dfs = []
                 try:
-                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv'), encoding='cp949'))
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid_for_save}_pitching.csv'), encoding='cp949'))
                 except:
-                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv'), encoding='utf-8'))
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid_for_save}_pitching.csv'), encoding='utf-8'))
                 try:
-                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv'), encoding='cp949'))
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid_for_save}_batting.csv'), encoding='cp949'))
                 except:
-                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv'), encoding='utf-8'))
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid_for_save}_batting.csv'), encoding='utf-8'))
                 try:
-                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv'), encoding='cp949'))
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid_for_save}_relay.csv'), encoding='cp949'))
                 except:
-                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv'), encoding='utf-8'))
+                    game_data_dfs.append(pd.read_csv(str(source_path / f'{gid_for_save}_relay.csv'), encoding='utf-8'))
             else:
                 game_data_dfs = get_game_data_renewed(gid)
 
@@ -995,14 +996,14 @@ def download_pbp_files(start_date, end_date, playoff=False,
                         logfile.write(f'source files will be saved in {gid_year} instead.')
 
                 enc = 'cp949'
-                if not (source_path / f'{gid}_pitching.csv').exists():
-                    game_data_dfs[0].to_csv(str(source_path / f'{gid}_pitching.csv'),
+                if not (source_path / f'{gid_for_save}_pitching.csv').exists():
+                    game_data_dfs[0].to_csv(str(source_path / f'{gid_for_save}_pitching.csv'),
                                             index=False, encoding=enc, errors='replace')
-                if not (source_path / f'{gid}_batting.csv').exists():
-                    game_data_dfs[1].to_csv(str(source_path / f'{gid}_batting.csv'),
+                if not (source_path / f'{gid_for_save}_batting.csv').exists():
+                    game_data_dfs[1].to_csv(str(source_path / f'{gid_for_save}_batting.csv'),
                                             index=False, encoding=enc, errors='replace')
-                if not (source_path / f'{gid}_relay.csv').exists():
-                    game_data_dfs[2].to_csv(str(source_path / f'{gid}_relay.csv'),
+                if not (source_path / f'{gid_for_save}_relay.csv').exists():
+                    game_data_dfs[2].to_csv(str(source_path / f'{gid_for_save}_relay.csv'),
                                             index=False, encoding=enc, errors='replace')
 
             get_data_time += time.time() - ptime

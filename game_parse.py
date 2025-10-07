@@ -1444,8 +1444,11 @@ class game_status:
 
             if path is None:
                 path = pathlib.Path('.')
-            save_path = str(path / f'{self.game_id}.csv')
+            if int(self.game_id[:4]) < 3000:
+                save_path = str(path / f'{self.game_id}.csv')
+            else:
+                save_path = str(path / f'{self.game_id[-4:]}{self.game_id[4:]}.csv')
 
             row_df.to_csv(save_path,
-                        encoding=enc,
-                        index=False)
+                          encoding=enc,
+                          index=False)
