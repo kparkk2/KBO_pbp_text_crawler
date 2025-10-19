@@ -8,12 +8,13 @@ from bs4 import BeautifulSoup
 from game_parse import game_status
 
 regular_start = {
-    '3333': '0101', # playoff
-    '4444': '0101', # playoff
+    '3333': '0101', # semi-playoff
+    '4444': '0101', # wildcard
     '5555': '0101', # playoff
+    '6666': '0101', # tie-breaker
     '7777': '0101', # playoff
     '8888': '0101', # event
-    '9999': '0101', # event
+    '9999': '0101', # all-star
     '2008': '0329',
     '2009': '0404',
     '2010': '0327',
@@ -35,12 +36,13 @@ regular_start = {
 }
 
 playoff_start = {
-    '3333': '1231', # playoff
-    '4444': '1231', # playoff
+    '3333': '1231', # semi-playoff
+    '4444': '1231', # wildcard
     '5555': '1231', # playoff
+    '6666': '1231', # tie-breaker
     '7777': '1231', # playoff
     '8888': '1231', # event
-    '9999': '1231', # event
+    '9999': '1231', # all-star
     '2008': '1008',
     '2009': '0920',
     '2010': '1005',
