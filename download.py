@@ -654,9 +654,11 @@ def get_game_data_renewed(game_id):
             hr = player.get('hr')
             bb = player.get('bb')
             k = player.get('kk')
+            batOrder = player.get('batOrder')
             home_players.append({'name': name, 'pos': pos, 'pcode': pcode,
                                  'ab': ab, 'run': run, 'hit': hit,
-                                 'rbi': rbi, 'hr': hr, 'bb': bb, 'k': k})
+                                 'rbi': rbi, 'hr': hr, 'bb': bb, 'k': k,
+                                 'batOrder': batOrder})
 
         for i in range(len(away_batting_order)):
             player = away_batting_order[i]
@@ -670,9 +672,11 @@ def get_game_data_renewed(game_id):
             hr = player.get('hr')
             bb = player.get('bb')
             k = player.get('kk')
+            batOrder = player.get('batOrder')
             away_players.append({'name': name, 'pos': pos, 'pcode': pcode,
                                  'ab': ab, 'run': run, 'hit': hit,
-                                 'rbi': rbi, 'hr': hr, 'bb': bb, 'k': k})
+                                 'rbi': rbi, 'hr': hr, 'bb': bb, 'k': k,
+                                 'batOrder': batOrder})
 
         ############################################
         # 3. 메타 데이터에 있는 라인업 정보와 취합 #
@@ -706,6 +710,12 @@ def get_game_data_renewed(game_id):
         hp = hp.assign(pcode = pd.to_numeric(hp.pcode))
         away_lineup_df = pd.merge(away_lineup_df, ap, on='pcode', how='outer')
         home_lineup_df = pd.merge(home_lineup_df, hp, on='pcode', how='outer')
+        away_lineup_df['batOrder'] = np.where(away_lineup_df.batOrder_x.isna(),
+                                              away_lineup_df.batOrder_y,
+                                              away_lineup_df.batOrder_x.fillna(0).astype(int))
+        home_lineup_df['batOrder'] = np.where(home_lineup_df.batOrder_x.isna(),
+                                              home_lineup_df.batOrder_y,
+                                              home_lineup_df.batOrder_x.fillna(0).astype(int))
 
         # 선발 출장한 경우, 선수의 포지션을 경기 시작할 때 포지션으로 수정
         # (pitch by pitch 데이터에서 가져온 정보는 경기 종료 시의 포지션임)
@@ -719,6 +729,9 @@ def get_game_data_renewed(game_id):
                              'pos', 'ab', 'run', 'hit', 'rbi', 'hr', 'bb', 'k']
         away_lineup_df = away_lineup_df[lineup_df_columns]
         home_lineup_df = home_lineup_df[lineup_df_columns]
+
+        home_lineup_df['seqno'] = home_lineup_df['seqno'].fillna(home_lineup_df.groupby('batOrder')['seqno'].transform('max') + 1)
+        away_lineup_df['seqno'] = away_lineup_df['seqno'].fillna(away_lineup_df.groupby('batOrder')['seqno'].transform('max') + 1)
 
         away_lineup_df = away_lineup_df\
                         .assign(posName = np.where(away_lineup_df.pos != '교',

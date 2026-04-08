@@ -199,7 +199,7 @@ class game_status:
         # lineup(order), fielding position, base
         self.lineups = [[], []] # 초 공격 / 말 공격
         self.fields = [{}, {}] # 초 수비 / 말 수비
-        self.runner_bases = []
+        self.runner_bases = [] # [이름, 코드, 루]
 
         # status change at pa, inning
         self.pa_number = 0
