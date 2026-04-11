@@ -9,6 +9,7 @@ _notebooks/
 .ipynb_checkpoints/
 .vscode/
 venv/
+.envrc
 *.ipynb
 *.json
 *.csv
@@ -17,5 +18,4 @@ venv/
 *.txt
 *.xlsx
 *.xls
-update_game_*.py
 .DS_store
