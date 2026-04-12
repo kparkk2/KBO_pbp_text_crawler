@@ -829,7 +829,7 @@ def get_game_data_renewed(game_id):
                     text = [x.replace('\\r', '').replace('\\n', '') for x in text]
                     text = [x.replace('\n', '').replace('\r', '').strip() for x in text]
                     text = [x.replace('\\', '') for x in text]
-                    text = [x.replace('\"{', '{').replace('\ "}', '}') for x in text]
+                    text = [x.replace('"{', '{').replace(' "}', '}') for x in text]
                     text = [x.replace('  ', '').replace('}\"', '}') for x in text]
 
                     away_pitchers_table = json.loads(text[0])
