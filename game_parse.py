@@ -135,7 +135,7 @@ def get_pitch_location_break(row):
         vy0 = row[12]
         vz0 = row[13]
         x0 = row[17]
-        y0 = 50
+        y0 = row[20]
         z0 = row[15]
         cpy = 1.4167
 
@@ -323,7 +323,7 @@ class game_status:
                     'stuff', 'pitchId', 'speed', 'referee', 'stadium']
         if 'x0' in rdf.columns:
             rdf_cols += ['crossPlateX', 'topSz', 'bottomSz',
-                         'vy0', 'vz0', 'vx0', 'z0', 'ax', 'x0', 'ay', 'az']
+                         'vy0', 'vz0', 'vx0', 'z0', 'ax', 'x0', 'ay', 'az', 'y0']
 
         for col in ['outPlayer', 'inPlayer', 'shiftPlayer']:
             if col in rdf.columns:
@@ -441,7 +441,7 @@ class game_status:
                         save_row['pfx_x_raw'] = pfx_x_raw
                         save_row['pfx_z_raw'] = pfx_z_raw
 
-                        save_row['y0'] = 50
+                        save_row['y0'] = row[20]
                         save_row['vx0'] = row[14]
                         save_row['vy0'] = row[12]
                         save_row['vz0'] = row[13]

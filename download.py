@@ -241,7 +241,7 @@ def get_game_data(game_id):
         pitch_keys = ['crossPlateX', 'topSz',
                       'pitchId', 'vy0', 'vz0', 'vx0',
                       'z0', 'ax', 'x0', 'ay', 'az',
-                      'bottomSz']
+                      'bottomSz', 'y0']
 
         # pitch by pitch 텍스트 데이터 취합
         text_set = []
@@ -559,7 +559,7 @@ def get_game_data_renewed(game_id):
         pitch_keys = ['crossPlateX', 'topSz',
                       'pitchId', 'vy0', 'vz0', 'vx0',
                       'z0', 'ax', 'x0', 'ay', 'az',
-                      'bottomSz']
+                      'bottomSz', 'y0']
         for inning in range(1, max_inning+1):
             pbp_req = requests.get(f'{nav_api_header}{game_id}/relay?inning={inning}')
             if pbp_req.status_code > 200:
